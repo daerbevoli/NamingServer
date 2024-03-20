@@ -1,42 +1,21 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-
-@RestController
-@RequestMapping("/NS") // NS = Naming Server
 public class Server {
 
     // Map to save the hash corresponding to the node's IP
     private final ConcurrentHashMap<Integer, InetAddress> map = new ConcurrentHashMap<>();
 
-    // File path to the json file containing the nodes
-    private static final String FILE_PATH = "nodes.json";
-
     // unsure whether a constructor should be used
     public Server(){
-
-        // function to read in a json file yet to implement
-
-
-        try {
-
-            // example values
-            map.put(1, InetAddress.getByName("192.168.1.1"));
-            map.put(2, InetAddress.getByName("192.168.1.2"));
-            map.put(3, InetAddress.getByName("192.168.1.3"));
-
-        } catch (UnknownHostException e){
-            e.printStackTrace();
-        }
 
     }
 
@@ -53,29 +32,31 @@ public class Server {
     hash is the owner of the file. If N is empty, the node with the biggest hash stores
     the requested file.
      */
-
     private int nodeOfFile(int fileHash){
-        return 0;
+        ConcurrentHashMap<Integer, InetAddress> N = new ConcurrentHashMap<>();
+        for (Map.Entry<Integer, InetAddress> entry : map.entrySet()){
+            if (entry.getValue().hashCode() < fileHash){
+                N.put(entry.getKey(), entry.getValue());
+            }
+        }
+        if (N.isEmpty()){
+            return map.keySet().stream().mapToInt(Integer::intValue).max().getAsInt();
+        } else {
+            return map.keySet().stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash))).get();
+        }
+
     }
 
-    @PostMapping("/add/{ip}")
-    public void addNode(@PathVariable String ip){
+    public void addNode(int id, String ip){
         try {
-            int id = hash(ip);
             map.put(id, InetAddress.getByName(ip));
         } catch (UnknownHostException e){
             e.printStackTrace();
         }
     }
 
-    @DeleteMapping("/remove/{ip}")
-    public void removeNode(@PathVariable String ip){
-        try {
-            int id = hash(ip);
-            map.remove(id);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+    public void removeNode(int id){
+        map.remove(id);
     }
 
     @GetMapping("/get/{filename}")
@@ -90,14 +71,11 @@ public class Server {
         // return node ID ip
         return map.get(nodeID).getHostAddress(); // returns ip address as a name
 
+
     }
 
-    private void saveMapToJSON(){
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.writeValue(new File(FILE_PATH), map);
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
+
+
+
+
 }
