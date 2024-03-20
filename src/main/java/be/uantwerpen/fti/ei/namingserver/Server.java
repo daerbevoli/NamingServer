@@ -46,6 +46,10 @@ public class Server {
         return 0;
     }
 
+    private void get(){
+        System.out.println("hello");
+    }
+
     @GetMapping("/get/{filename}")
     public String getIp(@PathVariable String filename){
 
