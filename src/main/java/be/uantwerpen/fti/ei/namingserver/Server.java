@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
 
-    // Map to save the hash corresponding to its IP
+    // Map to save the hash corresponding to the node's IP
     private final ConcurrentHashMap<Integer, InetAddress> map = new ConcurrentHashMap<>();
 
     // unsure whether a constructor should be used
@@ -36,14 +36,28 @@ public class Server {
         return (name.hashCode() + max) * (32768/max + Math.abs(min)); // why is this warning given?
     }
 
+
     /* Implementation of following algo comes here :
     Suppose N is the collection of nodes with a hash smaller than the hash of the
     filename. Then the node with the smallest difference between its hash and the file
     hash is the owner of the file. If N is empty, the node with the biggest hash stores
     the requested file.
      */
+
     private int nodeOfFile(int fileHash){
         return 0;
+    }
+
+    public void addNode(int id, String ip){
+        try {
+            map.put(id, InetAddress.getByName(ip));
+        } catch (UnknownHostException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void removeNode(int id){
+        map.remove(id);
     }
 
     @GetMapping("/get/{filename}")
