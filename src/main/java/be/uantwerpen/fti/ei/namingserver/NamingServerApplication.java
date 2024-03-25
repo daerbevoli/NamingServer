@@ -9,7 +9,6 @@ public class NamingServerApplication {
     public static void main(String[] args) {
         SpringApplication.run(NamingServerApplication.class, args);
 
-        Server server = new Server();
     }
 
 }
