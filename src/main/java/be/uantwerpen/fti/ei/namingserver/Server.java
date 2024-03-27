@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -10,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -17,8 +19,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequestMapping("/NS") // NS = Naming Server
 public class Server {
 
+    // Logger to log details in a try block for the file modification functions
+    private static final Logger logger = Logger.getLogger(Server.class.getName());
     // Map to save the hash corresponding to the node's IP
-    private ConcurrentHashMap<Integer, InetAddress> map = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, InetAddress> map = new ConcurrentHashMap<>();
 
     // File to store and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/ips.json");
@@ -68,43 +72,58 @@ public class Server {
     // First read from the JSON file to get the map
     // modify the map and save it to the JSON file
     @PostMapping("/add/{ip}")
-    public void addNode(@PathVariable String ip){
+    public ResponseEntity<String> addNode(@PathVariable String ip){
         readJSONIntoMap();
         try {
             int id = hash(ip);
-            map.put(id, InetAddress.getByName(ip));
-        } catch (UnknownHostException e){
-            e.printStackTrace();
+            // For some reason hostnames 192.168.0.10-99 have the same hash
+            if (map.containsKey(id)){
+                return ResponseEntity.ok(ip + " already in the network\n");
+            } else {
+                map.put(id, InetAddress.getByName(ip));
+                return ResponseEntity.ok(ip + " successfully added to the network\n");
+            }
+        } catch (UnknownHostException e) {
+            return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
+        } finally {
+            saveMapToJSON();
         }
-        saveMapToJSON();
     }
 
     // Delete a node from the map
     @DeleteMapping("/remove/{ip}")
-    public void removeNode(@PathVariable String ip){
+    public ResponseEntity<String> removeNode(@PathVariable String ip){
         readJSONIntoMap();
         try {
             int id = hash(ip);
-            map.remove(id);
-        } catch (Exception e){
-            e.printStackTrace();
+            // For some reason hostnames between certain intervals have the same hashcode
+            if (map.containsKey(id)){
+                map.remove(id);
+                return ResponseEntity.ok(ip + " successfully removed from the network\n");
+            } else {
+                return ResponseEntity.ok(ip + " not in the network\n" + id);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.ok("Error occurred while removing entry: " + e.getMessage());
+        } finally {
+            saveMapToJSON();
         }
-        saveMapToJSON();
     }
 
     @GetMapping("/get/{filename}")
-    public String getHostname(@PathVariable String filename){
+    public ResponseEntity<String> getHostname(@PathVariable String filename){
 
         // get the hash of the filename
         int fileHash = hash(filename);
-        System.out.println("file hash: " + fileHash);
+
 
         // calculate node ID
         int nodeID = nodeOfFile(fileHash);
-        System.out.println("node id: " + nodeID);
 
-        // return node ID ip
-        return map.get(nodeID).getHostAddress(); // returns ip address as a name
+
+        // return hostname
+        return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
+                "\nThe hostname is " + map.get(nodeID).getHostAddress());
 
     }
 
@@ -113,14 +132,14 @@ public class Server {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, String> stringMap = mapper.readValue(jsonFile, HashMap.class);
 
-            for (Map.Entry<String, String> entry : stringMap.entrySet()) {
+            for (HashMap.Entry<String, String> entry : stringMap.entrySet()) {
                 Integer key = Integer.parseInt(entry.getKey());
                 InetAddress value = InetAddress.getByName(entry.getValue());
                 map.put(key, value);
             }
 
             } catch (Exception e){
-            e.printStackTrace();
+            logger.log(Level.WARNING, "An error occurred when reading from JSON file", e);
         }
     }
 
@@ -138,7 +157,8 @@ public class Server {
 
             mapper.writeValue(jsonFile, stringMap);
         } catch (IOException e){
-            e.printStackTrace();
+            logger.log(Level.WARNING, "An error occurred when writing to JSON file", e);
+
         }
     }
 }
