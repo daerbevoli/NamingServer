@@ -15,12 +15,20 @@ import java.util.logging.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * This class represents a Naming Server (NS) for managing nodes and file distribution in a distributed system.
+ * It provides functionality to add and remove nodes, as well as to retrieve the hostname associated with a given filename.
+
+ * The NS utilizes a hash-based algorithm to determine the node responsible for storing a file based on its hashcode.
+ * Additionally, it employs a JSON file to persist node information for consistency across sessions.
+ */
 @RestController
 @RequestMapping("/NS") // NS = Naming Server
 public class Server {
 
     // Logger to log details in a try block for the file modification functions
     private static final Logger logger = Logger.getLogger(Server.class.getName());
+
     // Map to save the hash corresponding to the node's IP
     private final ConcurrentHashMap<Integer, InetAddress> map = new ConcurrentHashMap<>();
 
@@ -34,7 +42,7 @@ public class Server {
     public int hash(String name){
         int min = -2147483647;
         int max = 2147483647;
-        //return (name.hashCode() + max) * (32768/max + Math.abs(min)); // this does not work
+        // return (name.hashCode() + max) * (32768/max + Math.abs(min)); // this does not work
 
         // The range is [-2147483647, 2147483647], we want to map it to [0, 32768)
         // mappedValue = (value - minValue) * (newRange / oldRange)
@@ -56,21 +64,22 @@ public class Server {
     private int nodeOfFile(int fileHash){
         ConcurrentHashMap<Integer, InetAddress> N = new ConcurrentHashMap<>();
         for (Map.Entry<Integer, InetAddress> entry : map.entrySet()){
-            if (entry.getKey() < fileHash){
+            if (entry.getKey() <= fileHash){
                 N.put(entry.getKey(), entry.getValue());
+                System.out.println(entry.getKey() + " " + entry.getValue());
             }
         }
         if (N.isEmpty()){
             return map.keySet().stream().mapToInt(Integer::intValue).max().getAsInt();
         } else {
-            return map.keySet().stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash))).get();
+            return N.keySet().stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash))).get();
         }
 
     }
 
-    // Add a node by giving the hostname as parameters
+    // Add a node by giving the hostname as parameter
     // First read from the JSON file to get the map
-    // modify the map and save it to the JSON file
+    // Modify the map and save it to the JSON file
     @PostMapping("/add/{ip}")
     public ResponseEntity<String> addNode(@PathVariable String ip){
         readJSONIntoMap();
@@ -110,16 +119,15 @@ public class Server {
         }
     }
 
+    // Get the hostname of the node that hosts the file
     @GetMapping("/get/{filename}")
     public ResponseEntity<String> getHostname(@PathVariable String filename){
 
         // get the hash of the filename
         int fileHash = hash(filename);
 
-
         // calculate node ID
         int nodeID = nodeOfFile(fileHash);
-
 
         // return hostname
         return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
