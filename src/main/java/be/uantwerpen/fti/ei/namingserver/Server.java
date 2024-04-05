@@ -26,34 +26,35 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequestMapping("/NS") // NS = Naming Server
 public class Server {
 
-    // Logger to log details in a try block for the file modification functions
+    // Logger to log details in a try block for the file modification methods
     private static final Logger logger = Logger.getLogger(Server.class.getName());
 
-    // Map to save the hash corresponding to the node's IP
-    private final ConcurrentHashMap<Integer, InetAddress> map = new ConcurrentHashMap<>();
+    // Map to save the hash corresponding to the node's hostname
+    private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();
 
-    // File to store and read from
-    private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/ips.json");
+    // File to write to and read from
+    private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
     // Constructor to read the starting data from the JSON file
     public Server(){
         readJSONIntoMap();
     }
+
+    // Hash function provided by the teachers
+    /*
+        A problem that this hash function brings is that, because of the limiting of the range,
+        a lot of hostnames produce the same hash code.
+        E.g. the 192.168.0.1 to 192.168.0.8 produce the hash code 16810
+        How to resolve? -> ask TA after Easter break
+     */
     public int hash(String name){
-        int min = -2147483647;
-        int max = 2147483647;
-        // return (name.hashCode() + max) * (32768/max + Math.abs(min)); // this does not work
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
 
-        // The range is [-2147483647, 2147483647], we want to map it to [0, 32768)
-        // mappedValue = (value - minValue) * (newRange / oldRange)
-        // Here, minValue = -2147483647, maxValue = 2147483647, newRange = 32768, oldRange = maxValue - minValue
-        // L suffix stands for long int
-        double h = (name.hashCode() + 2147483647L) * (32768.0 / 4294967294L);
-        return (int)h;
-
+        double hashValue = (name.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
 
     }
-
 
     /* Implementation of following algorithm :
     Suppose N is the collection of nodes with a hash smaller than the hash of the
@@ -62,15 +63,17 @@ public class Server {
     the requested file.
      */
     private int nodeOfFile(int fileHash){
+
         ConcurrentHashMap<Integer, InetAddress> N = new ConcurrentHashMap<>();
-        for (Map.Entry<Integer, InetAddress> entry : map.entrySet()){
+
+        for (Map.Entry<Integer, InetAddress> entry : nodesMap.entrySet()){
             if (entry.getKey() <= fileHash){
                 N.put(entry.getKey(), entry.getValue());
-                System.out.println(entry.getKey() + " " + entry.getValue());
             }
         }
+
         if (N.isEmpty()){
-            return map.keySet().stream().mapToInt(Integer::intValue).max().getAsInt();
+            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max().getAsInt();
         } else {
             return N.keySet().stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash))).get();
         }
@@ -86,10 +89,10 @@ public class Server {
         try {
             int id = hash(ip);
             // For some reason hostnames 192.168.0.10-99 have the same hash
-            if (map.containsKey(id)){
+            if (nodesMap.containsKey(id)){
                 return ResponseEntity.ok(ip + " already in the network\n");
             } else {
-                map.put(id, InetAddress.getByName(ip));
+                nodesMap.put(id, InetAddress.getByName(ip));
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             }
         } catch (UnknownHostException e) {
@@ -106,8 +109,8 @@ public class Server {
         try {
             int id = hash(ip);
             // For some reason hostnames between certain intervals have the same hashcode
-            if (map.containsKey(id)){
-                map.remove(id);
+            if (nodesMap.containsKey(id)){
+                nodesMap.remove(id);
                 return ResponseEntity.ok(ip + " successfully removed from the network\n");
             } else {
                 return ResponseEntity.ok(ip + " not in the network\n" + id);
@@ -131,19 +134,25 @@ public class Server {
 
         // return hostname
         return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
-                "\nThe hostname is " + map.get(nodeID).getHostAddress());
+                "\nThe hostname is " + nodesMap.get(nodeID).getHostAddress());
 
     }
 
+    /*
+        The File consists of key-value pairs of type String, so when reading in the file, we get String objects.
+        To resolve this, we read the pairs into a String map after which we take these pairs, convert them
+        and put them into the nodesMap.
+     */
     public void readJSONIntoMap(){
         try {
+
             ObjectMapper mapper = new ObjectMapper();
             Map<String, String> stringMap = mapper.readValue(jsonFile, HashMap.class);
 
             for (HashMap.Entry<String, String> entry : stringMap.entrySet()) {
                 Integer key = Integer.parseInt(entry.getKey());
                 InetAddress value = InetAddress.getByName(entry.getValue());
-                map.put(key, value);
+                nodesMap.put(key, value);
             }
 
             } catch (Exception e){
@@ -151,19 +160,21 @@ public class Server {
         }
     }
 
+    // We do the inverse when writing to the JSON file.
     public void saveMapToJSON(){
         try {
-            ObjectMapper mapper = new ObjectMapper();
 
+            ObjectMapper mapper = new ObjectMapper();
             Map<String, String> stringMap = new HashMap<>();
 
-            for (Map.Entry<Integer, InetAddress> entry : map.entrySet()) {
+            for (Map.Entry<Integer, InetAddress> entry : nodesMap.entrySet()) {
                 String key = entry.getKey().toString();
                 String value = entry.getValue().getHostAddress();
                 stringMap.put(key, value);
             }
 
             mapper.writeValue(jsonFile, stringMap);
+
         } catch (IOException e){
             logger.log(Level.WARNING, "An error occurred when writing to JSON file", e);
 
