@@ -1,11 +1,14 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import ch.qos.logback.core.joran.sanity.Pair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -37,7 +40,7 @@ public class Server {
 
     // Constructor to read the starting data from the JSON file
     public Server(){
-        readJSONIntoMap();
+        //readJSONIntoMap();
     }
 
     // Hash function provided by the teachers
@@ -144,6 +147,10 @@ public class Server {
         and put them into the nodesMap.
      */
     public void readJSONIntoMap(){
+        if (jsonFile.length() == 0){
+            return;
+        }
+
         try {
 
             ObjectMapper mapper = new ObjectMapper();
@@ -180,4 +187,44 @@ public class Server {
 
         }
     }
+
+    private String listenMulticast(){
+        try {
+            // Create a multicast socket
+            MulticastSocket socket = new MulticastSocket(3000);
+
+            // Join the multicast group
+            InetAddress group = InetAddress.getByName("224.0.0.1");
+            socket.joinGroup(group);
+
+            // Create buffer for incoming data
+            byte[] buffer = new byte[1024];
+
+            // Receive file data and write to file
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            socket.receive(packet);
+
+            String message = new String(packet.getData(), 0, packet.getLength());
+            String[] parts = message.split(":");
+
+            System.out.println("Received message: " + message);
+
+            return parts[1];
+
+
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to open socket", e);
+        }
+        return null;
+    }
+
+    public static void main(String[] args){
+        Server serv = new Server();
+        String node = serv.listenMulticast();
+        System.out.println("Node: " + node);
+        serv.addNode(node);
+    }
+
+
 }
