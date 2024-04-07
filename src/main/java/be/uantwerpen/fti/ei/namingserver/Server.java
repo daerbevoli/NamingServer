@@ -99,6 +99,7 @@ public class Server {
         }
     }
 
+
     // Delete a node from the map
     @DeleteMapping("/remove/{ip}")
     public ResponseEntity<String> removeNode(@PathVariable String ip){
@@ -133,6 +134,14 @@ public class Server {
         return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
                 "\nThe hostname is " + map.get(nodeID).getHostAddress());
 
+    }
+
+    // Endpoint to trigger discovery message
+    @GetMapping("/discover")
+    public ResponseEntity<String> triggerDiscovery() {
+        Discovery discovery = new Discovery();
+        discovery.sendDiscoveryMessage();
+        return ResponseEntity.ok("Discovery message sent.");
     }
 
     public void readJSONIntoMap(){
