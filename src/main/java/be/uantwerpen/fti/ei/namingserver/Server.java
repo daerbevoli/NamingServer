@@ -1,19 +1,17 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import ch.qos.logback.core.joran.sanity.Pair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,8 +38,30 @@ public class Server {
 
     // Constructor to read the starting data from the JSON file
     public Server(){
-        //readJSONIntoMap();
+        readJSONIntoMap();
+
+        // Listen to multicast messages from nodes
+        String nodeName = listenMulticast();
+
+        // When found, add the node to the map
+        addNode(nodeName);
+
+        // Send unicast to node with the nodes in the network
+        sendUnicast();
+
+        //runFunctionsOnThreads(); // A possible way to use threads but needs to improve
     }
+
+    // Thread executor
+    public void runFunctionsOnThreads() {
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+
+        executor.submit(this::sendUnicast);
+
+        // Shutdown the executor once tasks are completed
+        executor.shutdown();
+    }
+
 
     // Hash function provided by the teachers
     /*
@@ -142,14 +162,6 @@ public class Server {
 
     }
 
-    // Endpoint to trigger discovery message
-    @GetMapping("/discover")
-    public ResponseEntity<String> triggerDiscovery() {
-        Discovery discovery = new Discovery();
-        discovery.sendDiscoveryMessage();
-        return ResponseEntity.ok("Discovery message sent.");
-    }
-
     /*
         The File consists of key-value pairs of type String, so when reading in the file, we get String objects.
         To resolve this, we read the pairs into a String map after which we take these pairs, convert them
@@ -197,17 +209,19 @@ public class Server {
         }
     }
 
+    // This method listen to port 3000 for messages in the form hostname:IP
+    // It then returns the IP
     private String listenMulticast(){
-        try {
-            // Create a multicast socket
-            MulticastSocket socket = new MulticastSocket(3000);
+        try (MulticastSocket socket = new MulticastSocket(3000)){
+
+            System.out.println("connected to multicast network");
 
             // Join the multicast group
             InetAddress group = InetAddress.getByName("224.0.0.1");
             socket.joinGroup(group);
 
             // Create buffer for incoming data
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[512];
 
             // Receive file data and write to file
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -216,11 +230,9 @@ public class Server {
             String message = new String(packet.getData(), 0, packet.getLength());
             String[] parts = message.split(":");
 
-            System.out.println("Received message: " + message);
+            System.out.println("Received Node: " + message);
 
             return parts[1];
-
-
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
@@ -228,11 +240,35 @@ public class Server {
         return null;
     }
 
+    // This method sends map size through port 8001 to port 8000 via localhost
+    public void sendUnicast(){
+        try(DatagramSocket socket = new DatagramSocket(8001)){
+
+            System.out.println("Connected to UDP socket");
+
+            int mapSize = nodesMap.size();
+
+            InetAddress group = InetAddress.getByName("127.0.0.1");
+
+            String size = String.valueOf(mapSize);
+            byte[] buffer = size.getBytes();
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
+
+            // Send the packet
+            socket.send(packet);
+
+            System.out.println("Number of nodes sent to the node");
+
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
+    }
+
     public static void main(String[] args){
-        Server serv = new Server();
-        String node = serv.listenMulticast();
-        System.out.println("Node: " + node);
-        serv.addNode(node);
+        new Server();
     }
 
 
