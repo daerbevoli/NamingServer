@@ -3,6 +3,9 @@ package be.uantwerpen.fti.ei.namingserver;
 
 import java.io.IOException;
 import java.net.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -36,7 +39,7 @@ public class Node {
 
     }
 
-    // Thread executor
+    // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
         ExecutorService executor = Executors.newFixedThreadPool(3);
 
@@ -68,7 +71,7 @@ public class Node {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
             int port = 3000; // Multicast group port
 
-            String message = hostName + ":" + IP;
+            String message = hostName + ":" + IP + ":";
             byte[] buffer = message.getBytes();
 
             // Create a DatagramPacket
@@ -88,7 +91,7 @@ public class Node {
     private void listenMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
 
-            System.out.println("connected to multicast network : Node 1");
+            System.out.println("connected to multicast network");
 
             // Join the multicast group
             InetAddress group = InetAddress.getByName("224.0.0.1");
@@ -120,7 +123,7 @@ public class Node {
 
     // Receive the map size from the name server
     private void receiveUnicast() {
-        try (DatagramSocket socket = new DatagramSocket(8000)) {
+        try (DatagramSocket socket = new DatagramSocket(8000)) { // Use port 0 to get a random available local port
 
             System.out.println("Connected to receive unicast");
 
