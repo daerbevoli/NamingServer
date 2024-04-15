@@ -154,9 +154,14 @@ public class Node {
                 nextID = hash;
             }
             if (previousID < hash  && hash < currentID){
-                currentID = hash;
+                previousID = hash;
             }
         }
+    }
+
+    public void shutDown()
+    {
+
     }
 
 
