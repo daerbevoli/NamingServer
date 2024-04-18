@@ -188,9 +188,45 @@ public class Node {
         }
     }
 
-    public void shutDown()
-    {
+    public void shutdown(){
+        try (DatagramSocket socket = new DatagramSocket(11000)){
 
+            System.out.println("Connected to UDP socket for shutdown");
+
+            InetAddress group = InetAddress.getByName("127.0.0.1");
+
+            String str = "shutdown:" + hostName + ":" + IP + ":" + previousID + ":" + nextID;
+            byte[] buffer = str.getBytes();
+
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
+
+            socket.send(packet);
+
+            byte[] buffRec = new byte[512];
+
+            while (true){
+                DatagramPacket packet2 = new DatagramPacket(buffRec, buffRec.length);
+                socket.receive(packet2);
+
+                String message = new String(packet.getData(), 0, packet.getLength());
+                String[] parts = message.split(":");
+
+                updatePrevNext(parts);
+            }
+
+
+        } catch (IOException e){
+            logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
+        }
+    }
+
+    public void updatePrevNext(String[] mess){
+        if (currentID == Integer.parseInt(mess[3])){ // if previous id
+            nextID = Integer.parseInt(mess[4]); // new next id
+        }
+        if (currentID == Integer.parseInt(mess[4])){ // if next id
+            previousID = Integer.parseInt(mess[3]); // new prev id
+        }
     }
 
 
