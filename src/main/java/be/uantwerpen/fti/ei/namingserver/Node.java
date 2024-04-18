@@ -1,5 +1,11 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+
+
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
+
+
 import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
@@ -19,14 +25,17 @@ import java.util.logging.Logger;
 public class Node {
 
     private final String IP;
+    private final String nodeName;
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
+    private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    public Node() {
+    public Node(String nodeName) {
         this.IP = findLocalIP();
-
+        this.nodeName=nodeName;
+        System.out.println(IP);
         currentID = hash(IP);
         previousID = currentID;
         nextID = currentID; // Initially the node is the only node in the network
@@ -37,6 +46,7 @@ public class Node {
 
     // Find the local ip of the remote node
     private String findLocalIP() {
+
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces.hasMoreElements()) {
@@ -62,13 +72,15 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         executor.submit(this::sendBootstrap);
 
         executor.submit(this::listenMulticast);
 
         executor.submit(this::receiveUnicast);
+
+        executor.submit(this::DiscoverServerIP);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -213,9 +225,9 @@ public class Node {
 
             System.out.println("Connected to UDP socket for shutdown");
 
-            InetAddress group = InetAddress.getByName("127.0.0.1");
+            InetAddress group = InetAddress.getByName(serverIP);
 
-            String str = "shutdown:" + hostName + ":" + IP + ":" + previousID + ":" + nextID;
+            String str = "shutdown:" + nodeName + ":" + IP + ":" + previousID + ":" + nextID;
             byte[] buffer = str.getBytes();
 
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
@@ -249,9 +261,46 @@ public class Node {
         }
     }
 
+    public void DiscoverServerIP()
+    {
+        try (MulticastSocket socket = new MulticastSocket(3333)) {
+
+            System.out.println("connected to multicast netw0rk");
+
+            // Join the multicast group
+            InetAddress group = InetAddress.getByName("224.0.0.1");
+
+            socket.joinGroup(group);
+
+            // Create buffer for incoming data
+            byte[] buffer = new byte[512];
+
+            // Receive file data and write to file
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
+
+            socket.receive(packet);
+
+            //Get Ip of server
+            serverIP = packet.getAddress().getHostAddress();
+
+            System.out.println("Received message: ServerIP:" + serverIP);
+
+
+
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to open socket", e);
+
+    }}
+
+
+
+
+
 
     public static void main(String[] args)  {
-        Node node = new Node();
+        Node node = new Node("node1");
 
         //Node node = new Node("Steve", "12.12.12.12");
         //System.out.println(node.previousID + node.currentID + node.nextID);
