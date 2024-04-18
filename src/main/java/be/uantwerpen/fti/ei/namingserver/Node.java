@@ -26,15 +26,13 @@ import java.util.logging.Logger;
 
 public class Node {
 
-    private final String hostName;
     private final String IP;
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    public Node(String name) {
-        this.hostName = name;
+    public Node() {
         this.IP = findLocalIP();
 
         currentID = hash(IP);
@@ -86,11 +84,11 @@ public class Node {
 
 
     // Hash function
-    public int hash(String name){
+    public int hash(String IP){
         double max = Integer.MAX_VALUE;
         double min = Integer.MIN_VALUE;
 
-        double hashValue = (name.hashCode() + max) * (32768/(max + Math.abs(min)));
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
         return (int) hashValue;
 
     }
@@ -117,7 +115,7 @@ public class Node {
 
     // Send a multicast message during bootstrap with name and IP address
     private void sendBootstrap() {
-        String message = "BOOTSTRAP:" + hostName + ":" + IP;
+        String message = "BOOTSTRAP"+ ":" + IP;
         sendMulticast(message);
     }
 
@@ -152,8 +150,8 @@ public class Node {
     // Process the message received from the multicast
     private void processBootstrap(String message) {
         String[] parts = message.split(":");
-        String name = parts[1];
-        String IP = parts[2];
+        String command = parts[0];
+        String IP = parts[1];
         int receivedHash = hash(IP);
         // Update current node's network parameters based on the received node's hash
         updateHash(receivedHash);
@@ -213,6 +211,7 @@ public class Node {
             }
             if (previousID < receivedHash  && receivedHash < currentID){
                 previousID = receivedHash;
+                System.out.println("Previous ID: " + previousID);
             }
         }
     }
@@ -224,7 +223,7 @@ public class Node {
 
 
     public static void main(String[] args)  {
-        Node node = new Node("Steve");
+        Node node = new Node();
 
         //Node node = new Node("Steve", "12.12.12.12");
         //System.out.println(node.previousID + node.currentID + node.nextID);

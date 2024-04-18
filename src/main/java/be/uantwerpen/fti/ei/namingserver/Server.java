@@ -30,7 +30,7 @@ public class Server {
     // Logger to log details in a try block for the file modification methods
     private static final Logger logger = Logger.getLogger(Server.class.getName());
 
-    // Map to save the hash corresponding to the node's hostname
+    // Map to save the hash corresponding to the node's ip
     private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();
 
     // File to write to and read from
@@ -66,11 +66,11 @@ public class Server {
         E.g. the 192.168.0.1 to 192.168.0.8 produce the hash code 16810
         How to resolve? -> ask TA after Easter break
      */
-    public int hash(String name){
+    public int hash(String IP){
         double max = Integer.MAX_VALUE;
         double min = Integer.MIN_VALUE;
 
-        double hashValue = (name.hashCode() + max) * (32768/(max + Math.abs(min)));
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
         return (int) hashValue;
 
     }
@@ -99,7 +99,7 @@ public class Server {
 
     }
 
-    // Add a node by giving the hostname as parameter
+    // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
     // Modify the map and save it to the JSON file
     @PostMapping("/add/{ip}")
@@ -235,8 +235,8 @@ public class Server {
     private void processReceivedMessage(String message) {
         if (message.startsWith("BOOTSTRAP:")) {
             String[] parts = message.split(":");
-            String nodeName = parts[1];
-            String nodeIP = parts[2];
+            String command = parts[0];
+            String nodeIP = parts[1];
             addNode(nodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
         }
