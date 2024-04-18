@@ -1,15 +1,7 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.net.*;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Enumeration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -222,7 +222,6 @@ public class Server {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
-                String[] parts = message.split(":");
 
                 System.out.println("Received multicast message: " + message);
                 processReceivedMessage(message);
@@ -268,7 +267,6 @@ public class Server {
             logger.log(Level.WARNING, "unable to open server socket", e);
         }
     }
-
 
     public void receiveShutdown(){
         try (DatagramSocket socket = new DatagramSocket(8000)) {
