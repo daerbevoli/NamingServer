@@ -40,7 +40,6 @@ public class Server {
     public Server(){
         readJSONIntoMap();
 
-
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
     }
 
@@ -235,11 +234,10 @@ public class Server {
     private void processReceivedMessage(String message) {
         if (message.startsWith("BOOTSTRAP:")) {
             String[] parts = message.split(":");
-            if (parts.length >= 3) {
-                String nodeName = parts[1];
-                String nodeIP = parts[2];
-                addNode(nodeIP);  // Assuming addNode expects an IP and manages the hash internally
-            }
+            String nodeName = parts[1];
+            String nodeIP = parts[2];
+            addNode(nodeIP); // Add the node to the map
+            sendUnicast(); // Send the number of nodes to the node
         }
     }
 

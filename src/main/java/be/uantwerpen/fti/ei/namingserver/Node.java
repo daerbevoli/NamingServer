@@ -112,10 +112,7 @@ public class Node {
                 System.out.println("Received message: " + message);
 
                 if (message.startsWith("BOOTSTRAP")){
-                    String[] parts = message.split(":");
-                    // Update the hash
-                    int receivedHash = hash(parts[2]);
-                    updateHash(numOfNodes, receivedHash);
+                    processBootstrap(message);
                 }
             }
         } catch (IOException e) {
@@ -123,6 +120,15 @@ public class Node {
         }
     }
 
+    // Process the message received from the multicast
+    private void processBootstrap(String message) {
+        String[] parts = message.split(":");
+        String name = parts[1];
+        String IP = parts[2];
+        int receivedHash = hash(IP);
+        // Update current node's network parameters based on the received node's hash
+        updateHash(receivedHash);
+    }
 
 
     // Receive the map size from the name server
@@ -130,7 +136,6 @@ public class Node {
         try (DatagramSocket socket = new DatagramSocket(null)) {
             socket.setReuseAddress(true); // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state (which can occur after the socket is closed).
             socket.bind(new InetSocketAddress(8000));
-
             System.out.println("Connected to receive unicast");
 
             // Create buffer for incoming data
@@ -140,30 +145,45 @@ public class Node {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
 
-            numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()));
+            numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
             System.out.println("Nodes in the network: " + numOfNodes);
 
-
+            // Adjust previous and next IDs based on the number of nodes
+            adjustNodeLinks(numOfNodes);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
         }
     }
 
+    // Adjust the previous and next IDs based on the number of nodes
+    private void adjustNodeLinks(int numOfNodes) {
+        if (numOfNodes <= 1){
+            previousID = currentID;
+            nextID = currentID;
+        } else {
+            previousID = currentID - 1;
+            nextID = currentID + 1;
+        }
+    }
+
+
+
     // Update the hash
-    public void updateHash(int numOfNodes, int hash){
-        if (hash == currentID) { // Received info is about itself
+    public void updateHash(int receivedHash){
+        if (receivedHash == currentID) { // Received info is about itself
             return;
         }
         if (numOfNodes < 1){
             previousID = currentID;
             nextID = currentID;
         } else {
-            if (currentID < hash && hash < nextID){
-                nextID = hash;
+            if (currentID < receivedHash && receivedHash < nextID){
+                nextID = receivedHash;
+                System.out.println("Next ID: " + nextID);
             }
-            if (previousID < hash  && hash < currentID){
-                previousID = hash;
+            if (previousID < receivedHash  && receivedHash < currentID){
+                previousID = receivedHash;
             }
         }
     }
@@ -178,7 +198,7 @@ public class Node {
         Node node = new Node("Steve", "12.12.12.12");
         System.out.println(node.previousID + node.currentID + node.nextID);
 
-        Node node2 = new Node("John", "8.8.8.8");
-        System.out.println(node2.previousID + node2.currentID + node2.nextID);
+        //Node node2 = new Node("John", "8.8.8.8");
+        //System.out.println(node2.previousID + node2.currentID + node2.nextID);
     }
 }
