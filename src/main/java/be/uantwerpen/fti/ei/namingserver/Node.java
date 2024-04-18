@@ -1,11 +1,16 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.net.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Enumeration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -18,20 +23,19 @@ import java.util.logging.Logger;
  * It then listens for incoming multicast messages from other nodes and a unicast message from the name server
  * With these messages, the node arranges itself correctly in the system.
  */
+
 public class Node {
 
     private final String hostName;
     private final String IP;
-
     private int previousID, nextID, currentID;
-
     private int numOfNodes;
 
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    public Node(String name, String IP) {
+    public Node(String name) {
         this.hostName = name;
-        this.IP = IP;
+        this.IP = findLocalIP();
 
         currentID = hash(IP);
         previousID = currentID;
@@ -39,6 +43,31 @@ public class Node {
 
         runFunctionsOnThreads();
 
+    }
+
+    // Find the local ip of the remote node
+    private String findLocalIP() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                // filters out 127.0.0.1 and inactive interfaces
+                if (iface.isLoopback() || !iface.isUp()) {
+                    continue;
+                }
+                Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    // Filters out IPv6 addresses
+                    if (addr instanceof Inet4Address) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            logger.log(Level.WARNING, "Unable to find local IP", e);
+        }
+        return "127.0.0.1"; // Default IP address localhost
     }
 
     // Thread executor to run the functions on different threads
@@ -231,8 +260,10 @@ public class Node {
 
 
     public static void main(String[] args)  {
-        Node node = new Node("Steve", "12.12.12.12");
-        System.out.println(node.previousID + node.currentID + node.nextID);
+        Node node = new Node("Steve");
+
+        //Node node = new Node("Steve", "12.12.12.12");
+        //System.out.println(node.previousID + node.currentID + node.nextID);
 
         //Node node2 = new Node("John", "8.8.8.8");
         //System.out.println(node2.previousID + node2.currentID + node2.nextID);

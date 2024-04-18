@@ -51,7 +51,8 @@ public class Server {
         executor.submit(this::listenMulticast);
 
         // Send the number of nodes to the node
-        executor.submit(this::sendUnicast);
+        // This happens in processReceivedMessage, which is called in listenMulticast
+        //executor.submit(this::sendUnicast);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -237,19 +238,19 @@ public class Server {
             String nodeName = parts[1];
             String nodeIP = parts[2];
             addNode(nodeIP); // Add the node to the map
-            sendUnicast(); // Send the number of nodes to the node
+            sendUnicast(nodeIP); // Send the number of nodes to the node
         }
     }
 
     // This method sends map size through port 8001 to port 8000 via localhost
-    public void sendUnicast(){
+    public void sendUnicast(String targetIP){
         try(DatagramSocket socket = new DatagramSocket(8001)){
 
             System.out.println("Connected to UDP socket");
 
             int mapSize = nodesMap.size();
 
-            InetAddress group = InetAddress.getByName("127.0.0.1");
+            InetAddress group = InetAddress.getByName(targetIP);
 
             String size = String.valueOf(mapSize);
             byte[] buffer = size.getBytes();
