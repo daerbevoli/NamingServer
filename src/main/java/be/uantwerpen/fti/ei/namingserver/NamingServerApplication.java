@@ -1,7 +1,7 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication; // Used to mark a class as the main Spring Boot application class. It enables auto-configuration features provided by Spring Boot.
 
 @SpringBootApplication
 public class NamingServerApplication {

@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  * It then listens for incoming multicast messages from other nodes and a unicast message from the name server
  * With these messages, the node arranges itself correctly in the system.
  */
-public class Node {
+public class Node2 {
 
     private final String hostName;
     private final String IP;
@@ -29,7 +29,7 @@ public class Node {
 
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    public Node(String name, String IP) {
+    public Node2(String name, String IP) {
         this.hostName = name;
         this.IP = IP;
 
@@ -81,7 +81,7 @@ public class Node {
 
             System.out.println("Multicast message sent successfully.");
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
+            logger.log(Level.WARNING, "Unable to send multicast message", e);
         }
 
     }
@@ -105,19 +105,22 @@ public class Node {
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
 
-            while (true) {  // Keep listening indefinitely
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Received message: " + message);
+            // Receive file data and write to file
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            socket.receive(packet);
 
-                if (message.startsWith("BOOTSTRAP")){
-                    String[] parts = message.split(":");
-                    // Update the hash
-                    int receivedHash = hash(parts[2]);
-                    updateHash(numOfNodes, receivedHash);
-                }
+            String message = new String(packet.getData(), 0, packet.getLength());
+            String[] parts = message.split(":");
+
+            System.out.println("Received message: " + message);
+
+            if (message.startsWith("BOOTSTRAP")){
+                // Update the hash
+                int hash = hash(parts[2]);
+                updateHash(numOfNodes, hash);
             }
+
+
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
         }
@@ -175,10 +178,7 @@ public class Node {
 
 
     public static void main(String[] args)  {
-        Node node = new Node("Steve", "12.12.12.12");
-        System.out.println(node.previousID + node.currentID + node.nextID);
-
-        Node node2 = new Node("John", "8.8.8.8");
+        Node2 node2 = new Node2("John", "8.8.8.8");
         System.out.println(node2.previousID + node2.currentID + node2.nextID);
     }
 }

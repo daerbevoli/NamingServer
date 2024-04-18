@@ -40,22 +40,18 @@ public class Server {
     public Server(){
         readJSONIntoMap();
 
-        // Listen to multicast messages from nodes
-        String nodeName = listenMulticast();
 
-        // When found, add the node to the map
-        addNode(nodeName);
-
-        // Send unicast to node with the nodes in the network
-        sendUnicast();
-
-        //runFunctionsOnThreads(); // A possible way to use threads but needs to improve
+        runFunctionsOnThreads(); // A possible way to use threads but needs to improve
     }
 
     // Thread executor
     public void runFunctionsOnThreads() {
         ExecutorService executor = Executors.newFixedThreadPool(1);
 
+        // Listen to multicast messages from nodes
+        executor.submit(this::listenMulticast);
+
+        // Send the number of nodes to the node
         executor.submit(this::sendUnicast);
 
         // Shutdown the executor once tasks are completed
@@ -108,20 +104,22 @@ public class Server {
     // Modify the map and save it to the JSON file
     @PostMapping("/add/{ip}")
     public ResponseEntity<String> addNode(@PathVariable String ip){
+        logger.log(Level.INFO, "Attempting to add node with IP: " + ip);
         readJSONIntoMap();
-        try {
-            int id = hash(ip);
-            // For some reason hostnames 192.168.0.10-99 have the same hash
-            if (nodesMap.containsKey(id)){
-                return ResponseEntity.ok(ip + " already in the network\n");
-            } else {
+        int id = hash(ip);
+        if (nodesMap.containsKey(id)) {
+            logger.info(ip + " is already in the network.");
+            return ResponseEntity.ok(ip + " already in the network\n");
+        } else {
+            try {
                 nodesMap.put(id, InetAddress.getByName(ip));
+                saveMapToJSON();  // Save every time a new node is added
+                logger.info(ip + " added to the network.");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
+            } catch (UnknownHostException e) {
+                logger.log(Level.SEVERE, "Failed to add node", e);
+                return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
             }
-        } catch (UnknownHostException e) {
-            return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
-        } finally {
-            saveMapToJSON();
         }
     }
 
@@ -211,33 +209,38 @@ public class Server {
 
     // This method listen to port 3000 for messages in the form hostname:IP
     // It then returns the IP
-    private String listenMulticast(){
+    private void listenMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
-
             System.out.println("connected to multicast network");
-
             // Join the multicast group
             InetAddress group = InetAddress.getByName("224.0.0.1");
             socket.joinGroup(group);
-
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
 
-            // Receive file data and write to file
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
+            while (true) {  // Keep listening indefinitely
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+                String[] parts = message.split(":");
 
-            String message = new String(packet.getData(), 0, packet.getLength());
-            String[] parts = message.split(":");
-
-            System.out.println("Received Node: " + message);
-
-            return parts[1];
-
+                System.out.println("Received multicast message: " + message);
+                processReceivedMessage(message);
+            }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
         }
-        return null;
+    }
+
+    private void processReceivedMessage(String message) {
+        if (message.startsWith("BOOTSTRAP:")) {
+            String[] parts = message.split(":");
+            if (parts.length >= 3) {
+                String nodeName = parts[1];
+                String nodeIP = parts[2];
+                addNode(nodeIP);  // Assuming addNode expects an IP and manages the hash internally
+            }
+        }
     }
 
     // This method sends map size through port 8001 to port 8000 via localhost
