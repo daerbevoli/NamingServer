@@ -178,7 +178,7 @@ public class Node2 {
 
 
     public static void main(String[] args)  {
-        Node2 node2 = new Node2("Tim", "1.2.3.4");
+        Node2 node2 = new Node2("John", "8.8.8.8");
         System.out.println(node2.previousID + node2.currentID + node2.nextID);
     }
 }
