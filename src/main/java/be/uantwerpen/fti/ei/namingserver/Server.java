@@ -47,7 +47,6 @@ public class Server {
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenMulticast);
-        executor.submit(this::SendServerIP);
 
         // Send the number of nodes to the node
         // This happens in processReceivedMessage, which is called in listenMulticast
@@ -272,24 +271,6 @@ public class Server {
         }
     }
 
-
-    public void SendServerIP()
-    {
-        int port=3333;
-        try (MulticastSocket socket = new MulticastSocket(port)){
-            InetAddress address = InetAddress.getByName("224.0.0.1"); // Multicast group address
-
-            String msg= "I'm the server";
-            DatagramPacket packet = new DatagramPacket(msg.getBytes(),msg.length(),address,port);
-            while(true){
-            socket.send(packet);
-            Thread.sleep(5000);
-            System.out.println("IP shared to the nodes");
-            }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
-        }
-    }
 
 
     public static void main(String[] args){

@@ -22,7 +22,7 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
-    private InetAddress serverIP;
+    private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
     public Node() {
@@ -65,15 +65,13 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
         executor.submit(this::sendBootstrap);
 
         executor.submit(this::listenMulticast);
 
         executor.submit(this::receiveUnicast);
-
-        executor.submit(this::DiscoverServerIP);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -190,9 +188,11 @@ public class Node {
             // Receive file data and write to file
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
+            serverIP = packet.getAddress().getHostAddress();  //get IP of the server by getting source address
+
+            System.out.println("ServerIP: "+serverIP);
 
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
-            serverIP = packet.getAddress();
 
             System.out.println("Nodes in the network: " + numOfNodes);
 
@@ -252,37 +252,6 @@ public class Node {
             logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
         }
     }
-
-    public void DiscoverServerIP()
-    {
-        try (MulticastSocket socket = new MulticastSocket(3333)) {
-
-            System.out.println("connected to multicast netw0rk");
-
-            // Join the multicast group
-            InetAddress group = InetAddress.getByName("224.0.0.1");
-
-            socket.joinGroup(group);
-
-            // Create buffer for incoming data
-            byte[] buffer = new byte[512];
-
-            // Receive file data and write to file
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
-
-            socket.receive(packet);
-
-            //Get Ip of server
-            serverIP = packet.getAddress();
-
-            System.out.println("Received message: ServerIP:" + serverIP);
-
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to open socket", e);
-
-    }}
 
     public static void main(String[] args)  {
         Node node = new Node();
