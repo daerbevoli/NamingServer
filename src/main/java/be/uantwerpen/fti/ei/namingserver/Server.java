@@ -6,9 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -170,7 +168,6 @@ public class Server {
         if (jsonFile.length() == 0){
             return;
         }
-
         try {
 
             ObjectMapper mapper = new ObjectMapper();
@@ -233,12 +230,16 @@ public class Server {
     }
 
     private void processReceivedMessage(String message) {
-        if (message.startsWith("BOOTSTRAP:")) {
-            String[] parts = message.split(":");
-            String command = parts[0];
-            String nodeIP = parts[1];
+        String[] parts = message.split(":");
+        String command = parts[0];
+        String nodeIP = parts[1];
+        if (command.equals("BOOTSTRAP")) {
             addNode(nodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
+        }
+        if (command.equals("SHUTDOWN")){
+            removeNode(nodeIP); // Remove node if shutdown
+
         }
     }
 
@@ -269,57 +270,33 @@ public class Server {
         }
     }
 
-    public void receiveShutdown(){
-        try (DatagramSocket socket = new DatagramSocket(8000)) {
+    public void receiveShutdown(String IP, int prevID, int nextID){
+        removeNode(IP);
 
-            System.out.println("Connected to receive unicast for shutdown");
+        InetAddress prevIP = nodesMap.get(prevID);
+        InetAddress nextIP = nodesMap.get(nextID);
 
-            // Create buffer for incoming data
-            byte[] buffer = new byte[512];
+        List<InetAddress> ips = new ArrayList<>();
+        ips.add(prevIP); ips.add(nextIP);
 
-            // Receive file data and write to file
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
+        for (InetAddress ip : ips){
+            try (MulticastSocket socket = new MulticastSocket(8000)){
 
-            String message = new String(packet.getData(), 0, packet.getLength());
-            String[] parts = message.split(":");
+                System.out.println("connected to multicast socket, sending prev and next");
 
-            System.out.println("Received Node: " + message);
+                String message = prevID + ":" + nextID;
+                byte[] buffer = message.getBytes();
 
-            readJSONIntoMap();
+                // Create a DatagramPacket
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, ip, 11000);
 
-            updateNodeIDs(Integer.parseInt(parts[3]), Integer.parseInt(parts[4]));
+                // Send the packet
+                socket.send(packet);
 
-            removeNode(parts[2]);
-
-            System.out.println("Node " + parts[1] + " removed");
-
-
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to connect to server", e);
-        }
-    }
-
-    public void updateNodeIDs(int prev, int next){
-        try (DatagramSocket socket = new DatagramSocket(0)){
-
-            System.out.println("connected to multicast socket, sending prev and next");
-
-            InetAddress group = InetAddress.getByName("127.0.0.1"); // Multicast group address
-
-            String message = prev + ":" + next;
-            byte[] buffer = message.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 11000);
-
-            // Send the packet
-            socket.send(packet);
-
-            System.out.println("prev and next id sent successfully.");
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to open Multicast socket at the node", e);
+                System.out.println("prev and next id sent successfully.");
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Unable to open Multicast socket at the node", e);
+            }
         }
 
     }

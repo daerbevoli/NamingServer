@@ -1,11 +1,5 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-
-
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
-
-
 import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
@@ -25,17 +19,16 @@ import java.util.logging.Logger;
 public class Node {
 
     private final String IP;
-    private final String nodeName;
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    public Node(String nodeName) {
+    public Node() {
         this.IP = findLocalIP();
-        this.nodeName=nodeName;
-        System.out.println(IP);
+        System.out.println("node IP: " + IP);
+
         currentID = hash(IP);
         previousID = currentID;
         nextID = currentID; // Initially the node is the only node in the network
@@ -107,6 +100,7 @@ public class Node {
 
             // Create a DatagramPacket
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);
+
             // Send the packet to the multicast group
             socket.send(packet);
 
@@ -145,10 +139,22 @@ public class Node {
                 if (message.startsWith("BOOTSTRAP")){
                     processBootstrap(message);
                 }
+                if (message.startsWith("SHUTDOWN")){
+                    processShutdown(message);
+                }
+
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
         }
+    }
+
+    private void processShutdown(String message){
+        String[] parts = message.split(":");
+        String IP = parts[1];
+        int prevId = Integer.parseInt(parts[2]);
+        int nxtID = Integer.parseInt(parts[3]);
+        updateHashShutdown(prevId, nxtID);
     }
 
     // Process the message received from the multicast
@@ -159,6 +165,15 @@ public class Node {
         int receivedHash = hash(IP);
         // Update current node's network parameters based on the received node's hash
         updateHash(receivedHash);
+    }
+
+    private void updateHashShutdown(int prevID, int nxtID){
+        if (currentID == prevID){
+            nextID = nxtID;
+        }
+        if (currentID == nxtID){
+            previousID = prevID;
+        }
     }
 
 
@@ -198,8 +213,6 @@ public class Node {
         }
     }
 
-
-
     // Update the hash
     public void updateHash(int receivedHash){
         if (receivedHash == currentID) { // Received info is about itself
@@ -221,43 +234,21 @@ public class Node {
     }
 
     public void shutdown(){
-        try (DatagramSocket socket = new DatagramSocket(11000)){
+        try (MulticastSocket socket = new MulticastSocket(11000)){
 
             System.out.println("Connected to UDP socket for shutdown");
 
-            InetAddress group = InetAddress.getByName(serverIP);
+            InetAddress group = InetAddress.getByName("224.0.0.1");
 
-            String str = "shutdown:" + nodeName + ":" + IP + ":" + previousID + ":" + nextID;
+            String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
             byte[] buffer = str.getBytes();
 
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
 
             socket.send(packet);
 
-            byte[] buffRec = new byte[512];
-
-            while (true){
-                DatagramPacket packet2 = new DatagramPacket(buffRec, buffRec.length);
-                socket.receive(packet2);
-
-                String message = new String(packet.getData(), 0, packet.getLength());
-                String[] parts = message.split(":");
-
-                updatePrevNext(parts);
-            }
-
-
         } catch (IOException e){
             logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
-        }
-    }
-
-    public void updatePrevNext(String[] mess){
-        if (currentID == Integer.parseInt(mess[3])){ // if previous id
-            nextID = Integer.parseInt(mess[4]); // new next id
-        }
-        if (currentID == Integer.parseInt(mess[4])){ // if next id
-            previousID = Integer.parseInt(mess[3]); // new prev id
         }
     }
 
@@ -287,20 +278,13 @@ public class Node {
             System.out.println("Received message: ServerIP:" + serverIP);
 
 
-
-
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
 
     }}
 
-
-
-
-
-
     public static void main(String[] args)  {
-        Node node = new Node("node1");
+        Node node = new Node();
 
         //Node node = new Node("Steve", "12.12.12.12");
         //System.out.println(node.previousID + node.currentID + node.nextID);
