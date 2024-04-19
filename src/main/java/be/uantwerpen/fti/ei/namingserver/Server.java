@@ -210,9 +210,11 @@ public class Server {
     private void listenMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
             System.out.println("connected to multicast network");
+
             // Join the multicast group
             InetAddress group = InetAddress.getByName("224.0.0.1");
             socket.joinGroup(group);
+
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
 
@@ -270,42 +272,12 @@ public class Server {
         }
     }
 
-    public void receiveShutdown(String IP, int prevID, int nextID){
-        removeNode(IP);
 
-        InetAddress prevIP = nodesMap.get(prevID);
-        InetAddress nextIP = nodesMap.get(nextID);
-
-        List<InetAddress> ips = new ArrayList<>();
-        ips.add(prevIP); ips.add(nextIP);
-
-        for (InetAddress ip : ips){
-            try (MulticastSocket socket = new MulticastSocket(8000)){
-
-                System.out.println("connected to multicast socket, sending prev and next");
-
-                String message = prevID + ":" + nextID;
-                byte[] buffer = message.getBytes();
-
-                // Create a DatagramPacket
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, ip, 11000);
-
-                // Send the packet
-                socket.send(packet);
-
-                System.out.println("prev and next id sent successfully.");
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Unable to open Multicast socket at the node", e);
-            }
-        }
-
-    }
     public void SendServerIP()
     {
         int port=3333;
         try (MulticastSocket socket = new MulticastSocket(port)){
             InetAddress address = InetAddress.getByName("224.0.0.1"); // Multicast group address
-
 
             String msg= "I'm the server";
             DatagramPacket packet = new DatagramPacket(msg.getBytes(),msg.length(),address,port);
@@ -318,7 +290,6 @@ public class Server {
             logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
         }
     }
-
 
 
     public static void main(String[] args){

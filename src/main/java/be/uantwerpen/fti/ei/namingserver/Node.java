@@ -22,7 +22,7 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
-    private String serverIP;
+    private InetAddress serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
     public Node() {
@@ -192,6 +192,7 @@ public class Node {
             socket.receive(packet);
 
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
+            serverIP = packet.getAddress();
 
             System.out.println("Nodes in the network: " + numOfNodes);
 
@@ -273,7 +274,7 @@ public class Node {
             socket.receive(packet);
 
             //Get Ip of server
-            serverIP = packet.getAddress().getHostAddress();
+            serverIP = packet.getAddress();
 
             System.out.println("Received message: ServerIP:" + serverIP);
 
