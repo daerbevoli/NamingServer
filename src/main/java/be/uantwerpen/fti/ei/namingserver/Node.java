@@ -55,7 +55,7 @@ public class Node {
                     InetAddress addr = addresses.nextElement();
                     // Filters out IPv6 addresses
                     if (addr instanceof Inet4Address) {
-                        return addr.getHostAddress();
+                        return addr.getHostName();
                     }
                 }
             }
