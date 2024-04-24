@@ -1,7 +1,5 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import jdk.incubator.vector.LongVector;
-
 import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
@@ -39,7 +37,8 @@ public class Node {
 
     }
 
-    // Find the local ip of the remote node
+    // Find the local hostname of the remote node
+    // Used hostname because hash function returned same hash code for IPs in similar range
     private String findLocalIP() {
 
         try {
@@ -71,9 +70,9 @@ public class Node {
 
         executor.submit(this::sendBootstrap);
 
-        executor.submit(this::listenMulticast);
+        executor.submit(this::listenNodeMulticast);
 
-        executor.submit(this::receiveUnicast);
+        executor.submit(this::receiveNumNodesUnicast);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -91,7 +90,7 @@ public class Node {
     }
 
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void sendMulticast(String message){
+    private void sendNodeServerMulticast(String message){
         try (MulticastSocket socket = new MulticastSocket()){
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
             int port = 3000; // Multicast group port
@@ -114,11 +113,11 @@ public class Node {
     // Send a multicast message during bootstrap with name and IP address
     private void sendBootstrap() {
         String message = "BOOTSTRAP"+ ":" + IP;
-        sendMulticast(message);
+        sendNodeServerMulticast(message);
     }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
-    private void listenMulticast(){
+    private void listenNodeMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
 
             System.out.println("connected to multicast network");
@@ -151,7 +150,7 @@ public class Node {
 
     private void processShutdown(String message){
         String[] parts = message.split(":");
-        String IP = parts[1];
+        //String IP = parts[1];
         int prevId = Integer.parseInt(parts[2]);
         int nxtID = Integer.parseInt(parts[3]);
         updateHashShutdown(prevId, nxtID);
@@ -160,7 +159,7 @@ public class Node {
     // Process the message received from the multicast
     private void processBootstrap(String message) {
         String[] parts = message.split(":");
-        String command = parts[0];
+        //String command = parts[0];
         String IP = parts[1];
         int receivedHash = hash(IP);
         // Update current node's network parameters based on the received node's hash
@@ -178,9 +177,13 @@ public class Node {
 
 
     // Receive the map size from the name server
-    private void receiveUnicast() {
+    private void receiveNumNodesUnicast() {
         try (DatagramSocket socket = new DatagramSocket(null)) {
-            socket.setReuseAddress(true); // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state (which can occur after the socket is closed).
+
+            // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
+            // (which can occur after the socket is closed).
+            socket.setReuseAddress(true);
+
             socket.bind(new InetSocketAddress(8000));
             System.out.println("Connected to receive unicast");
 
@@ -190,9 +193,7 @@ public class Node {
             // Receive file data and write to file
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            serverIP = packet.getAddress().getHostAddress();  //get IP of the server by getting source address
-
-            System.out.println("ServerIP: "+serverIP);
+            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
@@ -228,7 +229,7 @@ public class Node {
      * previous and next node. The name server receives this message and removes the node from its map.
      * The nodes receive this message and update their previous and next IDs
      */
-    public void shutdown(){
+    public void shutdownMulitcast(){
         try (MulticastSocket socket = new MulticastSocket(11000)){
 
             System.out.println("Connected to UDP socket for shutdown");
@@ -259,7 +260,7 @@ public class Node {
     }
 
     public static void main(String[] args)  {
-        Node node = new Node();
+        new Node();
 
     }
 }
