@@ -232,13 +232,12 @@ public class Server {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
-        String newNodeIP = nodeIP + "0";
         if (command.equals("BOOTSTRAP")) {
-            addNode(newNodeIP); // Add the node to the map
+            addNode(nodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
         }
         if (command.equals("SHUTDOWN")){
-            removeNode(newNodeIP); // Remove node if shutdown
+            removeNode(nodeIP); // Remove node if shutdown
 
         }
     }
