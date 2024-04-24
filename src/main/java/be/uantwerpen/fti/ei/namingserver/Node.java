@@ -165,7 +165,19 @@ public class Node {
         String IP = parts[1];
         int receivedHash = hash(IP);
         // Update current node's network parameters based on the received node's hash
-        updateHash(receivedHash);
+        if (receivedHash == currentID) { // Received info is about itself
+            return;
+        }
+        if (numOfNodes == 1) {
+            previousID = currentID;
+            nextID = currentID;
+        } else if (numOfNodes == 2) {
+            previousID = receivedHash;
+            nextID = receivedHash;
+        } else {
+            updateHash(receivedHash);
+        }
+
     }
 
     private void updateHashShutdown(int prevID, int nxtID){
@@ -207,25 +219,11 @@ public class Node {
 
     // Update the hash
     public void updateHash(int receivedHash){
-        if (receivedHash == currentID) { // Received info is about itself
-            return;
-        }
-        if (numOfNodes == 1){
-            previousID = currentID;
-            nextID = currentID;
-
-        } else if (numOfNodes == 2){
-            previousID = receivedHash;
+        if (currentID < receivedHash && receivedHash < nextID){
             nextID = receivedHash;
-        } else {
-            if (currentID < receivedHash && receivedHash < nextID){
-                nextID = receivedHash;
-                System.out.println("Next ID: " + nextID);
-            }
-            if (previousID < receivedHash  && receivedHash < currentID){
-                previousID = receivedHash;
-                System.out.println("Previous ID: " + previousID);
-            }
+        }
+        if (previousID < receivedHash  && receivedHash < currentID){
+            previousID = receivedHash;
         }
     }
 
