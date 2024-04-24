@@ -105,7 +105,8 @@ public class Server {
     public ResponseEntity<String> addNode(@PathVariable String ip){
         logger.log(Level.INFO, "Attempting to add node with IP: " + ip);
         readJSONIntoMap();
-        int id = hash(ip);
+        String strToHash=ip+ (3 * ip.charAt(ip.length() -1));  // This is a workaround to get a different hash for IP addresses that are alike
+        int id = hash(strToHash);
         if (nodesMap.containsKey(id)) {
             return ResponseEntity.ok(ip + " already in the network\n");
         } else {
@@ -232,7 +233,6 @@ public class Server {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
-        nodeIP = nodeIP + (3 * parts[1].charAt(parts[1].length() -1));  // This is a workaround to get a different hash for IP addresses that are alike
         if (command.equals("BOOTSTRAP")) {
             addNode(nodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
