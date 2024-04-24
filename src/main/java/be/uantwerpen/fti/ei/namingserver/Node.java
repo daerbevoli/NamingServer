@@ -1,5 +1,7 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import jdk.incubator.vector.LongVector;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
@@ -195,22 +197,8 @@ public class Node {
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
             System.out.println("Nodes in the network: " + numOfNodes);
-
-            // Adjust previous and next IDs based on the number of nodes
-            adjustNodeLinks(numOfNodes);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
-        }
-    }
-
-    // Adjust the previous and next IDs based on the number of nodes
-    private void adjustNodeLinks(int numOfNodes) {
-        if (numOfNodes <= 1){
-            previousID = currentID;
-            nextID = currentID;
-        } else {
-            previousID = currentID - 1;
-            nextID = currentID + 1;
         }
     }
 
@@ -234,6 +222,12 @@ public class Node {
         }
     }
 
+    /*
+     * The shutdown method is used when closing a node. It is also used in exception for failure.
+     * The method sends a multicast message with the indication of shutdown along with its IP,
+     * previous and next node. The name server receives this message and removes the node from its map.
+     * The nodes receive this message and update their previous and next IDs
+     */
     public void shutdown(){
         try (MulticastSocket socket = new MulticastSocket(11000)){
 
@@ -253,13 +247,19 @@ public class Node {
         }
     }
 
+    // ping method to check whether a connection with a node can be made
+    public void ping(InetAddress address){
+        try (Socket socket = new Socket(address, 0)){
+
+            logger.log(Level.INFO, "Connected to the node");
+
+        } catch (IOException e){
+            logger.log(Level.SEVERE, "Failed to connect to node", e);
+        }
+    }
+
     public static void main(String[] args)  {
         Node node = new Node();
 
-        //Node node = new Node("Steve", "12.12.12.12");
-        //System.out.println(node.previousID + node.currentID + node.nextID);
-
-        //Node node2 = new Node("John", "8.8.8.8");
-        //System.out.println(node2.previousID + node2.currentID + node2.nextID);
     }
 }
