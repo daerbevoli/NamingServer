@@ -104,6 +104,7 @@ public class Server {
     @PostMapping("/add/{ip}")
     public ResponseEntity<String> addNode(@PathVariable String ip){
         logger.log(Level.INFO, "Attempting to add node with IP: " + ip);
+        ip = ip + ip; // This is a temporary fix to the issue of the hash function giving the same hash for IPs that are alike
         readJSONIntoMap();
         int id = hash(ip);
         if (nodesMap.containsKey(id)) {
@@ -232,7 +233,6 @@ public class Server {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
-        nodeIP = nodeIP + (3 * parts[1].charAt(parts[1].length() -1));  // This is a workaround to get a different hash for IP addresses that are alike
         if (command.equals("BOOTSTRAP")) {
             addNode(nodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
