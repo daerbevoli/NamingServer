@@ -210,9 +210,13 @@ public class Node {
         if (receivedHash == currentID) { // Received info is about itself
             return;
         }
-        if (numOfNodes < 1){
+        if (numOfNodes == 1){
             previousID = currentID;
             nextID = currentID;
+
+        } else if (numOfNodes == 2){
+            previousID = receivedHash;
+            nextID = receivedHash;
         } else {
             if (currentID < receivedHash && receivedHash < nextID){
                 nextID = receivedHash;
