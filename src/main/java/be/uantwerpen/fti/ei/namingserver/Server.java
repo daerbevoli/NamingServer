@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
+import java.util.Random;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -106,16 +107,13 @@ public class Server {
         readJSONIntoMap();
         int id = hash(ip);
         if (nodesMap.containsKey(id)) {
-            logger.info(ip + " is already in the network.");
             return ResponseEntity.ok(ip + " already in the network\n");
         } else {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
-                logger.info(ip + " added to the network.");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
-                logger.log(Level.SEVERE, "Failed to add node", e);
                 return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
             }
         }
@@ -234,6 +232,7 @@ public class Server {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
+        nodeIP = nodeIP + (3 * parts[1].charAt(parts[1].length() -1));  // This is a workaround to get a different hash for IP addresses that are alike
         if (command.equals("BOOTSTRAP")) {
             addNode(nodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
