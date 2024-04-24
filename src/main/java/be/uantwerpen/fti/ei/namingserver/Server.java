@@ -232,7 +232,7 @@ public class Server {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
-        String newNodeIP = nodeIP + nodeIP;
+        String newNodeIP = nodeIP + "0";
         if (command.equals("BOOTSTRAP")) {
             addNode(newNodeIP); // Add the node to the map
             sendUnicast(nodeIP); // Send the number of nodes to the node
