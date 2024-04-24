@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
+import java.util.Random;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -103,19 +104,17 @@ public class Server {
     @PostMapping("/add/{ip}")
     public ResponseEntity<String> addNode(@PathVariable String ip){
         logger.log(Level.INFO, "Attempting to add node with IP: " + ip);
+        ip = ip + ip; // This is a temporary fix to the issue of the hash function giving the same hash for IPs that are alike
         readJSONIntoMap();
         int id = hash(ip);
         if (nodesMap.containsKey(id)) {
-            logger.info(ip + " is already in the network.");
             return ResponseEntity.ok(ip + " already in the network\n");
         } else {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
-                logger.info(ip + " added to the network.");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
-                logger.log(Level.SEVERE, "Failed to add node", e);
                 return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
             }
         }
