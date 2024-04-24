@@ -114,7 +114,7 @@ public class Node {
 
     // Send a multicast message during bootstrap with name and IP address
     private void sendBootstrap() {
-        String message = "BOOTSTRAP"+ ":" + IP;
+        String message = "BOOTSTRAP"+ ":" + IP + ":" + previousID + ":" + nextID;
         sendNodeServerMulticast(message);
     }
 
