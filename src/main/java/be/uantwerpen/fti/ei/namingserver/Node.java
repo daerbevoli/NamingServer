@@ -241,9 +241,10 @@ public class Node {
             String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
             byte[] buffer = str.getBytes();
 
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 3000);
 
             socket.send(packet);
+            logger.log(Level.INFO, "shutdown packet sent");
 
         } catch (IOException e){
             logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
