@@ -74,6 +74,8 @@ public class Node {
 
         executor.submit(this::receiveNumNodesUnicast);
 
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
+
         // Shutdown the executor once tasks are completed
         executor.shutdown();
     }
@@ -229,7 +231,7 @@ public class Node {
      * previous and next node. The name server receives this message and removes the node from its map.
      * The nodes receive this message and update their previous and next IDs
      */
-    public void shutdownMulitcast(){
+    public void shutdownMulticast(){
         try (MulticastSocket socket = new MulticastSocket(11000)){
 
             System.out.println("Connected to UDP socket for shutdown");

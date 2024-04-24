@@ -96,13 +96,16 @@ public class Server {
         readJSONIntoMap();
         int id = hash(ip);
         if (nodesMap.containsKey(id)) {
+            logger.log(Level.INFO, ip + "already in the network");
             return ResponseEntity.ok(ip + " already in the network\n");
         } else {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
+                logger.log(Level.INFO, ip + " successfully added to the network");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
+                logger.log(Level.WARNING, "Error occurred while adding entry", e);
                 return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
             }
         }
