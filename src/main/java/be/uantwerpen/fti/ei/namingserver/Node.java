@@ -1,8 +1,11 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
+import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -24,6 +27,7 @@ public class Node {
 
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
+    private ConcurrentHashMap<String, String> localFiles = new ConcurrentHashMap<>();
 
     public Node() {
         this.IP = findLocalIP();
@@ -35,6 +39,27 @@ public class Node {
 
         runFunctionsOnThreads();
 
+    }
+
+    // Add a local file to the node
+    public void addLocalFile(String filename) {
+        String directoryPath = "src/main/java/be/uantwerpen/fti/ei/namingserver/Files"; // Directory path
+        File directory = new File(directoryPath);
+        if (!directory.exists()) {
+            directory.mkdirs(); // Create the directory if it does not exist
+        }
+        File file = new File (directoryPath + "/" + filename);
+        try {
+            if (file.createNewFile()) {
+                localFiles.put(filename, file.getAbsolutePath());
+                System.out.println(filename + " created successfully at " + file.getPath());
+
+            } else {
+                System.out.println("File already exists at"  + file.getPath());
+            }
+        } catch (IOException e) {
+            System.out.println("Error creating the file: " + e.getMessage());
+        }
     }
 
     // Find the local ip of the remote node
@@ -253,9 +278,29 @@ public class Node {
         }
     }
 
+    public void run() {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Enter command: ");
+            String command = scanner.nextLine();
+            if (command.startsWith("addFile ")) {
+                String filename = command.substring(8);
+                addLocalFile(filename);
+                System.out.println(filename + " added.");
+            } else if (command.equals("shutdown")) {
+                shutdown();
+                System.out.println("Shutting down");
+            } else {
+                System.out.println("Invalid command.");
+                break;
+            }
+        }
+        scanner.close();
+    }
     public static void main(String[] args)  {
         Node node = new Node();
-
+        node.run();
         //Node node = new Node("Steve", "12.12.12.12");
         //System.out.println(node.previousID + node.currentID + node.nextID);
 

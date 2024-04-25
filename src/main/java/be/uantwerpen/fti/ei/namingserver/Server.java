@@ -146,14 +146,16 @@ public class Server {
 
         // get the hash of the filename
         int fileHash = hash(filename);
+        try {
+            // calculate node ID
+            int nodeID = nodeOfFile(fileHash);
+            // return hostname
+            return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
+                    "\nThe hostname is " + nodesMap.get(nodeID).getHostName());
 
-        // calculate node ID
-        int nodeID = nodeOfFile(fileHash);
-
-        // return hostname
-        return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
-                "\nThe hostname is " + nodesMap.get(nodeID).getHostAddress());
-
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.ok("Could not find a suitable node for the file: " + filename);
+        }
     }
 
     /*
