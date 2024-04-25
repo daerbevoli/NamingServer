@@ -34,8 +34,6 @@ public class Node {
         System.out.println("node IP: " + IP);
 
         currentID = hash(IP);
-        previousID = currentID;
-        nextID = currentID; // Initially the node is the only node in the network
 
         runFunctionsOnThreads();
 
@@ -63,6 +61,8 @@ public class Node {
     }
 
     // Find the local ip of the remote node
+    // Find the local hostname of the remote node
+    // Used hostname because hash function returned same hash code for IPs in similar range
     private String findLocalIP() {
 
         try {
@@ -94,9 +94,11 @@ public class Node {
 
         executor.submit(this::sendBootstrap);
 
-        executor.submit(this::listenMulticast);
+        executor.submit(this::receiveNumNodesUnicast);
 
-        executor.submit(this::receiveUnicast);
+        executor.submit(this::listenNodeMulticast);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -114,7 +116,7 @@ public class Node {
     }
 
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void sendMulticast(String message){
+    private void sendNodeServerMulticast(String message){
         try (MulticastSocket socket = new MulticastSocket()){
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
             int port = 3000; // Multicast group port
@@ -136,12 +138,12 @@ public class Node {
 
     // Send a multicast message during bootstrap with name and IP address
     private void sendBootstrap() {
-        String message = "BOOTSTRAP"+ ":" + IP;
-        sendMulticast(message);
+        String message = "BOOTSTRAP"+ ":" + IP + ":" + currentID;
+        sendNodeServerMulticast(message);
     }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
-    private void listenMulticast(){
+    private void listenNodeMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
 
             System.out.println("connected to multicast network");
@@ -174,7 +176,7 @@ public class Node {
 
     private void processShutdown(String message){
         String[] parts = message.split(":");
-        String IP = parts[1];
+        //String IP = parts[1];
         int prevId = Integer.parseInt(parts[2]);
         int nxtID = Integer.parseInt(parts[3]);
         updateHashShutdown(prevId, nxtID);
@@ -183,11 +185,27 @@ public class Node {
     // Process the message received from the multicast
     private void processBootstrap(String message) {
         String[] parts = message.split(":");
-        String command = parts[0];
+        //String command = parts[0];
         String IP = parts[1];
         int receivedHash = hash(IP);
+
         // Update current node's network parameters based on the received node's hash
-        updateHash(receivedHash);
+        if (receivedHash == currentID) { // Received info is about itself
+            return;
+        }
+        if (numOfNodes == 1) {
+            previousID = currentID;
+            nextID = currentID;
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+        } else if (numOfNodes == 2) {
+            previousID = receivedHash;
+            nextID = receivedHash;
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+        } else {
+            updateHash(receivedHash);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+        }
+
     }
 
     private void updateHashShutdown(int prevID, int nxtID){
@@ -201,9 +219,13 @@ public class Node {
 
 
     // Receive the map size from the name server
-    private void receiveUnicast() {
+    private void receiveNumNodesUnicast() {
         try (DatagramSocket socket = new DatagramSocket(null)) {
-            socket.setReuseAddress(true); // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state (which can occur after the socket is closed).
+
+            // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
+            // (which can occur after the socket is closed).
+            socket.setReuseAddress(true);
+
             socket.bind(new InetSocketAddress(8000));
             System.out.println("Connected to receive unicast");
 
@@ -213,53 +235,34 @@ public class Node {
             // Receive file data and write to file
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            serverIP = packet.getAddress().getHostAddress();  //get IP of the server by getting source address
-
-            System.out.println("ServerIP: "+serverIP);
+            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
             System.out.println("Nodes in the network: " + numOfNodes);
 
-            // Adjust previous and next IDs based on the number of nodes
-            adjustNodeLinks(numOfNodes);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
         }
     }
 
-    // Adjust the previous and next IDs based on the number of nodes
-    private void adjustNodeLinks(int numOfNodes) {
-        if (numOfNodes <= 1){
-            previousID = currentID;
-            nextID = currentID;
-        } else {
-            previousID = currentID - 1;
-            nextID = currentID + 1;
-        }
-    }
-
     // Update the hash
     public void updateHash(int receivedHash){
-        if (receivedHash == currentID) { // Received info is about itself
-            return;
+        if (currentID < receivedHash && receivedHash < nextID){
+            nextID = receivedHash;
         }
-        if (numOfNodes < 1){
-            previousID = currentID;
-            nextID = currentID;
-        } else {
-            if (currentID < receivedHash && receivedHash < nextID){
-                nextID = receivedHash;
-                System.out.println("Next ID: " + nextID);
-            }
-            if (previousID < receivedHash  && receivedHash < currentID){
-                previousID = receivedHash;
-                System.out.println("Previous ID: " + previousID);
-            }
+        if (previousID < receivedHash  && receivedHash < currentID){
+            previousID = receivedHash;
         }
     }
 
-    public void shutdown(){
+    /*
+     * The shutdown method is used when closing a node. It is also used in exception for failure.
+     * The method sends a multicast message with the indication of shutdown along with its IP,
+     * previous and next node. The name server receives this message and removes the node from its map.
+     * The nodes receive this message and update their previous and next IDs
+     */
+    public void shutdownMulticast(){
         try (MulticastSocket socket = new MulticastSocket(11000)){
 
             System.out.println("Connected to UDP socket for shutdown");
@@ -269,9 +272,10 @@ public class Node {
             String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
             byte[] buffer = str.getBytes();
 
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 3000);
 
             socket.send(packet);
+            logger.log(Level.INFO, "shutdown packet sent");
 
         } catch (IOException e){
             logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
@@ -289,7 +293,7 @@ public class Node {
                 addLocalFile(filename);
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
-                shutdown();
+                shutdownMulticast();
                 System.out.println("Shutting down");
             } else {
                 System.out.println("Invalid command.");
@@ -298,13 +302,20 @@ public class Node {
         }
         scanner.close();
     }
-    public static void main(String[] args)  {
+
+    // ping method to check whether a connection with a node can be made
+    public void ping(InetAddress address){
+        try (Socket socket = new Socket(address, 0)){
+
+            logger.log(Level.INFO, "Connected to the node");
+
+        } catch (IOException e){
+            logger.log(Level.SEVERE, "Failed to connect to node", e);
+        }
+    }
+
+    public static void main(String[] args) {
         Node node = new Node();
         node.run();
-        //Node node = new Node("Steve", "12.12.12.12");
-        //System.out.println(node.previousID + node.currentID + node.nextID);
-
-        //Node node2 = new Node("John", "8.8.8.8");
-        //System.out.println(node2.previousID + node2.currentID + node2.nextID);
     }
 }

@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
-import java.util.Random;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -47,11 +46,7 @@ public class Server {
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
         // Listen to multicast messages from nodes
-        executor.submit(this::listenMulticast);
-
-        // Send the number of nodes to the node
-        // This happens in processReceivedMessage, which is called in listenMulticast
-        //executor.submit(this::sendUnicast);
+        executor.submit(this::listenForNodesMulticast);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -59,12 +54,6 @@ public class Server {
 
 
     // Hash function provided by the teachers
-    /*
-        A problem that this hash function brings is that, because of the limiting of the range,
-        a lot of hostnames produce the same hash code.
-        E.g. the 192.168.0.1 to 192.168.0.8 produce the hash code 16810
-        How to resolve? -> ask TA after Easter break
-     */
     public int hash(String IP){
         double max = Integer.MAX_VALUE;
         double min = Integer.MIN_VALUE;
@@ -107,13 +96,16 @@ public class Server {
         readJSONIntoMap();
         int id = hash(ip);
         if (nodesMap.containsKey(id)) {
+            logger.log(Level.INFO, ip + "already in the network");
             return ResponseEntity.ok(ip + " already in the network\n");
         } else {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
+                logger.log(Level.INFO, ip + " successfully added to the network");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
+                logger.log(Level.WARNING, "Error occurred while adding entry", e);
                 return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
             }
         }
@@ -204,9 +196,9 @@ public class Server {
         }
     }
 
-    // This method listen to port 3000 for messages in the form hostname:IP
+    // This method listen to port 3000 for messages in the form COMMAND:hostname
     // It then returns the IP
-    private void listenMulticast(){
+    private void listenForNodesMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
             System.out.println("connected to multicast network");
 
@@ -236,7 +228,7 @@ public class Server {
         String nodeIP = parts[1];
         if (command.equals("BOOTSTRAP")) {
             addNode(nodeIP); // Add the node to the map
-            sendUnicast(nodeIP); // Send the number of nodes to the node
+            sendNumNodesUnicast(nodeIP); // Send the number of nodes to the node
         }
         if (command.equals("SHUTDOWN")){
             removeNode(nodeIP); // Remove node if shutdown
@@ -245,8 +237,8 @@ public class Server {
     }
 
     // This method sends map size through port 8001 to port 8000 via localhost
-    public void sendUnicast(String targetIP){
-        try(DatagramSocket socket = new DatagramSocket(8001)){
+    public void sendNumNodesUnicast(String targetIP){
+        try(DatagramSocket socket = new DatagramSocket(null)){
 
             System.out.println("Connected to UDP socket");
 
