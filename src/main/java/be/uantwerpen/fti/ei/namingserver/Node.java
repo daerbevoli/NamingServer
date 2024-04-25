@@ -23,7 +23,7 @@ public class Node {
 
     private final String IP;
     private int previousID, nextID, currentID;
-    private int numOfNodes;
+    private int nodes;
 
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
@@ -34,6 +34,8 @@ public class Node {
         System.out.println("node IP: " + IP);
 
         currentID = hash(IP);
+
+        nodes = 1;
 
         runFunctionsOnThreads();
 
@@ -189,21 +191,23 @@ public class Node {
         String IP = parts[1];
         int receivedHash = hash(IP);
 
+        nodes++;
+
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
             return;
         }
-        if (numOfNodes == 1) {
+        if (nodes == 1) {
             previousID = currentID;
             nextID = currentID;
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
-        } else if (numOfNodes == 2) {
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + nodes);
+        } else if (nodes == 2) {
             previousID = receivedHash;
             nextID = receivedHash;
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + nodes);
         } else {
             updateHash(receivedHash);
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + nodes);
         }
 
     }
@@ -237,7 +241,7 @@ public class Node {
             socket.receive(packet);
             serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
-            numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
+            int numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
             System.out.println("Nodes in the network: " + numOfNodes);
 
