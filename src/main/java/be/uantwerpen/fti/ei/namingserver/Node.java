@@ -193,6 +193,7 @@ public class Node {
         if (receivedHash == currentID) { // Received info is about itself
             return;
         }
+        numOfNodes++;
         if (numOfNodes == 1) {
             previousID = currentID;
             nextID = currentID;
@@ -209,6 +210,7 @@ public class Node {
     }
 
     private void updateHashShutdown(int prevID, int nxtID){
+        numOfNodes--;
         if (currentID == prevID){
             nextID = nxtID;
         }
