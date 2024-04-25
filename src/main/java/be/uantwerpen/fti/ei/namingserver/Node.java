@@ -162,6 +162,7 @@ public class Node {
         //String command = parts[0];
         String IP = parts[1];
         int receivedHash = hash(IP);
+
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
             return;
@@ -169,7 +170,8 @@ public class Node {
         if (numOfNodes < 1) {
             previousID = currentID;
             nextID = currentID;
-        } else if (numOfNodes <= 2) {
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
+        } else if (numOfNodes == 2) {
             previousID = receivedHash;
             nextID = receivedHash;
             logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
