@@ -25,6 +25,8 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
+    private boolean max, min;
+
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private ConcurrentHashMap<String, String> localFiles = new ConcurrentHashMap<>();
@@ -91,13 +93,15 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         executor.submit(this::sendBootstrap);
 
         executor.submit(this::receiveNumNodesUnicast);
 
         executor.submit(this::listenNodeMulticast);
+
+        executor.submit(this::receiveNodeResponse);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 
@@ -184,31 +188,26 @@ public class Node {
     }
 
     // Process the message received from the multicast
-    private void processBootstrap(String message) {
+    private void processBootstrap(String message)  {
         String[] parts = message.split(":");
         //String command = parts[0];
         String IP = parts[1];
+
         int receivedHash = hash(IP);
 
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
+            logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
             return;
         }
         numOfNodes++;
-
-        if (numOfNodes == 1) {
-            previousID = currentID;
-            nextID = currentID;
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
-        } else if (numOfNodes == 2) {
-            previousID = receivedHash;
-            nextID = receivedHash;
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
-        } else {
-            updateHash(receivedHash);
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+        System.out.println("test");
+        try {
+            updateHash(receivedHash,IP);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
+        logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
     }
 
     private void updateHashShutdown(int prevID, int nxtID){
@@ -251,11 +250,24 @@ public class Node {
     }
 
     // Update the hash
-    public void updateHash(int receivedHash){
+    public void updateHash(int receivedHash, String IP) throws IOException {
+        /*
+        if the new hash is smaller than the current next hash and bigger than this node's hash,
+        or if the next hash is set to this node's hash
+        we replace the next hash with the new received hash and notify it by sending the old one
+        */
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID){
+            sendNodeResponse(true, IP, nextID);
             nextID = receivedHash;
         }
-        if ((previousID < receivedHash  && receivedHash < currentID) || currentID==nextID){
+
+        /*
+        if the new hash is bigger than the current previous hash and smaller than this node's hash,
+        or if the previous hash is set to this node's hash
+        we replace the previous hash with the new received hash and notify it by sending the old one
+        */
+        if ((previousID < receivedHash  && receivedHash < currentID) || currentID==previousID){
+            sendNodeResponse(false, IP, nextID);
             previousID = receivedHash;
         }
     }
@@ -286,6 +298,42 @@ public class Node {
         }
     }
 
+    private void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
+        InetAddress dest= InetAddress.getByName(nodeIP);
+        int prt= 5231;
+        DatagramSocket s= new DatagramSocket();
+        String msg;
+        if(replacedNext) {msg="NEXT:"+replacedHash;}
+        else {msg="PREV:"+replacedHash;}
+        byte[] msgBytes= msg.getBytes();
+        DatagramPacket packet= new DatagramPacket(msgBytes ,msgBytes.length ,dest ,prt);
+        s.send(packet);
+        s.close();
+    }
+
+    private void receiveNodeResponse()  {
+        try{
+        int prt= 5213;
+        DatagramSocket soc= new DatagramSocket(prt);
+        byte[] buf= new byte[1024];
+        DatagramPacket pack=new DatagramPacket(buf, buf.length);
+        while(true){
+        soc.receive(pack);
+        String msg = new String(pack.getData(), 0, pack.getLength());
+        String[] parts =msg.split(":");
+        if (parts[0].equalsIgnoreCase("next"))
+            {
+                nextID=hash(parts[1]);
+                logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
+            }
+        else if(parts[0].equalsIgnoreCase("prev"))
+            {
+                previousID=hash(parts[1]);
+                logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
+            }} catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
     public void run() {
         Scanner scanner = new Scanner(System.in);
 
