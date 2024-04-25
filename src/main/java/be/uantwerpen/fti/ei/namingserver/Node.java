@@ -34,7 +34,8 @@ public class Node {
         System.out.println("node IP: " + IP);
 
         currentID = hash(IP);
-
+        nextID=currentID;
+        previousID=currentID;
         runFunctionsOnThreads();
 
     }
