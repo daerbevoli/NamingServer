@@ -300,10 +300,8 @@ public class Node {
                 System.out.println("Shutting down");
             } else {
                 System.out.println("Invalid command.");
-                break;
             }
         }
-        scanner.close();
     }
 
     // ping method to check whether a connection with a node can be made

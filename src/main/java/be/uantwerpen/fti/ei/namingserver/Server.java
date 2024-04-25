@@ -283,11 +283,8 @@ public class Server {
                 String[] parts = command.split(" ");
                 String filename = parts[1];
                 new Server().getHostname(filename);
-            } else if (command.equals("exit")) {
-                break;
             } else {
                 System.out.println("Invalid command");
-
                 }
             }
         }
