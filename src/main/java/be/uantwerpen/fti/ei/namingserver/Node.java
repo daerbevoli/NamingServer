@@ -70,9 +70,9 @@ public class Node {
 
         executor.submit(this::sendBootstrap);
 
-        executor.submit(this::listenNodeMulticast);
-
         executor.submit(this::receiveNumNodesUnicast);
+
+        executor.submit(this::listenNodeMulticast);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 

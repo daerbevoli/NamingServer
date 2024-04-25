@@ -236,7 +236,7 @@ public class Server {
 
     // This method sends map size through port 8001 to port 8000 via localhost
     public void sendNumNodesUnicast(String targetIP){
-        try(DatagramSocket socket = new DatagramSocket(8001)){
+        try(DatagramSocket socket = new DatagramSocket(null)){
 
             System.out.println("Connected to UDP socket");
 
