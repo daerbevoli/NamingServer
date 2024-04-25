@@ -194,6 +194,7 @@ public class Node {
         if (receivedHash == currentID) { // Received info is about itself
             return;
         }
+        numOfNodes++;
 
         if (numOfNodes == 1) {
             previousID = currentID;
@@ -207,7 +208,7 @@ public class Node {
             updateHash(receivedHash);
             logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
         }
-        numOfNodes++;
+
     }
 
     private void updateHashShutdown(int prevID, int nxtID){
