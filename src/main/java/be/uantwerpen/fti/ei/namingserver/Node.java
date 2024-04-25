@@ -298,6 +298,7 @@ public class Node {
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
                 shutdownMulticast();
+                System.exit(0);
                 System.out.println("Shutting down");
             } else {
                 System.out.println("Invalid command.");

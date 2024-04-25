@@ -264,9 +264,37 @@ public class Server {
     }
 
 
+    // Run the server
+    public static void run(){
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Enter command: ");
+            String command = scanner.nextLine();
+            if (command.startsWith("removeNode")) {
+                String[] parts = command.split(" ");
+                String ip = parts[1];
+                new Server().removeNode(ip);
+            } else if (command.startsWith("addNode")) {
+                String[] parts = command.split(" ");
+                String ip = parts[1];
+                new Server().addNode(ip);
+            } else if (command.startsWith("getFile")) {
+                String[] parts = command.split(" ");
+                String filename = parts[1];
+                new Server().getHostname(filename);
+            } else if (command.equals("exit")) {
+                break;
+            } else {
+                System.out.println("Invalid command");
+
+            }
+        }
+    }
 
     public static void main(String[] args){
         new Server();
+        Server.run();
     }
 
 
