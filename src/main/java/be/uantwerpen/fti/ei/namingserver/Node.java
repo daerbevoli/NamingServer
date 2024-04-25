@@ -301,7 +301,8 @@ public class Node {
     private void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
         InetAddress dest= InetAddress.getByName(nodeIP);
         int prt= 5231;
-        DatagramSocket s= new DatagramSocket();
+        DatagramSocket s= new DatagramSocket(prt);
+        System.out.println("sending");
         String msg;
         if(replacedNext) {msg="NEXT:"+replacedHash;}
         else {msg="PREV:"+replacedHash;}
@@ -313,21 +314,24 @@ public class Node {
 
     private void receiveNodeResponse()  {
         try{
-        int prt= 5213;
+        int prt= 5231;
         DatagramSocket soc= new DatagramSocket(prt);
         byte[] buf= new byte[1024];
-        DatagramPacket pack=new DatagramPacket(buf, buf.length);
+
+
         while(true){
-        soc.receive(pack);
-        String msg = new String(pack.getData(), 0, pack.getLength());
-        String[] parts =msg.split(":");
-        if (parts[0].equalsIgnoreCase("next"))
-            {
-                nextID=hash(parts[1]);
-                logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
-            }
-        else if(parts[0].equalsIgnoreCase("prev"))
-            {
+            DatagramPacket pack=new DatagramPacket(buf, buf.length);
+            soc.receive(pack);
+            System.out.println("lolz you expect this to work");
+            String msg = new String(pack.getData(), 0, pack.getLength());
+            String[] parts =msg.split(":");
+            if (parts[0].equalsIgnoreCase("next"))
+                {
+                    nextID=hash(parts[1]);
+                    logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
+                }
+            else if(parts[0].equalsIgnoreCase("prev"))
+                {
                 previousID=hash(parts[1]);
                 logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
             }} catch (IOException e) {
