@@ -301,7 +301,7 @@ public class Node {
     private void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
         InetAddress dest= InetAddress.getByName(nodeIP);
         int prt= 5231;
-        DatagramSocket s= new DatagramSocket(prt);
+        DatagramSocket s= new DatagramSocket();
         System.out.println("sending");
         String msg;
         if(replacedNext) {msg="NEXT:"+replacedHash;}
@@ -317,6 +317,8 @@ public class Node {
         int prt= 5231;
         DatagramSocket soc= new DatagramSocket(prt);
         byte[] buf= new byte[1024];
+        soc.bind(new InetSocketAddress(prt));
+        logger.log(Level.INFO ,"connected yay");
 
 
         while(true){
