@@ -112,7 +112,7 @@ public class Node {
 
     // Send a multicast message during bootstrap with name and IP address
     private void sendBootstrap() {
-        String message = "BOOTSTRAP"+ ":" + IP + ":" + previousID + ":" + nextID;
+        String message = "BOOTSTRAP"+ ":" + IP + ":" + currentID;
         sendNodeServerMulticast(message);
     }
 
@@ -170,14 +170,14 @@ public class Node {
         if (numOfNodes == 1) {
             previousID = currentID;
             nextID = currentID;
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
         } else if (numOfNodes == 2) {
             previousID = receivedHash;
             nextID = receivedHash;
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
         } else {
             updateHash(receivedHash);
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
         }
 
     }
