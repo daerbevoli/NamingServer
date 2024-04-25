@@ -166,10 +166,10 @@ public class Node {
         if (receivedHash == currentID) { // Received info is about itself
             return;
         }
-        if (numOfNodes == 1) {
+        if (numOfNodes < 1) {
             previousID = currentID;
             nextID = currentID;
-        } else if (numOfNodes == 2) {
+        } else if (numOfNodes <= 2) {
             previousID = receivedHash;
             nextID = receivedHash;
             logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
