@@ -1,6 +1,8 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -263,11 +265,9 @@ public class Server {
         }
     }
 
-
     // Run the server
-    public static void run(){
+    public static void run() {
         Scanner scanner = new Scanner(System.in);
-
         while (true) {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();
@@ -288,14 +288,12 @@ public class Server {
             } else {
                 System.out.println("Invalid command");
 
+                }
             }
         }
-    }
 
     public static void main(String[] args){
         new Server();
         Server.run();
     }
-
-
 }
