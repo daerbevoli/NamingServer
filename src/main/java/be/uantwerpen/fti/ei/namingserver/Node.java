@@ -30,8 +30,6 @@ public class Node {
         System.out.println("node IP: " + IP);
 
         currentID = hash(IP);
-        previousID = currentID;
-        nextID = currentID; // Initially the node is the only node in the network
 
         runFunctionsOnThreads();
 
@@ -174,8 +172,10 @@ public class Node {
         } else if (numOfNodes == 2) {
             previousID = receivedHash;
             nextID = receivedHash;
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
         } else {
             updateHash(receivedHash);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID);
         }
 
     }
@@ -212,6 +212,7 @@ public class Node {
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
             System.out.println("Nodes in the network: " + numOfNodes);
+
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
         }
