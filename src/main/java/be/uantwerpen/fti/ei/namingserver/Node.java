@@ -256,9 +256,11 @@ public class Node {
         or if the next hash is set to this node's hash
         we replace the next hash with the new received hash and notify it by sending the old one
         */
-        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID){
-            sendNodeResponse(true, IP, nextID);
+        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID) || (receivedHash<nextID) )){
+            int oldNext= nextID;
             nextID = receivedHash;
+            sendNodeResponse(true, IP, oldNext);
+
         }
 
         /*
@@ -266,9 +268,11 @@ public class Node {
         or if the previous hash is set to this node's hash
         we replace the previous hash with the new received hash and notify it by sending the old one
         */
-        if ((previousID < receivedHash  && receivedHash < currentID) || currentID==previousID){
-            sendNodeResponse(false, IP, nextID);
+        if ((previousID < receivedHash  && receivedHash < currentID) || currentID==previousID|| (previousID>currentID && (receivedHash<currentID|| receivedHash>previousID))){
+            int oldPrevious =previousID;
             previousID = receivedHash;
+            sendNodeResponse(false, IP, oldPrevious);
+
         }
     }
 
@@ -302,10 +306,18 @@ public class Node {
         InetAddress dest= InetAddress.getByName(nodeIP);
         int prt= 5231;
         DatagramSocket s= new DatagramSocket();
-        System.out.println("sending");
+
         String msg;
-        if(replacedNext) {msg="NEXT:"+replacedHash+":"+currentID;}
-        else {msg="PREV:"+replacedHash+":"+currentID;}
+        if(replacedNext)
+            {
+                msg="NEXT:"+replacedHash+":"+currentID;
+                logger.log(Level.INFO,"notify the new node with the old next id");
+            }
+        else
+            {
+                msg="PREV:"+replacedHash+":"+currentID;
+                logger.log(Level.INFO,"notify the new node with the old previous id");
+            }
         byte[] msgBytes= msg.getBytes();
         DatagramPacket packet= new DatagramPacket(msgBytes ,msgBytes.length ,dest ,prt);
         s.send(packet);
@@ -330,14 +342,14 @@ public class Node {
             if (parts[0].equalsIgnoreCase("next"))
                 {
                     nextID=hash(parts[1]);
-                    previousID=hash(parts[2]);
-                    logger.log(Level.WARNING, "Next and previous ID were updated because of the response of another node");
+                    //previousID=hash(parts[2]);
+                    logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
                 }
             else if(parts[0].equalsIgnoreCase("prev"))
                 {
                 previousID=hash(parts[1]);
-                nextID=hash(parts[2]);
-                logger.log(Level.WARNING, "Previous and next ID were updated because of the response of another node");}
+                //nextID=hash(parts[2]);
+                logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
             }} catch (IOException e) {
             throw new RuntimeException(e);
         }
