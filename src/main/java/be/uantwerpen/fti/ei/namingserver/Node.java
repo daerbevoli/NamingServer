@@ -25,8 +25,6 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
-    private boolean max, min;
-
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private ConcurrentHashMap<String, String> localFiles = new ConcurrentHashMap<>();
@@ -251,6 +249,8 @@ public class Node {
 
     // Update the hash
     public void updateHash(int receivedHash, String IP) throws IOException {
+
+
         /*
         if the new hash is smaller than the current next hash and bigger than this node's hash,
         or if the next hash is set to this node's hash
@@ -304,8 +304,8 @@ public class Node {
         DatagramSocket s= new DatagramSocket();
         System.out.println("sending");
         String msg;
-        if(replacedNext) {msg="NEXT:"+replacedHash;}
-        else {msg="PREV:"+replacedHash;}
+        if(replacedNext) {msg="NEXT:"+replacedHash+":"+currentID;}
+        else {msg="PREV:"+replacedHash+":"+currentID;}
         byte[] msgBytes= msg.getBytes();
         DatagramPacket packet= new DatagramPacket(msgBytes ,msgBytes.length ,dest ,prt);
         s.send(packet);
@@ -330,12 +330,14 @@ public class Node {
             if (parts[0].equalsIgnoreCase("next"))
                 {
                     nextID=hash(parts[1]);
-                    logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
+                    previousID=hash(parts[2]);
+                    logger.log(Level.WARNING, "Next and previous ID were updated because of the response of another node");
                 }
             else if(parts[0].equalsIgnoreCase("prev"))
                 {
                 previousID=hash(parts[1]);
-                logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
+                nextID=hash(parts[2]);
+                logger.log(Level.WARNING, "Previous and next ID were updated because of the response of another node");}
             }} catch (IOException e) {
             throw new RuntimeException(e);
         }
