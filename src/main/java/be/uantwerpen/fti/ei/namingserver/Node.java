@@ -335,6 +335,10 @@ public class Node {
                 nextID = Integer.parseInt(parts[1]);
                 previousID = Integer.parseInt(parts[2]);
                 System.out.println("Next and previous ID were updated because of the response of another node");
+            } else if (parts[0].equalsIgnoreCase("prev")) {
+                nextID = Integer.parseInt(parts[2]);
+                previousID = Integer.parseInt(parts[1]);
+                System.out.println("Next and previous ID were updated because of the response of another node");
             }
         }
     }
