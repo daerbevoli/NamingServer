@@ -321,13 +321,13 @@ public class Node {
             String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
             out.writeUTF(msg);
             out.flush();
+            logger.log(Level.INFO, "Sending package");
         }
     }
 
     public void receiveNodeResponse() throws IOException {
         try (Socket cSocket = serverSocket.accept();
              DataInputStream in = new DataInputStream(cSocket.getInputStream())) {
-
             String msg = in.readUTF();
             System.out.println("Received message: " + msg);
             String[] parts = msg.split(":");
