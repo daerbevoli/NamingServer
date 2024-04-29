@@ -204,6 +204,7 @@ public class Node {
             logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
             if(numOfNodes !=1)
             {
+                logger.log(Level.INFO,"Condition met to start TCP connection");
                 receiveNodeResponse();
             }
             return;
