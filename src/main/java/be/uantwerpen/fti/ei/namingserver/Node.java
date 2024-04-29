@@ -91,7 +91,7 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(5);
 
         executor.submit(this::sendBootstrap);
 
@@ -256,7 +256,7 @@ public class Node {
         or if the next hash is set to this node's hash
         we replace the next hash with the new received hash and notify it by sending the old one
         */
-        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID) || (receivedHash<nextID) )){
+        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
             sendNodeResponse(true, IP, oldNext);
@@ -320,6 +320,7 @@ public class Node {
             }
         byte[] msgBytes= msg.getBytes();
         DatagramPacket packet= new DatagramPacket(msgBytes ,msgBytes.length ,dest ,prt);
+        System.out.println("lala");
         s.send(packet);
         s.close();
     }
@@ -330,25 +331,23 @@ public class Node {
         DatagramSocket soc= new DatagramSocket(prt);
         byte[] buf= new byte[1024];
         soc.bind(new InetSocketAddress(prt));
-        logger.log(Level.INFO ,"connected yay");
+        logger.log(Level.INFO ,"connected");
 
 
         while(true){
             DatagramPacket pack=new DatagramPacket(buf, buf.length);
             soc.receive(pack);
-            System.out.println("lolz you expect this to work");
+            System.out.println("Does this work");
             String msg = new String(pack.getData(), 0, pack.getLength());
             String[] parts =msg.split(":");
             if (parts[0].equalsIgnoreCase("next"))
                 {
                     nextID=hash(parts[1]);
-                    //previousID=hash(parts[2]);
                     logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
                 }
             else if(parts[0].equalsIgnoreCase("prev"))
                 {
                 previousID=hash(parts[1]);
-                //nextID=hash(parts[2]);
                 logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
             }} catch (IOException e) {
             throw new RuntimeException(e);
