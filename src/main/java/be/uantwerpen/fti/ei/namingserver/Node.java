@@ -267,7 +267,7 @@ public class Node {
         or if the next hash is set to this node's hash
         we replace the next hash with the new received hash and notify it by sending the old one
         */
-        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID) || (receivedHash<nextID) )){
+        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
             sendNodeResponse(true, IP, oldNext);
