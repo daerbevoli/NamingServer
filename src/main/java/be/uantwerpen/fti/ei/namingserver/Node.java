@@ -2,6 +2,8 @@ package be.uantwerpen.fti.ei.namingserver;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.*;
 import java.util.Enumeration;
 import java.util.Scanner;
@@ -91,7 +93,7 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(5);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         executor.submit(this::sendBootstrap);
 
@@ -99,7 +101,7 @@ public class Node {
 
         executor.submit(this::listenNodeMulticast);
 
-        executor.submit(this::receiveNodeResponse);
+        //executor.submit(this::receiveNodeResponse);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 
@@ -186,7 +188,7 @@ public class Node {
     }
 
     // Process the message received from the multicast
-    private void processBootstrap(String message)  {
+    private void processBootstrap(String message) throws IOException {
         String[] parts = message.split(":");
         //String command = parts[0];
         String IP = parts[1];
@@ -196,6 +198,10 @@ public class Node {
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
             logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
+            if(numOfNodes !=1)
+            {
+                receiveNodeResponse();
+            }
             return;
         }
         numOfNodes++;
@@ -256,7 +262,7 @@ public class Node {
         or if the next hash is set to this node's hash
         we replace the next hash with the new received hash and notify it by sending the old one
         */
-        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
+        if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID) || (receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
             sendNodeResponse(true, IP, oldNext);
@@ -303,7 +309,24 @@ public class Node {
     }
 
     private void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
-        InetAddress dest= InetAddress.getByName(nodeIP);
+        int port= 5231;
+        Socket cSocket= new Socket(nodeIP, port);
+        //ObjectInputStream in =new ObjectInputStream(cSocket.getInputStream());
+        ObjectOutputStream out = new ObjectOutputStream(cSocket.getOutputStream());
+        String msg;
+        if(replacedNext)
+        {
+            msg="NEXT:"+replacedHash+":"+currentID;
+            logger.log(Level.INFO,"notify the new node with the old next id");
+        }
+        else
+        {
+            msg="PREV:"+replacedHash+":"+currentID;
+            logger.log(Level.INFO,"notify the new node with the old previous id");
+        }
+        out.writeUTF(msg);
+        out.flush();
+        /*InetAddress dest= InetAddress.getByName(nodeIP);
         int prt= 5231;
         DatagramSocket s= new DatagramSocket();
 
@@ -320,38 +343,52 @@ public class Node {
             }
         byte[] msgBytes= msg.getBytes();
         DatagramPacket packet= new DatagramPacket(msgBytes ,msgBytes.length ,dest ,prt);
-        System.out.println("lala");
         s.send(packet);
-        s.close();
+        s.close();*/
     }
 
-    private void receiveNodeResponse()  {
-        try{
+    private void receiveNodeResponse() throws IOException {
+        ServerSocket sSocket = new ServerSocket(5231);
+        Socket cSocket = sSocket.accept();
+        ObjectOutputStream out = new ObjectOutputStream(cSocket.getOutputStream());
+        ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream());
+        logger.log(Level.INFO, "connected");
+        String msg = in.readUTF();
+        System.out.println("Does this work");
+        String[] parts = msg.split(":");
+        if (parts[0].equalsIgnoreCase("next")) {
+            nextID = Integer.parseInt(parts[1]);
+            previousID = Integer.parseInt(parts[2]);
+            logger.log(Level.WARNING, "Next and previous ID were updated because of the response of another node");
+        }
+        /*try{
         int prt= 5231;
         DatagramSocket soc= new DatagramSocket(prt);
         byte[] buf= new byte[1024];
         soc.bind(new InetSocketAddress(prt));
-        logger.log(Level.INFO ,"connected");
+        logger.log(Level.INFO ,"connected yay");
 
 
         while(true){
             DatagramPacket pack=new DatagramPacket(buf, buf.length);
             soc.receive(pack);
-            System.out.println("Does this work");
+            System.out.println("lolz you expect this to work");
             String msg = new String(pack.getData(), 0, pack.getLength());
             String[] parts =msg.split(":");
             if (parts[0].equalsIgnoreCase("next"))
                 {
                     nextID=hash(parts[1]);
+                    //previousID=hash(parts[2]);
                     logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
                 }
             else if(parts[0].equalsIgnoreCase("prev"))
                 {
                 previousID=hash(parts[1]);
+                //nextID=hash(parts[2]);
                 logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
             }} catch (IOException e) {
             throw new RuntimeException(e);
-        }
+        }*/
     }
     public void run() {
         Scanner scanner = new Scanner(System.in);
