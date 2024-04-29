@@ -1,9 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.*;
 import java.util.Enumeration;
 import java.util.Scanner;
@@ -27,6 +24,8 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
+    private ServerSocket serverSocket;
+
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private ConcurrentHashMap<String, String> localFiles = new ConcurrentHashMap<>();
@@ -38,6 +37,11 @@ public class Node {
         currentID = hash(IP);
         nextID=currentID;
         previousID=currentID;
+        try {
+            this.serverSocket = new ServerSocket(5231);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         runFunctionsOnThreads();
 
     }
@@ -308,87 +312,30 @@ public class Node {
         }
     }
 
-    private void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
-        int port= 5231;
-        Socket cSocket= new Socket(nodeIP, port);
-        //ObjectInputStream in =new ObjectInputStream(cSocket.getInputStream());
-        ObjectOutputStream out = new ObjectOutputStream(cSocket.getOutputStream());
-        String msg;
-        if(replacedNext)
-        {
-            msg="NEXT:"+replacedHash+":"+currentID;
-            logger.log(Level.INFO,"notify the new node with the old next id");
-        }
-        else
-        {
-            msg="PREV:"+replacedHash+":"+currentID;
-            logger.log(Level.INFO,"notify the new node with the old previous id");
-        }
-        out.writeUTF(msg);
-        out.flush();
-        /*InetAddress dest= InetAddress.getByName(nodeIP);
-        int prt= 5231;
-        DatagramSocket s= new DatagramSocket();
+    public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
+        int port = 5231;
+        try (Socket cSocket = new Socket(nodeIP, port);
+             DataOutputStream out = new DataOutputStream(cSocket.getOutputStream())) {
 
-        String msg;
-        if(replacedNext)
-            {
-                msg="NEXT:"+replacedHash+":"+currentID;
-                logger.log(Level.INFO,"notify the new node with the old next id");
-            }
-        else
-            {
-                msg="PREV:"+replacedHash+":"+currentID;
-                logger.log(Level.INFO,"notify the new node with the old previous id");
-            }
-        byte[] msgBytes= msg.getBytes();
-        DatagramPacket packet= new DatagramPacket(msgBytes ,msgBytes.length ,dest ,prt);
-        s.send(packet);
-        s.close();*/
+            String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
+            out.writeUTF(msg);
+            out.flush();
+        }
     }
 
-    private void receiveNodeResponse() throws IOException {
-        ServerSocket sSocket = new ServerSocket(5231);
-        Socket cSocket = sSocket.accept();
-        ObjectOutputStream out = new ObjectOutputStream(cSocket.getOutputStream());
-        ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream());
-        logger.log(Level.INFO, "connected");
-        String msg = in.readUTF();
-        System.out.println("Does this work");
-        String[] parts = msg.split(":");
-        if (parts[0].equalsIgnoreCase("next")) {
-            nextID = Integer.parseInt(parts[1]);
-            previousID = Integer.parseInt(parts[2]);
-            logger.log(Level.WARNING, "Next and previous ID were updated because of the response of another node");
+    public void receiveNodeResponse() throws IOException {
+        try (Socket cSocket = serverSocket.accept();
+             DataInputStream in = new DataInputStream(cSocket.getInputStream())) {
+
+            String msg = in.readUTF();
+            System.out.println("Received message: " + msg);
+            String[] parts = msg.split(":");
+            if (parts[0].equalsIgnoreCase("next")) {
+                nextID = Integer.parseInt(parts[1]);
+                previousID = Integer.parseInt(parts[2]);
+                System.out.println("Next and previous ID were updated because of the response of another node");
+            }
         }
-        /*try{
-        int prt= 5231;
-        DatagramSocket soc= new DatagramSocket(prt);
-        byte[] buf= new byte[1024];
-        soc.bind(new InetSocketAddress(prt));
-        logger.log(Level.INFO ,"connected yay");
-
-
-        while(true){
-            DatagramPacket pack=new DatagramPacket(buf, buf.length);
-            soc.receive(pack);
-            System.out.println("lolz you expect this to work");
-            String msg = new String(pack.getData(), 0, pack.getLength());
-            String[] parts =msg.split(":");
-            if (parts[0].equalsIgnoreCase("next"))
-                {
-                    nextID=hash(parts[1]);
-                    //previousID=hash(parts[2]);
-                    logger.log(Level.WARNING, "Next ID was updated because of the response of another node");
-                }
-            else if(parts[0].equalsIgnoreCase("prev"))
-                {
-                previousID=hash(parts[1]);
-                //nextID=hash(parts[2]);
-                logger.log(Level.WARNING, "Previous ID was updated because of the response of another node");}
-            }} catch (IOException e) {
-            throw new RuntimeException(e);
-        }*/
     }
     public void run() {
         Scanner scanner = new Scanner(System.in);
