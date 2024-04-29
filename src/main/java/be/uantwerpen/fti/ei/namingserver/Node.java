@@ -202,7 +202,7 @@ public class Node {
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
             logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
-            if(numOfNodes <2)
+            if(numOfNodes >1)
             {
                 logger.log(Level.INFO,"Condition met to start TCP connection");
                 receiveNodeResponse();
