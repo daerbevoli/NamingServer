@@ -199,6 +199,7 @@ public class Node {
 
         int receivedHash = hash(IP);
 
+        logger.log(Level.INFO, "CurrentID:"+currentID+" receivedID:"+receivedHash);
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
             logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
