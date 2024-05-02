@@ -211,7 +211,6 @@ public class Node {
             return;
         }
         numOfNodes++;
-        System.out.println("test");
         try {
             updateHash(receivedHash,IP);
         } catch (IOException e) {
@@ -375,6 +374,9 @@ public class Node {
     }
 
     public static void main(String[] args) {
+        FileTransfer ft1= new FileTransfer();
+        ft1.receiveFile(5678,"/root/lcopyfiles/1.txt" );
+
         Node node = new Node();
         node.run();
     }

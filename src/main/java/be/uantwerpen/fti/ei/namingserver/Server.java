@@ -290,6 +290,8 @@ public class Server {
         }
 
     public static void main(String[] args){
+        FileTransfer ft1= new FileTransfer();
+        ft1.tranferFile("/root/localFiles/b.txt","127.29.0.6", 5678);
         new Server();
         Server.run();
     }
