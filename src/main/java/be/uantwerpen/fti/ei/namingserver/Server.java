@@ -53,6 +53,9 @@ public class Server {
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
 
+        // Listen to unicast messages from nodes
+        executor.submit(this::listenNodeUnicast);
+
         // Shutdown the executor once tasks are completed
         executor.shutdown();
     }
@@ -255,14 +258,36 @@ public class Server {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
-        if (command.equals("BOOTSTRAP")) {
-            addNode(nodeIP); // Add the node to the map
-            sendNumNodesUnicast(nodeIP); // Send the number of nodes to the node
-        } else if (command.equals("SHUTDOWN")) {
-            removeNode(nodeIP); // Remove the node from the map
+        switch (command) {
+            case "BOOTSTRAP":
+                addNode(nodeIP);
+                sendNumNodesUnicast(nodeIP);
+                break;
+            case "SHUTDOWN":
+                removeNode(nodeIP);
+                break;
+            case "REPORT":
+                int fileHash = Integer.parseInt(parts[2]);
+                processFileReport(nodeIP, fileHash);
+                break;
+        }
+    }
 
-        } else {
-            // process the verified files the node has sent through unicast
+    // Process the file report sent by the node
+    private void processFileReport(String nodeIP, int fileHash) {
+        int replicatedNodeID = nodeOfFile(fileHash);
+        InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
+        if (replicatedNodeID < fileHash) { // Condition for replication
+            try {
+                // Create log with file references
+                logger.log(Level.INFO,"Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
+                System.out.println(logger.getLevel());
+                // Notify the original node that it should handle the file replication
+                InetAddress nodeAddress = InetAddress.getByName(nodeIP);
+                sendUnicast(nodeAddress, "REPLICATE:" + replicatedNodeIP + fileHash);
+            } catch (UnknownHostException e) {
+                logger.log(Level.WARNING, "Unable to send unicast message", e);
+            }
         }
     }
 
@@ -286,6 +311,24 @@ public class Server {
         }
     }
 
+    // Receive unicast message from a node
+    public void receiveUnicast() {
+        try (DatagramSocket socket = new DatagramSocket(8000)) {
+            System.out.println("Connected to UDP socket");
+
+            byte[] buffer = new byte[512];
+
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+
+                System.out.println("Received unicast message: " + message);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
+    }
 
     // This method sends map size through port 8001 to port 8000 via localhost
     public void sendNumNodesUnicast(String targetIP){

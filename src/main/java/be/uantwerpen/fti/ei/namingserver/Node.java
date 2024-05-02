@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.*;
 import java.util.Enumeration;
@@ -24,7 +25,7 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
-    private ServerSocket serverSocket;
+    private ServerSocket  serverSocket;
 
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
@@ -76,18 +77,22 @@ public class Node {
                 if (file.isFile()) {
                     String filename = file.getName();
                     int fileHash = hash(filename);
-                    reportFileHashToServer(filename, fileHash);
+                    reportFileHashToServer(fileHash);
                 }
             }
         }
     }
 
-    // Report the file hash to the naming server
-    private void reportFileHashToServer(String filename, int fileHash) {
-
-        // Send the file hash to the naming server with the unicast method
-
+    private void reportFileHashToServer(int fileHash) {
+        if (serverIP == null) {
+            System.out.println("Server IP is not available, cannot report file hash");
+            return;
+        }
+        String message = "REPORT" + ":" + IP + ":" + fileHash;
+        String purpose = "Reportig file hashes to server";
+        //sendUnicast(purpose, serverIP, message, 8000);
     }
+
 
     // Find the local ip of the remote node
     // Find the local hostname of the remote node
@@ -126,6 +131,8 @@ public class Node {
         executor.submit(this::receiveNumNodesUnicast);
 
         executor.submit(this::listenNodeMulticast);
+
+        executor.submit(this::verifyAndReportLocalFiles);
 
         //executor.submit(this::receiveNodeResponse);
 
