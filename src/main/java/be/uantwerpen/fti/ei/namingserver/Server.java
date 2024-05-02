@@ -1,8 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -33,6 +31,9 @@ public class Server {
     // Map to save the hash corresponding to the node's ip
     private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();
 
+    // Map to store filenames
+
+
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
@@ -50,6 +51,9 @@ public class Server {
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
         executor.submit(this::receiveFile);
+
+        // Listen to unicast messages from nodes
+        executor.submit(this::listenNodeUnicast);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -145,6 +149,7 @@ public class Server {
             // calculate node ID
             int nodeID = nodeOfFile(fileHash);
             // return hostname
+
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
                     "\nThe hostname is " + nodesMap.get(nodeID).getHostName());
 
@@ -199,6 +204,8 @@ public class Server {
         }
     }
 
+
+
     // This method listen to port 3000 for messages in the form COMMAND:hostname
     // It then returns the IP
     private void listenForNodesMulticast(){
@@ -225,17 +232,100 @@ public class Server {
         }
     }
 
+    // This method listens for unicast messages from nodes
+    // It then processes the message
+    private void listenNodeUnicast(){
+        try (DatagramSocket socket = new DatagramSocket(8000)){
+            System.out.println("Connected to UDP socket");
+
+            byte[] buffer = new byte[512];
+
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+
+                System.out.println("Received unicast message: " + message);
+                processReceivedMessage(message);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to open server socket", e);
+        }
+    }
+
     private void processReceivedMessage(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
         String nodeIP = parts[1];
-        if (command.equals("BOOTSTRAP")) {
-            addNode(nodeIP); // Add the node to the map
-            sendNumNodesUnicast(nodeIP); // Send the number of nodes to the node
+        switch (command) {
+            case "BOOTSTRAP":
+                addNode(nodeIP);
+                sendNumNodesUnicast(nodeIP);
+                break;
+            case "SHUTDOWN":
+                removeNode(nodeIP);
+                break;
+            case "REPORT":
+                int fileHash = Integer.parseInt(parts[2]);
+                processFileReport(nodeIP, fileHash);
+                break;
         }
-        if (command.equals("SHUTDOWN")){
-            removeNode(nodeIP); // Remove node if shutdown
+    }
 
+    // Process the file report sent by the node
+    private void processFileReport(String nodeIP, int fileHash) {
+        int replicatedNodeID = nodeOfFile(fileHash);
+        InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
+        if (replicatedNodeID < fileHash) { // Condition for replication
+            try {
+                // Create log with file references
+                logger.log(Level.INFO,"Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
+                System.out.println(logger.getLevel());
+                // Notify the original node that it should handle the file replication
+                InetAddress nodeAddress = InetAddress.getByName(nodeIP);
+                sendUnicast(nodeAddress, "REPLICATE:" + replicatedNodeIP + fileHash);
+            } catch (UnknownHostException e) {
+                logger.log(Level.WARNING, "Unable to send unicast message", e);
+            }
+        }
+    }
+
+    // Send unicast message to a node
+    public void sendUnicast(InetAddress targetIP, String message) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
+            System.out.println("Connected to UDP socket");
+
+            byte[] buffer = message.getBytes();
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, 8000);
+
+            // Send the packet
+            socket.send(packet);
+
+            System.out.println("Message sent to the node");
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
+    }
+
+    // Receive unicast message from a node
+    public void receiveUnicast() {
+        try (DatagramSocket socket = new DatagramSocket(8000)) {
+            System.out.println("Connected to UDP socket");
+
+            byte[] buffer = new byte[512];
+
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+
+                System.out.println("Received unicast message: " + message);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
         }
     }
 
@@ -249,7 +339,7 @@ public class Server {
 
             InetAddress group = InetAddress.getByName(targetIP);
 
-            String size = String.valueOf(mapSize);
+            String size = "UNICAST:" + mapSize;
             byte[] buffer = size.getBytes();
 
             // Create a DatagramPacket
@@ -267,23 +357,25 @@ public class Server {
     }
 
     // Run the server
-    public static void run() {
+    public void run() {
         Scanner scanner = new Scanner(System.in);
+
         while (true) {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();
             if (command.startsWith("removeNode")) {
                 String[] parts = command.split(" ");
                 String ip = parts[1];
-                new Server().removeNode(ip);
+                removeNode(ip);
             } else if (command.startsWith("addNode")) {
-                String[] parts = command.split(" ");
+                String[] parts = command.split( " ");
                 String ip = parts[1];
-                new Server().addNode(ip);
+                addNode(ip);
             } else if (command.startsWith("getFile")) {
                 String[] parts = command.split(" ");
                 String filename = parts[1];
-                new Server().getHostname(filename);
+                ResponseEntity<String> response = getHostname(filename);
+                System.out.println(response.getBody()); // Print the response
             } else {
                 System.out.println("Invalid command");
                 }
@@ -299,7 +391,7 @@ public class Server {
         }
 
     public static void main(String[] args){
-        new Server();
-        Server.run();
+        Server server = new Server();
+        server.run();
     }
 }
