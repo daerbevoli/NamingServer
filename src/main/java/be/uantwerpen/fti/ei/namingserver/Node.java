@@ -97,7 +97,7 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(5);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         executor.submit(this::sendBootstrap);
 
@@ -106,7 +106,7 @@ public class Node {
         executor.submit(this::listenNodeMulticast);
 
 
-        executor.submit(this::sendFile);
+        //executor.submit(this::sendFile);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 
@@ -178,6 +178,7 @@ public class Node {
                     processShutdown(message);
                 }
 
+
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
@@ -248,7 +249,8 @@ public class Node {
             // Receive file data and write to file
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
+            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source addres//
+            sendFile();
 
             numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
 
