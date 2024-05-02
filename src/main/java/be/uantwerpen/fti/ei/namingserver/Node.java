@@ -377,7 +377,7 @@ public class Node {
     public void sendFile()
     {
         FileTransfer ft1= new FileTransfer();
-        ft1.tranferFile(serverIP,"/root/localFiles/og.txt" ,5678);
+        ft1.tranferFile("/root/localFiles/b.txt" ,serverIP,5678);
 
     }
 

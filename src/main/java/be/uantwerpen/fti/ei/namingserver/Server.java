@@ -293,7 +293,8 @@ public class Server {
         public void receiveFile()
         {
             FileTransfer ft1= new FileTransfer();
-            ft1.receiveFile(5678,"/root/receivedFile/copy.txt" );
+            ft1.receiveFile(5678,"/root/receivedFiles/copy.txt" );
+            //ft1.receiveFile(5678,"src/main/java/be/uantwerpen/fti/ei/namingserver/files/copy123" );
 
         }
 

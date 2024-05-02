@@ -9,6 +9,7 @@ public class FileTransfer {
     public void tranferFile(String path, String IP, int port)
     {
         try {
+            System.out.println("received IP:"+IP);
             Socket socket= new Socket(IP,port);
             ObjectOutputStream out=new ObjectOutputStream(socket.getOutputStream());
             File file= new File(path);
