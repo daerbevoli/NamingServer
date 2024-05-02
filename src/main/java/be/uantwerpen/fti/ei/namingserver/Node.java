@@ -41,7 +41,7 @@ public class Node {
 
     // Add a local file to the node
     public void addLocalFile(String filename) {
-        String directoryPath = "src/main/java/be/uantwerpen/fti/ei/namingserver/Files"; // Directory path
+        String directoryPath = "/root/localFiles"; // Directory path
         File directory = new File(directoryPath);
         if (!directory.exists()) {
             directory.mkdirs(); // Create the directory if it does not exist
@@ -58,6 +58,28 @@ public class Node {
         } catch (IOException e) {
             System.out.println("Error creating the file: " + e.getMessage());
         }
+    }
+
+    // Node verifies local files and report to the naming server
+    private void verifyAndReportLocalFiles() {
+        File directory = new File("/root/localFiles");
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    String filename = file.getName();
+                    int fileHash = hash(filename);
+                    reportFileHashToServer(filename, fileHash);
+                }
+            }
+        }
+    }
+
+    // Report the file hash to the naming server
+    private void reportFileHashToServer(String filename, int fileHash) {
+
+        // Send the file hash to the naming server with the unicast method
+
     }
 
     // Find the local ip of the remote node
@@ -141,6 +163,7 @@ public class Node {
         String message = "BOOTSTRAP"+ ":" + IP + ":" + currentID;
         sendNodeServerMulticast(message);
     }
+
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
     private void listenNodeMulticast(){
