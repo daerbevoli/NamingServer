@@ -13,6 +13,13 @@ public class FileTransfer {
             Socket socket= new Socket(IP,port);
             ObjectOutputStream out=new ObjectOutputStream(socket.getOutputStream());
             File file= new File(path);
+            String name=file.getName();
+
+            //send over file name first
+            out.writeUTF(name);
+            out.flush();
+
+            //send the file
             FileInputStream fis= new FileInputStream(file);
             out.writeLong(file.length());
             byte[] buffer= new byte[(int) file.length() +10];
@@ -33,13 +40,19 @@ public class FileTransfer {
         }
     }
 
-    public void receiveFile(int port,String location)
+    public void receiveFile(int port,String directory)
     {
         try {
             ServerSocket sSocket= new ServerSocket(port);
             Socket cSocket= sSocket.accept();
             ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream());
-            FileOutputStream fos = new FileOutputStream(location);
+
+            //read file name
+            String fileName = in.readUTF();
+            File file = new File(directory, fileName);
+
+
+            FileOutputStream fos = new FileOutputStream(file);
             long length = in.readLong();
             byte[] buf = new byte[(int) length + 10];
             int bytes = 0;
