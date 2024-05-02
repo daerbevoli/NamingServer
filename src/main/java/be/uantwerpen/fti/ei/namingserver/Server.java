@@ -1,8 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -340,7 +338,7 @@ public class Server {
 
             InetAddress group = InetAddress.getByName(targetIP);
 
-            String size = String.valueOf(mapSize);
+            String size = "UNICAST:" + mapSize;
             byte[] buffer = size.getBytes();
 
             // Create a DatagramPacket
