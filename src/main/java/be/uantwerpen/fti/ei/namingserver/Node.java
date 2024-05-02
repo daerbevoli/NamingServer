@@ -97,7 +97,7 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(5);
 
         executor.submit(this::sendBootstrap);
 
@@ -105,7 +105,8 @@ public class Node {
 
         executor.submit(this::listenNodeMulticast);
 
-        //executor.submit(this::receiveNodeResponse);
+
+        executor.submit(this::sendFile);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 
@@ -373,9 +374,14 @@ public class Node {
         }
     }
 
-    public static void main(String[] args) {
+    public void sendFile()
+    {
         FileTransfer ft1= new FileTransfer();
-        ft1.receiveFile(5678,"/root/lcopyfiles/1.txt" );
+        ft1.tranferFile(serverIP,"/root/localFiles/og.txt" ,5678);
+
+    }
+
+    public static void main(String[] args) {
 
         Node node = new Node();
         node.run();

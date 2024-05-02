@@ -49,6 +49,7 @@ public class Server {
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
+        executor.submit(this::receiveFile);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -289,9 +290,14 @@ public class Server {
             }
         }
 
+        public void receiveFile()
+        {
+            FileTransfer ft1= new FileTransfer();
+            ft1.receiveFile(5678,"/root/receivedFile/copy.txt" );
+
+        }
+
     public static void main(String[] args){
-        FileTransfer ft1= new FileTransfer();
-        ft1.tranferFile("/root/localFiles/b.txt","127.29.0.6", 5678);
         new Server();
         Server.run();
     }
