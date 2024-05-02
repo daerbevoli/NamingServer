@@ -1,6 +1,5 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
@@ -24,11 +23,10 @@ public class Node {
     private int previousID, nextID, currentID;
     private int numOfNodes;
 
-    private ServerSocket serverSocket;
+    private final ServerSocket serverSocket;
 
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
-    private ConcurrentHashMap<String, String> localFiles = new ConcurrentHashMap<>();
 
     public Node() {
         this.IP = findLocalIP();
@@ -48,7 +46,7 @@ public class Node {
 
     // Add a local file to the node
     public void addLocalFile(String filename) {
-        String directoryPath = "src/main/java/be/uantwerpen/fti/ei/namingserver/Files"; // Directory path
+        String directoryPath = "/root/localFiles"; // Directory path
         File directory = new File(directoryPath);
         if (!directory.exists()) {
             directory.mkdirs(); // Create the directory if it does not exist
@@ -56,7 +54,6 @@ public class Node {
         File file = new File(directoryPath + "/" + filename);
         try {
             if (file.createNewFile()) {
-                localFiles.put(filename, file.getAbsolutePath());
                 System.out.println(filename + " created successfully at " + file.getPath());
 
             } else {
@@ -66,6 +63,32 @@ public class Node {
             System.out.println("Error creating the file: " + e.getMessage());
         }
     }
+
+    // Node verifies local files and report to the naming server
+    private void verifyAndReportLocalFiles() {
+        File directory = new File("/root/localFiles");
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    String filename = file.getName();
+                    int fileHash = hash(filename);
+                    reportFileHashToServer(fileHash);
+                }
+            }
+        }
+    }
+
+    private void reportFileHashToServer(int fileHash) {
+        if (serverIP == null) {
+            System.out.println("Server IP is not available, cannot report file hash");
+            return;
+        }
+        String message = "REPORT" + ":" + IP + ":" + fileHash;
+        String purpose = "Reportigg file hashes to server";
+        sendUnicast(purpose, serverIP, message, 8000);
+    }
+
 
     // Find the local ip of the remote node
     // Find the local hostname of the remote node
@@ -188,11 +211,14 @@ public class Node {
     // Send a multicast message during bootstrap with name and IP address
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
     private void Bootstrap() {
+        verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
         receiveUnicast("Receive number of nodes", 8000);
+        verifyAndReportLocalFiles();
 
     }
+
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
