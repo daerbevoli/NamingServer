@@ -23,6 +23,7 @@ public class FileTransfer {
                     out.write(buffer,0,bytes);
                     out.flush();}
             }
+            System.out.println("FileSend");
             fis.close();
             out.close();
 
@@ -46,6 +47,7 @@ public class FileTransfer {
                 fos.write(buf, 0, bytes);
                 length = length - bytes;
             }
+            System.out.println("File received");
             fos.close();
             in.close();
             cSocket.close();;
