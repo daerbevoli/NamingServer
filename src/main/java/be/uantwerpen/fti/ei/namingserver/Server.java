@@ -364,21 +364,23 @@ public class Server {
         while (true) {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();
-            if (command.startsWith("removeNode")) {
-                String[] parts = command.split(" ");
-                String ip = parts[1];
-                removeNode(ip);
-            } else if (command.startsWith("addNode")) {
-                String[] parts = command.split( " ");
-                String ip = parts[1];
-                addNode(ip);
-            } else if (command.startsWith("getFile")) {
-                String[] parts = command.split(" ");
-                String filename = parts[1];
-                ResponseEntity<String> response = getHostname(filename);
-                System.out.println(response.getBody()); // Print the response
-            } else {
-                System.out.println("Invalid command");
+            String[] parts = command.split(" ");
+            switch (command) {
+                case "removeNode":
+                    String ipRemove = parts[1];
+                    removeNode(ipRemove);
+                    break;
+                case "addNode":
+                    String ipAdd = parts[1];
+                    addNode(ipAdd);
+                    break;
+                case "getFile":
+                    String filename = parts[1];
+                    ResponseEntity<String> response = getHostname(filename);
+                    System.out.println(response.getBody()); // Print the response
+                    break;
+                default:
+                    System.out.println("Invalid command");
                 }
             }
         }

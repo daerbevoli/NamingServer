@@ -29,7 +29,6 @@ public class Node {
 
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
-    private ConcurrentHashMap<String, String> localFiles = new ConcurrentHashMap<>();
 
     public Node() {
         this.IP = findLocalIP();
@@ -57,7 +56,6 @@ public class Node {
         File file = new File (directoryPath + "/" + filename);
         try {
             if (file.createNewFile()) {
-                localFiles.put(filename, file.getAbsolutePath());
                 System.out.println(filename + " created successfully at " + file.getPath());
 
             } else {
