@@ -34,8 +34,8 @@ public class Node {
         System.out.println("node IP: " + IP);
 
         currentID = hash(IP);
-        nextID=currentID;
-        previousID=currentID;
+        nextID = currentID;
+        previousID = currentID;
         runFunctionsOnThreads();
 
     }
@@ -47,14 +47,14 @@ public class Node {
         if (!directory.exists()) {
             directory.mkdirs(); // Create the directory if it does not exist
         }
-        File file = new File (directoryPath + "/" + filename);
+        File file = new File(directoryPath + "/" + filename);
         try {
             if (file.createNewFile()) {
                 localFiles.put(filename, file.getAbsolutePath());
                 System.out.println(filename + " created successfully at " + file.getPath());
 
             } else {
-                System.out.println("File already exists at"  + file.getPath());
+                System.out.println("File already exists at" + file.getPath());
             }
         } catch (IOException e) {
             System.out.println("Error creating the file: " + e.getMessage());
@@ -95,8 +95,6 @@ public class Node {
 
         executor.submit(this::sendBootstrap);
 
-        executor.submit(this::receiveNumNodesUnicast);
-
         executor.submit(this::listenNodeMulticast);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
@@ -107,20 +105,19 @@ public class Node {
 
 
     // Hash function
-    public int hash(String IP){
+    public int hash(String IP) {
         double max = Integer.MAX_VALUE;
         double min = Integer.MIN_VALUE;
 
-        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        double hashValue = (IP.hashCode() + max) * (32768 / (max + Math.abs(min)));
         return (int) hashValue;
 
     }
 
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void sendNodeServerMulticast(String message){
-        try (MulticastSocket socket = new MulticastSocket()){
+    private void sendMulticast(String purpose, String message, int port) {
+        try (MulticastSocket socket = new MulticastSocket()) {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
-            int port = 3000; // Multicast group port
+            System.out.println("connected to multicast server for purpose: " + purpose);
 
             byte[] buffer = message.getBytes();
 
@@ -134,18 +131,39 @@ public class Node {
         } catch (Exception e) {
             logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
         }
+    }
 
+    private void sendUnicast(String purpose, InetAddress targetIP, String message, int port) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
+
+            System.out.println("Connected to UDP socket for purpose: " + purpose);
+
+            byte[] buffer = message.getBytes();
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, port);
+
+            // Send the packet
+            socket.send(packet);
+
+            System.out.println("Unicast message with purpose: " + purpose + "sent successfully");
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
     }
 
     // Send a multicast message during bootstrap with name and IP address
+    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
     private void sendBootstrap() {
-        String message = "BOOTSTRAP"+ ":" + IP + ":" + currentID;
-        sendNodeServerMulticast(message);
+        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
+        sendMulticast("send bootstrap", message, 3000);
+        receiveUnicast("Receive number of nodes", 8000);
     }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
-    private void listenNodeMulticast(){
-        try (MulticastSocket socket = new MulticastSocket(3000)){
+    private void listenNodeMulticast() {
+        try (MulticastSocket socket = new MulticastSocket(3000)) {
 
             System.out.println("connected to multicast network");
 
@@ -162,10 +180,10 @@ public class Node {
                 String message = new String(packet.getData(), 0, packet.getLength());
                 System.out.println("Received message: " + message);
 
-                if (message.startsWith("BOOTSTRAP")){
+                if (message.startsWith("BOOTSTRAP")) {
                     processBootstrap(message);
                 }
-                if (message.startsWith("SHUTDOWN")){
+                if (message.startsWith("SHUTDOWN")) {
                     processShutdown(message);
                 }
 
@@ -175,7 +193,7 @@ public class Node {
         }
     }
 
-    private void processShutdown(String message){
+    private void processShutdown(String message) {
         String[] parts = message.split(":");
         //String IP = parts[1];
         int prevId = Integer.parseInt(parts[2]);
@@ -211,33 +229,33 @@ public class Node {
 
     }
 
-    private void updateHashShutdown(int prevID, int nxtID){
+    private void updateHashShutdown(int prevID, int nxtID) {
         numOfNodes--;
-        if (currentID == prevID){
+        if (currentID == prevID) {
             nextID = nxtID;
         }
-        if (currentID == nxtID){
+        if (currentID == nxtID) {
             previousID = prevID;
         }
     }
 
-
-    // Receive the map size from the name server
-    private void receiveNumNodesUnicast() {
+    private DatagramPacket receiveUnicast(String purpose, int port) {
+        DatagramPacket packet;
         try (DatagramSocket socket = new DatagramSocket(null)) {
+            System.out.println("Connected to datagram socket for purpose: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
             // (which can occur after the socket is closed).
             socket.setReuseAddress(true);
 
-            socket.bind(new InetSocketAddress(8000));
+            socket.bind(new InetSocketAddress(port));
             System.out.println("Connected to receive unicast");
 
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
 
             // Receive file data and write to file
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
             serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
@@ -245,10 +263,16 @@ public class Node {
 
             System.out.println("Nodes in the network: " + numOfNodes);
 
+            return packet;
+
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
         }
+
     }
+
+
+    // Receive the map size from the name server
 
     // Update the hash
     public void updateHash(int receivedHash){
@@ -285,6 +309,8 @@ public class Node {
             logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
         }
     }
+
+    private void replicate(String filename){}
 
     public void run() {
         Scanner scanner = new Scanner(System.in);

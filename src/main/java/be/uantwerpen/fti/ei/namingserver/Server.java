@@ -1,8 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -266,7 +264,7 @@ public class Server {
     }
 
     // Run the server
-    public static void run() {
+    public void run() {
         Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("Enter command: ");
@@ -274,15 +272,15 @@ public class Server {
             if (command.startsWith("removeNode")) {
                 String[] parts = command.split(" ");
                 String ip = parts[1];
-                new Server().removeNode(ip);
+                removeNode(ip);
             } else if (command.startsWith("addNode")) {
                 String[] parts = command.split(" ");
                 String ip = parts[1];
-                new Server().addNode(ip);
+                addNode(ip);
             } else if (command.startsWith("getFile")) {
                 String[] parts = command.split(" ");
                 String filename = parts[1];
-                new Server().getHostname(filename);
+                getHostname(filename);
             } else {
                 System.out.println("Invalid command");
                 }
@@ -290,7 +288,7 @@ public class Server {
         }
 
     public static void main(String[] args){
-        new Server();
-        Server.run();
+        Server serv = new Server();
+        serv.run();
     }
 }
