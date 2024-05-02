@@ -1,12 +1,12 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.*;
+import java.nio.file.*;
 import java.util.Enumeration;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,10 +33,10 @@ public class Node {
     public Node() {
         this.IP = findLocalIP();
         System.out.println("node IP: " + IP);
-        numOfNodes=0;
+        numOfNodes = 0;
         currentID = hash(IP);
-        nextID=currentID;
-        previousID=currentID;
+        nextID = currentID;
+        previousID = currentID;
         try {
             this.serverSocket = new ServerSocket(5231);
         } catch (IOException e) {
@@ -97,18 +97,40 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ScheduledExecutorService executor = (ScheduledExecutorService) Executors.newFixedThreadPool(4);
 
-        executor.submit(this::sendBootstrap);
+        executor.submit(this::Bootstrap);
 
         executor.submit(this::listenNodeMulticast);
 
-        //executor.submit(this::receiveNodeResponse);
+        executor.scheduleAtFixedRate(this::watchFolder, 0, 2, TimeUnit.MINUTES);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
+    }
+
+    // Yet to try and make complete
+    private void watchFolder() {
+        Path folderToWatch = Paths.get("/path/to/your/folder");
+
+        // Create a file system watcher
+        try {
+            WatchService watchService = FileSystems.getDefault().newWatchService();
+            folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+
+            // Wait for events
+            WatchKey key = watchService.poll();
+            if (key != null) {
+                System.out.println("Changes detected!");
+                processReplicate("/hiefih");
+            } else {
+                System.out.println("No changes detected.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -141,15 +163,17 @@ public class Node {
         }
     }
 
-    private void sendUnicast(String purpose, InetAddress targetIP, String message, int port) {
+    private void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
 
             System.out.println("Connected to UDP socket for purpose: " + purpose);
 
             byte[] buffer = message.getBytes();
 
+            InetAddress targetIp = InetAddress.getByName(targetIP);
+
             // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, port);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIp, port);
 
             // Send the packet
             socket.send(packet);
@@ -163,10 +187,11 @@ public class Node {
 
     // Send a multicast message during bootstrap with name and IP address
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void sendBootstrap() {
+    private void Bootstrap() {
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
         receiveUnicast("Receive number of nodes", 8000);
+
     }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
@@ -187,19 +212,28 @@ public class Node {
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
                 System.out.println("Received message: " + message);
-
-                if (message.startsWith("BOOTSTRAP")) {
-                    processBootstrap(message);
-                }
-                if (message.startsWith("SHUTDOWN")) {
-                    processShutdown(message);
-                }
-
+                processReceivedMessage(message);
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
         }
     }
+
+    private void processReceivedMessage(String message) throws IOException {
+        if (message.startsWith("BOOTSTRAP")){
+            processBootstrap(message);
+        }
+        if (message.startsWith("SHUTDOWN")){
+            processShutdown(message);
+        }
+        if (message.startsWith("UNICAST")){
+            processUnicast(message);
+        }
+        if (message.startsWith("REPLICATE")){
+            processReplicate(message);
+        }
+    }
+
 
     private void processShutdown(String message) {
         String[] parts = message.split(":");
@@ -238,6 +272,12 @@ public class Node {
         logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
     }
 
+    private void processUnicast(String message){
+        String[] parts = message.split(":");
+        //String IP = parts[1];
+        // yet to complete
+    }
+
     private void updateHashShutdown(int prevID, int nxtID) {
         numOfNodes--;
         if (currentID == prevID) {
@@ -248,7 +288,7 @@ public class Node {
         }
     }
 
-    private DatagramPacket receiveUnicast(String purpose, int port) {
+    private void receiveUnicast(String purpose, int port) {
         DatagramPacket packet;
         try (DatagramSocket socket = new DatagramSocket(null)) {
             System.out.println("Connected to datagram socket for purpose: " + purpose);
@@ -268,17 +308,13 @@ public class Node {
             socket.receive(packet);
             serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
-            numOfNodes = Integer.parseInt(new String(packet.getData(), 0, packet.getLength()).trim());
+            String message = new String(packet.getData(), 0, packet.getLength());
 
-            System.out.println("Nodes in the network: " + numOfNodes);
-
-            return packet;
+            processReceivedMessage(message);
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
         }
-        return null;
-
     }
 
 
@@ -339,7 +375,13 @@ public class Node {
         }
     }
 
-    private void replicate(String filename){}
+    private void processReplicate(String message){
+        String[] parts = message.split(":");
+        String targetIP = parts[0];
+        String filehash = parts[1];
+
+        sendUnicast("send local file to owner", targetIP, filehash, 2000);
+    }
 
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
         int port = 5231;

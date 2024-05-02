@@ -246,7 +246,7 @@ public class Server {
 
             InetAddress group = InetAddress.getByName(targetIP);
 
-            String size = String.valueOf(mapSize);
+            String size = "UNICAST:" + mapSize;
             byte[] buffer = size.getBytes();
 
             // Create a DatagramPacket
