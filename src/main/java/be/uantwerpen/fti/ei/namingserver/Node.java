@@ -72,7 +72,7 @@ public class Node {
         if (!directory.exists()) {
             directory.mkdirs(); // Create the directory if it does not exist
         }
-        File file = new File(directoryPath + "/" + filename);
+        File file = new File (directoryPath + "/" + filename);
         try {
             if (file.createNewFile()) {
                 System.out.println(filename + " created successfully at " + file.getPath());
@@ -215,6 +215,16 @@ public class Node {
         }
     }
 
+    // Send a multicast message during bootstrap with name and IP address
+    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
+    private void Bootstrap() {
+        verifyAndReportLocalFiles();
+        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
+        sendMulticast("send bootstrap", message, 3000);
+        receiveUnicast("Receive number of nodes", 8000);
+        verifyAndReportLocalFiles();
+
+    }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
@@ -281,16 +291,6 @@ public class Node {
         sendMulticast("Shutdown", str, 11000);
     }
 
-    // Send a multicast message during bootstrap with name and IP address
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void Bootstrap() {
-        verifyAndReportLocalFiles();
-        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8000);
-        verifyAndReportLocalFiles();
-
-    }
 
 
 
@@ -308,7 +308,6 @@ public class Node {
             processReplicate();
         }
     }
-
 
     private void processShutdown(String message) {
         String[] parts = message.split(":");
@@ -338,7 +337,6 @@ public class Node {
             return;
         }
         numOfNodes++;
-        System.out.println("test");
         try {
             updateHash(receivedHash,IP);
         } catch (IOException e) {
@@ -362,7 +360,6 @@ public class Node {
             previousID = prevID;
         }
     }
-
 
 
     // Receive the map size from the name server
@@ -465,6 +462,13 @@ public class Node {
         } catch (IOException e){
             logger.log(Level.SEVERE, "Failed to connect to node", e);
         }
+    }
+
+    public void sendFile()
+    {
+        FileTransfer ft1= new FileTransfer();
+        ft1.tranferFile("/root/localFiles/b.txt" ,serverIP,5678);
+
     }
 
     public static void main(String[] args) {

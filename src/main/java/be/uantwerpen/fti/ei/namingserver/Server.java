@@ -47,6 +47,7 @@ public class Server {
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
+        executor.submit(this::receiveFile);
 
         // Listen to unicast messages from nodes
         executor.submit(this::listenNodeUnicast);
@@ -376,6 +377,14 @@ public class Server {
                 System.out.println("Invalid command");
                 }
             }
+        }
+
+        public void receiveFile()
+        {
+            FileTransfer ft1= new FileTransfer();
+            ft1.receiveFile(5678,"/root/receivedFiles" );
+            //ft1.receiveFile(5678,"src/main/java/be/uantwerpen/fti/ei/namingserver/files/copy123" );
+
         }
 
     public static void main(String[] args){
