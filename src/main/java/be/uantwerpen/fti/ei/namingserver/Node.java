@@ -147,6 +147,8 @@ public class Node {
         // Create a file system watcher
         try {
             WatchService watchService = FileSystems.getDefault().newWatchService();
+
+            // Entry case defines new files being creates in the dir
             folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
             // Wait for events
@@ -154,7 +156,6 @@ public class Node {
             if (key != null) {
                 System.out.println("Changes detected!");
                 processReplicate();
-                folderToWatch.getFileName();
             } else {
                 System.out.println("No changes detected.");
             }
@@ -215,17 +216,6 @@ public class Node {
         }
     }
 
-    // Send a multicast message during bootstrap with name and IP address
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void Bootstrap() {
-        verifyAndReportLocalFiles();
-        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8000);
-        verifyAndReportLocalFiles();
-
-    }
-
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
         try (MulticastSocket socket = new MulticastSocket(3000)) {
@@ -250,7 +240,6 @@ public class Node {
             logger.log(Level.WARNING, "Unable to open socket", e);
         }
     }
-
 
     private void receiveUnicast(String purpose, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
@@ -280,6 +269,16 @@ public class Node {
         }
     }
 
+    // Send a multicast message during bootstrap with name and IP address
+    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
+    private void Bootstrap() {
+        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
+        sendMulticast("send bootstrap", message, 3000);
+        receiveUnicast("Receive number of nodes", 8000);
+        verifyAndReportLocalFiles();
+
+    }
+
     /*
      * The shutdown method is used when closing a node. It is also used in exception for failure.
      * The method sends a multicast message with the indication of shutdown along with its IP,
@@ -290,8 +289,6 @@ public class Node {
         String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         sendMulticast("Shutdown", str, 11000);
     }
-
-
 
 
     private void processReceivedMessage(String message) throws IOException {
