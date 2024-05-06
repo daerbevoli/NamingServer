@@ -296,6 +296,7 @@ public class Node {
 
 
     private void processReceivedMessage(String message) throws IOException {
+        logger.log(Level.INFO,"message to process: "+message);
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
