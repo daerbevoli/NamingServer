@@ -50,7 +50,8 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ScheduledExecutorService executor = (ScheduledExecutorService) Executors.newFixedThreadPool(4);
+        //ScheduledExecutorService executor = (ScheduledExecutorService) Executors.newFixedThreadPool(4);
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
 
         executor.submit(this::Bootstrap);
 
