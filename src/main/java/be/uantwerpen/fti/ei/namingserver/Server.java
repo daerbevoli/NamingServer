@@ -52,7 +52,7 @@ public class Server {
         executor.submit(this::listenForNodesMulticast);
 
         // Listen to unicast messages from nodes
-        executor.submit(this::listenNodeUnicast);
+        executor.submit(this::receiveUnicast);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -231,27 +231,6 @@ public class Server {
         }
     }
 
-    // This method listens for unicast messages from nodes
-    // It then processes the message
-    private void listenNodeUnicast(){
-        try (DatagramSocket socket = new DatagramSocket(8000)){
-            System.out.println("Connected to UDP socket");
-
-            byte[] buffer = new byte[512];
-
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-
-                System.out.println("Received unicast message: " + message);
-                processReceivedMessage(message);
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to open server socket", e);
-        }
-    }
-
     private void processReceivedMessage(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
@@ -266,13 +245,14 @@ public class Server {
                 break;
             case "REPORT":
                 int fileHash = Integer.parseInt(parts[2]);
-                processFileReport(nodeIP, fileHash);
+                String filename = parts[3];
+                processFileReport(nodeIP, fileHash, filename);
                 break;
         }
     }
 
     // Process the file report sent by the node
-    private void processFileReport(String nodeIP, int fileHash) {
+    private void processFileReport(String nodeIP, int fileHash, String filename) {
         int replicatedNodeID = nodeOfFile(fileHash);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
         if (replicatedNodeID < fileHash) { // Condition for replication
@@ -282,7 +262,7 @@ public class Server {
                 System.out.println(logger.getLevel());
                 // Notify the original node that it should handle the file replication
                 InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-                sendUnicast(nodeAddress, "REPLICATE:" + replicatedNodeIP + fileHash);
+                sendUnicast(nodeAddress, "REPLICATE:" + replicatedNodeIP + filename);
             } catch (UnknownHostException e) {
                 logger.log(Level.WARNING, "Unable to send unicast message", e);
             }
@@ -310,6 +290,8 @@ public class Server {
     }
 
     // Receive unicast message from a node
+    // It then processes the message
+
     public void receiveUnicast() {
         try (DatagramSocket socket = new DatagramSocket(8000)) {
             System.out.println("Connected to UDP socket");
@@ -322,6 +304,7 @@ public class Server {
                 String message = new String(packet.getData(), 0, packet.getLength());
 
                 System.out.println("Received unicast message: " + message);
+                processReceivedMessage(message);
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "unable to open server socket", e);
@@ -358,7 +341,6 @@ public class Server {
     // Run the server
     public void run() {
         Scanner scanner = new Scanner(System.in);
-
         while (true) {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();

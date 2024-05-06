@@ -45,8 +45,7 @@ public class Node {
     }
 
     // Add a local file to the node
-    public void addLocalFile(String filename) {
-        String directoryPath = "/root/localFiles"; // Directory path
+    public void addFile(String filename, String directoryPath) {
         File directory = new File(directoryPath);
         if (!directory.exists()) {
             directory.mkdirs(); // Create the directory if it does not exist
@@ -73,18 +72,18 @@ public class Node {
                 if (file.isFile()) {
                     String filename = file.getName();
                     int fileHash = hash(filename);
-                    reportFileHashToServer(fileHash);
+                    reportFileHashToServer(fileHash, filename);
                 }
             }
         }
     }
 
-    private void reportFileHashToServer(int fileHash) {
+    private void reportFileHashToServer(int fileHash, String filename) {
         if (serverIP == null) {
             System.out.println("Server IP is not available, cannot report file hash");
             return;
         }
-        String message = "REPORT" + ":" + IP + ":" + fileHash;
+        String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
         String purpose = "Reportigg file hashes to server";
         sendUnicast(purpose, serverIP, message, 8000);
     }
@@ -446,7 +445,7 @@ public class Node {
             String command = scanner.nextLine();
             if (command.startsWith("addFile ")) {
                 String filename = command.substring(8);
-                addLocalFile(filename);
+                addFile(filename, "/root/localFiles");
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
                 shutdownMulticast();
