@@ -31,18 +31,39 @@ public class Node {
     public Node() {
         this.IP = findLocalIP();
         System.out.println("node IP: " + IP);
+
         numOfNodes = 0;
+
         currentID = hash(IP);
         nextID = currentID;
         previousID = currentID;
+
         try {
             this.serverSocket = new ServerSocket(5231);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
         runFunctionsOnThreads();
 
     }
+
+    // Thread executor to run the functions on different threads
+    public void runFunctionsOnThreads() {
+        ScheduledExecutorService executor = (ScheduledExecutorService) Executors.newFixedThreadPool(4);
+
+        executor.submit(this::Bootstrap);
+
+        executor.submit(this::listenNodeMulticast);
+
+        executor.scheduleAtFixedRate(this::watchFolder, 0, 2, TimeUnit.MINUTES);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+
+        // Shutdown the executor once tasks are completed
+        executor.shutdown();
+    }
+
 
     // Add a local file to the node
     public void addFile(String filename, String directoryPath) {
@@ -50,7 +71,7 @@ public class Node {
         if (!directory.exists()) {
             directory.mkdirs(); // Create the directory if it does not exist
         }
-        File file = new File(directoryPath + "/" + filename);
+        File file = new File (directoryPath + "/" + filename);
         try {
             if (file.createNewFile()) {
                 System.out.println(filename + " created successfully at " + file.getPath());
@@ -85,6 +106,7 @@ public class Node {
         }
         String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
         String purpose = "Reportigg file hashes to server";
+
         sendUnicast(purpose, serverIP, message, 8000);
     }
 
@@ -117,25 +139,10 @@ public class Node {
         return "127.0.0.1"; // Default IP address localhost
     }
 
-    // Thread executor to run the functions on different threads
-    public void runFunctionsOnThreads() {
-        ScheduledExecutorService executor = (ScheduledExecutorService) Executors.newFixedThreadPool(4);
-
-        executor.submit(this::Bootstrap);
-
-        executor.submit(this::listenNodeMulticast);
-
-        executor.scheduleAtFixedRate(this::watchFolder, 0, 2, TimeUnit.MINUTES);
-
-        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownMulticast));
-
-        // Shutdown the executor once tasks are completed
-        executor.shutdown();
-    }
 
     // Yet to try and make complete
     private void watchFolder() {
-        Path folderToWatch = Paths.get("/path/to/your/folder");
+        Path folderToWatch = Paths.get("/root/localFiles");
 
         // Create a file system watcher
         try {
@@ -146,7 +153,8 @@ public class Node {
             WatchKey key = watchService.poll();
             if (key != null) {
                 System.out.println("Changes detected!");
-                processReplicate("/hiefih");
+                processReplicate();
+                folderToWatch.getFileName();
             } else {
                 System.out.println("No changes detected.");
             }
@@ -218,7 +226,6 @@ public class Node {
 
     }
 
-
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
         try (MulticastSocket socket = new MulticastSocket(3000)) {
@@ -244,6 +251,49 @@ public class Node {
         }
     }
 
+
+    private void receiveUnicast(String purpose, int port) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
+            System.out.println("Connected to datagram socket for purpose: " + purpose);
+
+            // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
+            // (which can occur after the socket is closed).
+            socket.setReuseAddress(true);
+
+            socket.bind(new InetSocketAddress(port));
+            System.out.println("Connected to receive unicast");
+
+            // Create buffer for incoming data
+            byte[] buffer = new byte[512];
+
+            // Receive file data and write to file
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            socket.receive(packet);
+            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
+
+            String message = new String(packet.getData(), 0, packet.getLength());
+
+            processReceivedMessage(message);
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to connect to server", e);
+        }
+    }
+
+    /*
+     * The shutdown method is used when closing a node. It is also used in exception for failure.
+     * The method sends a multicast message with the indication of shutdown along with its IP,
+     * previous and next node. The name server receives this message and removes the node from its map.
+     * The nodes receive this message and update their previous and next IDs
+     */
+    public void shutdown() {
+        String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
+        sendMulticast("Shutdown", str, 11000);
+    }
+
+
+
+
     private void processReceivedMessage(String message) throws IOException {
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
@@ -255,10 +305,9 @@ public class Node {
             processUnicast(message);
         }
         if (message.startsWith("REPLICATE")){
-            processReplicate(message);
+            processReplicate();
         }
     }
-
 
     private void processShutdown(String message) {
         String[] parts = message.split(":");
@@ -288,7 +337,6 @@ public class Node {
             return;
         }
         numOfNodes++;
-        System.out.println("test");
         try {
             updateHash(receivedHash,IP);
         } catch (IOException e) {
@@ -310,35 +358,6 @@ public class Node {
         }
         if (currentID == nxtID) {
             previousID = prevID;
-        }
-    }
-
-    private void receiveUnicast(String purpose, int port) {
-        DatagramPacket packet;
-        try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to datagram socket for purpose: " + purpose);
-
-            // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
-            // (which can occur after the socket is closed).
-            socket.setReuseAddress(true);
-
-            socket.bind(new InetSocketAddress(port));
-            System.out.println("Connected to receive unicast");
-
-            // Create buffer for incoming data
-            byte[] buffer = new byte[512];
-
-            // Receive file data and write to file
-            packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
-            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
-
-            String message = new String(packet.getData(), 0, packet.getLength());
-
-            processReceivedMessage(message);
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to connect to server", e);
         }
     }
 
@@ -374,38 +393,15 @@ public class Node {
         }
     }
 
-    /*
-     * The shutdown method is used when closing a node. It is also used in exception for failure.
-     * The method sends a multicast message with the indication of shutdown along with its IP,
-     * previous and next node. The name server receives this message and removes the node from its map.
-     * The nodes receive this message and update their previous and next IDs
-     */
-    public void shutdownMulticast(){
-        try (MulticastSocket socket = new MulticastSocket(11000)){
 
-            System.out.println("Connected to UDP socket for shutdown");
 
-            InetAddress group = InetAddress.getByName("224.0.0.1");
+    private void processReplicate(){
+        String message = "REPORT" + ":" + IP;
+        String purpose = "Reporting file hashes to server";
+        sendUnicast(purpose, serverIP, message, 8000);
 
-            String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-            byte[] buffer = str.getBytes();
-
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 3000);
-
-            socket.send(packet);
-            logger.log(Level.INFO, "shutdown packet sent");
-
-        } catch (IOException e){
-            logger.log(Level.WARNING, "Unable to connect to server for shutdown", e);
-        }
-    }
-
-    private void processReplicate(String message){
-        String[] parts = message.split(":");
-        String targetIP = parts[0];
-        String filehash = parts[1];
-
-        sendUnicast("send local file to owner", targetIP, filehash, 2000);
+        receiveUnicast("Receive replicated file", 3000);
+        // continuation with file transfer protocol
     }
 
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
@@ -448,7 +444,7 @@ public class Node {
                 addFile(filename, "/root/localFiles");
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
-                shutdownMulticast();
+                shutdown();
                 System.exit(0);
                 System.out.println("Shutting down");
             } else {
@@ -466,6 +462,13 @@ public class Node {
         } catch (IOException e){
             logger.log(Level.SEVERE, "Failed to connect to node", e);
         }
+    }
+
+    public void sendFile()
+    {
+        FileTransfer ft1= new FileTransfer();
+        ft1.tranferFile("/root/localFiles/b.txt" ,serverIP,5678);
+
     }
 
     public static void main(String[] args) {

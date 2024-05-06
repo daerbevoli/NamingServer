@@ -31,9 +31,6 @@ public class Server {
     // Map to save the hash corresponding to the node's ip
     private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();
 
-    // Map to store filenames
-
-
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
@@ -50,6 +47,7 @@ public class Server {
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
+        executor.submit(this::receiveFile);
 
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
@@ -363,6 +361,14 @@ public class Server {
                     System.out.println("Invalid command");
                 }
             }
+        }
+
+        public void receiveFile()
+        {
+            FileTransfer ft1= new FileTransfer();
+            ft1.receiveFile(5678,"/root/receivedFiles" );
+            //ft1.receiveFile(5678,"src/main/java/be/uantwerpen/fti/ei/namingserver/files/copy123" );
+
         }
 
     public static void main(String[] args){
