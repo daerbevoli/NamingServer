@@ -348,7 +348,8 @@ public class Node {
 
     private void processUnicast(String message){
         String[] parts = message.split(":");
-        //String IP = parts[1];
+        numOfNodes = Integer.parseInt(parts[1]);
+        logger.log(Level.INFO, "number of nodes is "+numOfNodes);
         // yet to complete
     }
 
