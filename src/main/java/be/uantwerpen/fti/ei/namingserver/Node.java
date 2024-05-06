@@ -175,6 +175,7 @@ public class Node {
 
     }
 
+    // general helper function used to send multicast message on the address 224.0.0.1
     private void sendMulticast(String purpose, String message, int port) {
         try (MulticastSocket socket = new MulticastSocket()) {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
@@ -194,6 +195,7 @@ public class Node {
         }
     }
 
+    // Send unicats
     private void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
 
@@ -216,7 +218,8 @@ public class Node {
         }
     }
 
-    // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
+    // Listen on port 3000 for incoming multicast messages,
+    // update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
         try (MulticastSocket socket = new MulticastSocket(3000)) {
 
@@ -241,8 +244,9 @@ public class Node {
         }
     }
 
+    // general helper function used to receive unicast message on a defined port
     private void receiveUnicast(String purpose, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
+        try (DatagramSocket socket = new DatagramSocket(port)) {
             System.out.println("Connected to datagram socket for purpose: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
@@ -270,11 +274,11 @@ public class Node {
     }
 
     // Send a multicast message during bootstrap with name and IP address
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
+    // to the multicast address of 224.0.0.1 to port 3000
     private void Bootstrap() {
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8000);
+        sendMulticast("send bootstrap ", message, 3000);
+        receiveUnicast("Receive number of nodes ", 8000);
         verifyAndReportLocalFiles();
 
     }

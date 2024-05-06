@@ -48,8 +48,8 @@ public class Server {
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
 
-        // Listen to unicast messages from nodes
-        executor.submit(this::listenNodeUnicast);
+        // Listen to unicast message from nodes
+        executor.submit(this::receiveNodeUnicast);
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
@@ -200,7 +200,24 @@ public class Server {
         }
     }
 
+    private void sendMulticast(String purpose, String message, int port) {
+        try (MulticastSocket socket = new MulticastSocket()) {
+            InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
+            System.out.println("connected to multicast server for purpose: " + purpose);
 
+            byte[] buffer = message.getBytes();
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);
+
+            // Send the packet to the multicast group
+            socket.send(packet);
+
+            System.out.println("Multicast message sent successfully.");
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
+        }
+    }
 
     // This method listen to port 3000 for messages in the form COMMAND:hostname
     // It then returns the IP
@@ -228,9 +245,31 @@ public class Server {
         }
     }
 
+    // Send unicast message to a node
+    public void sendUnicast(String purpose, String targetIP, String message, int port) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
+            System.out.println("Connected to UDP socket for: " + purpose);
+
+            byte[] buffer = message.getBytes();
+
+            InetAddress target = InetAddress.getByName(targetIP);
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, target, port);
+
+            // Send the packet
+            socket.send(packet);
+
+            System.out.println("Message sent to the node");
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
+    }
+
     // This method listens for unicast messages from nodes
     // It then processes the message
-    private void listenNodeUnicast(){
+    private void receiveNodeUnicast(){
         try (DatagramSocket socket = new DatagramSocket(8000)){
             System.out.println("Connected to UDP socket");
 
@@ -242,7 +281,6 @@ public class Server {
                 String message = new String(packet.getData(), 0, packet.getLength());
 
                 System.out.println("Received unicast message: " + message);
-                processReceivedMessage(message);
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open server socket", e);
@@ -256,7 +294,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendNumNodesUnicast(nodeIP);
+                sendUnicast("send num of nodes", nodeIP, String.valueOf(nodesMap.size()), 8000);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
@@ -279,76 +317,10 @@ public class Server {
                 System.out.println(logger.getLevel());
                 // Notify the original node that it should handle the file replication
                 InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-                sendUnicast(nodeAddress, "REPLICATE:" + replicatedNodeIP + fileHash);
+                sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8000);
             } catch (UnknownHostException e) {
                 logger.log(Level.WARNING, "Unable to send unicast message", e);
             }
-        }
-    }
-
-    // Send unicast message to a node
-    public void sendUnicast(InetAddress targetIP, String message) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to UDP socket");
-
-            byte[] buffer = message.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, 8000);
-
-            // Send the packet
-            socket.send(packet);
-
-            System.out.println("Message sent to the node");
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
-        }
-    }
-
-    // Receive unicast message from a node
-    public void receiveUnicast() {
-        try (DatagramSocket socket = new DatagramSocket(8000)) {
-            System.out.println("Connected to UDP socket");
-
-            byte[] buffer = new byte[512];
-
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-
-                System.out.println("Received unicast message: " + message);
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
-        }
-    }
-
-    // This method sends map size through port 8001 to port 8000 via localhost
-    public void sendNumNodesUnicast(String targetIP){
-        try(DatagramSocket socket = new DatagramSocket(null)){
-
-            System.out.println("Connected to UDP socket");
-
-            int mapSize = nodesMap.size();
-
-            InetAddress group = InetAddress.getByName(targetIP);
-
-            String size = "UNICAST:" + mapSize;
-            byte[] buffer = size.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
-
-            // Send the packet
-            socket.send(packet);
-
-            System.out.println("Number of nodes sent to the node");
-
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
         }
     }
 
