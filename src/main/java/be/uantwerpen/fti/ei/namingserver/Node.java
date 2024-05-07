@@ -338,20 +338,21 @@ public class Node {
             }
             return;
         }
-        numOfNodes++;
+        //numOfNodes++;
 
         try {
             updateHash(receivedHash,IP);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        logger.log(Level.INFO, "Post bootstrap process: " + IP + ":" + previousID + ":" + nextID + ":" + numOfNodes);
+        logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
 
     private void processUnicast(String message){
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
-        logger.log(Level.INFO, "number of nodes is "+numOfNodes);
+        System.out.println("Number of nodes: " + numOfNodes);
+        //logger.log(Level.INFO, "number of nodes is "+numOfNodes);
         // yet to complete
     }
 
