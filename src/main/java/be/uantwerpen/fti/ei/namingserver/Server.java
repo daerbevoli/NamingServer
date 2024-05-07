@@ -37,6 +37,7 @@ public class Server {
     // Constructor to read the starting data from the JSON file
     public Server(){
         readJSONIntoMap();
+        clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
     }
@@ -52,10 +53,28 @@ public class Server {
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
 
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+
         // Shutdown the executor once tasks are completed
         executor.shutdown();
     }
 
+    // Shutdown method to clear the map when server shuts down, to fix numOfNodes not resetting
+    private void shutdown() {
+        clearMap();
+    }
+
+    private void clearMap() {
+        nodesMap.clear();
+        saveMapToJSON();
+        logger.log(Level.INFO, "Map cleared");
+    }
+
+    @PostMapping("/clearMap")
+    public ResponseEntity<String> clearMapREST() {
+        clearMap();
+        return ResponseEntity.ok("Map cleared succesfully");
+    }
 
     // Hash function provided by the teachers
     public int hash(String IP){
@@ -357,6 +376,9 @@ public class Server {
                     String filename = parts[1];
                     ResponseEntity<String> response = getHostname(filename);
                     System.out.println(response.getBody()); // Print the response
+                    break;
+                case "clearMap":
+                    clearMap();
                     break;
                 default:
                     System.out.println("Invalid command");
