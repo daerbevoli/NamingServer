@@ -201,7 +201,7 @@ public class Node {
 
             byte[] buffer = message.getBytes();
 
-            InetAddress targetIp = InetAddress.getByName(targetIP);
+            InetAddress targetIp = InetAddress.getByName(targetIP); // Uses the hostname of the target node (getByName)
 
             // Create a DatagramPacket
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIp, port);
@@ -292,7 +292,7 @@ public class Node {
         sendMulticast("Shutdown", str, 11000);
     }
 
-
+    // FAILURE can be handled with a "heartbeat" mechanism
 
 
     private void processReceivedMessage(String message) throws IOException {
@@ -370,18 +370,22 @@ public class Node {
 
     // Update the hash
     public void updateHash(int receivedHash, String IP) throws IOException {
-
-
         /*
         if the new hash is smaller than the current next hash and bigger than this node's hash,
         or if the next hash is set to this node's hash
         we replace the next hash with the new received hash and notify it by sending the old one
         */
+
+        if (receivedHash == nextID) {
+            System.out.println("Received own bootstrap, my ID: "+currentID);
+            return;
+        }
+
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
             sendNodeResponse(true, IP, oldNext);
-
+            logger.log(Level.INFO, "Next ID updated to: "+nextID);
         }
 
         /*
@@ -393,7 +397,7 @@ public class Node {
             int oldPrevious =previousID;
             previousID = receivedHash;
             sendNodeResponse(false, IP, oldPrevious);
-
+            logger.log(Level.INFO, "Previous ID updated to: "+previousID);
         }
     }
 
@@ -412,11 +416,10 @@ public class Node {
         int port = 5231;
         try (Socket cSocket = new Socket(nodeIP, port);
              DataOutputStream out = new DataOutputStream(cSocket.getOutputStream())) {
-
-            String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
-            out.writeUTF(msg);
-            out.flush();
-            logger.log(Level.INFO, "Sending package");
+             String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
+             out.writeUTF(msg);
+             out.flush();
+             logger.log(Level.INFO, "Sending package");
         }
     }
 
