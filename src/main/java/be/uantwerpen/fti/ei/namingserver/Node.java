@@ -296,6 +296,7 @@ public class Node {
 
 
     private void processReceivedMessage(String message) throws IOException {
+        logger.log(Level.INFO,"message to process: "+message);
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
@@ -349,7 +350,8 @@ public class Node {
 
     private void processUnicast(String message){
         String[] parts = message.split(":");
-        //String IP = parts[1];
+        numOfNodes = Integer.parseInt(parts[1]);
+        logger.log(Level.INFO, "number of nodes is "+numOfNodes);
         // yet to complete
     }
 
