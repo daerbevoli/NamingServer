@@ -338,6 +338,7 @@ public class Node {
             return;
         }
         numOfNodes++;
+
         try {
             updateHash(receivedHash,IP);
         } catch (IOException e) {
