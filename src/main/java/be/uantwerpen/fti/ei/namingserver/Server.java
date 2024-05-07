@@ -337,13 +337,13 @@ public class Server {
 
             int mapSize = nodesMap.size();
 
-            InetAddress group = InetAddress.getByName(targetIP);
+            InetAddress targetAddress = InetAddress.getByName(targetIP);
 
-            String size = "UNICAST:" + mapSize;
-            byte[] buffer = size.getBytes();
+            String message = "NUMNODES:" + mapSize;
+            byte[] buffer = message.getBytes();
 
             // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, 8000);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, 8000);
 
             // Send the packet
             socket.send(packet);
@@ -352,7 +352,7 @@ public class Server {
 
 
         } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
+            logger.log(Level.WARNING, "Unable to open server socket", e);
         }
     }
 

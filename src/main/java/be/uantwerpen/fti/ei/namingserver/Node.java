@@ -288,8 +288,8 @@ public class Node {
      * The nodes receive this message and update their previous and next IDs
      */
     public void shutdown() {
-        String str = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        sendMulticast("Shutdown", str, 11000);
+        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
+        sendMulticast("Shutdown", message, 3000);
     }
 
     // FAILURE can be handled with a "heartbeat" mechanism
@@ -303,8 +303,8 @@ public class Node {
         if (message.startsWith("SHUTDOWN")){
             processShutdown(message);
         }
-        if (message.startsWith("UNICAST")){
-            processUnicast(message);
+        if (message.startsWith("NUMNODES")){
+            processNumNodes(message);
         }
         if (message.startsWith("REPLICATE")){
             processReplicate();
@@ -348,7 +348,7 @@ public class Node {
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
 
-    private void processUnicast(String message){
+    private void processNumNodes(String message){
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         System.out.println("Number of nodes: " + numOfNodes);
@@ -409,7 +409,7 @@ public class Node {
         String purpose = "Reporting file hashes to server";
         sendUnicast(purpose, serverIP, message, 8000);
 
-        receiveUnicast("Receive replicated file", 3000);
+        receiveUnicast("Receive replicated file", 8000);
         // continuation with file transfer protocol
     }
 
