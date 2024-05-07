@@ -240,7 +240,7 @@ public class Server {
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
-                logger.log(Level.INFO,"Node with IP: " + nodeIP + " has shut down and been removed from the network");
+                System.out.println("Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
                 int fileHash = Integer.parseInt(parts[2]);

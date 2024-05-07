@@ -452,6 +452,8 @@ public class Node {
                 addFile(filename, "/root/localFiles");
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
+                System.out.println("Shutting down");
+
                 shutdown();
                 System.exit(0);
                 System.out.println("Shutting down");
