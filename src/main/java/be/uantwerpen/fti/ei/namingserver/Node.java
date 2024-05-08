@@ -332,7 +332,7 @@ public class Node {
         if (receivedHash == currentID) { // Received info is about itself
             logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
             //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
-            while (numOfNodes == 0) {
+            if (numOfNodes == 0) {
                 System.out.println("Waiting for numofnodes > 0");
 
             }
