@@ -313,6 +313,8 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         sendMulticast("Shutdown", message, 3000);
+        System.exit(0);
+
     }
 
     // FAILURE can be handled with a "heartbeat" mechanism
@@ -481,7 +483,6 @@ public class Node {
             } else if (command.equals("shutdown")) {
                 System.out.println("Shutting down");
                 shutdown();
-                System.exit(0);
                 System.out.println("Shutting down");
             } else if (command.equals("num")) {
                 System.out.println("Number of nodes: " + numOfNodes);
