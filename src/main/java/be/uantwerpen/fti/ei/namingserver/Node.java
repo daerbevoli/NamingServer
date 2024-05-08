@@ -222,7 +222,7 @@ public class Node {
         verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8200);
+        //receiveUnicast("Receive number of nodes", 8200);
         verifyAndReportLocalFiles();
 
     }
@@ -325,9 +325,8 @@ public class Node {
         String[] parts = message.split(":");
         //String command = parts[0];
         String IP = parts[1];
-
+        receiveUnicast("Receive number of nodes", 8200);
         int receivedHash = hash(IP);
-
         logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
