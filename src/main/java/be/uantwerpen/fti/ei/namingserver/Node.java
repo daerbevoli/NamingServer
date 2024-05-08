@@ -338,7 +338,7 @@ public class Node {
             }
             return;
         }
-        //numOfNodes++;
+        numOfNodes++;
 
         try {
             updateHash(receivedHash,IP);
