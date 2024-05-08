@@ -364,6 +364,8 @@ public class Node {
         if (currentID == nxtID) {
             previousID = prevID;
         }
+        logger.log(Level.INFO, "Post shutdown process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
+
     }
 
 
