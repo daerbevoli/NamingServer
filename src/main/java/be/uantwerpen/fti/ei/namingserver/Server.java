@@ -48,7 +48,6 @@ public class Server {
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
-        executor.submit(this::receiveFile);
 
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
@@ -220,10 +219,27 @@ public class Server {
         }
     }
 
+    private void sendMulticast(String purpose, String message, int port) {
+        try (MulticastSocket socket = new MulticastSocket()) {
+            InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
+            System.out.println("connected to multicast server for purpose: " + purpose);
 
+            byte[] buffer = message.getBytes();
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);
+
+            // Send the packet to the multicast group
+            socket.send(packet);
+
+            System.out.println("Multicast message sent successfully.");
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
+        }
+    }
 
     // This method listen to port 3000 for messages in the form COMMAND:hostname
-    // It then returns the IP
+    // It then processes the received message
     private void listenForNodesMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
             System.out.println("connected to multicast network");
@@ -248,6 +264,29 @@ public class Server {
         }
     }
 
+    // Send unicast message to a node
+    public void sendUnicast(String purpose, String targetIP, String message, int port) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
+            System.out.println("Connected to UDP socket for: " + purpose);
+
+            byte[] buffer = message.getBytes();
+
+            InetAddress target = InetAddress.getByName(targetIP);
+
+            // Create a DatagramPacket
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, target, port);
+
+            // Send the packet
+            socket.send(packet);
+
+            System.out.println("Message sent to the node");
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
+    }
+
+
     private void processReceivedMessage(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
@@ -255,7 +294,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendNumNodesUnicast(nodeIP);
+                sendUnicast("send number of nodes", nodeIP, String.valueOf(nodesMap.size()), 8000);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
@@ -280,7 +319,7 @@ public class Server {
                 System.out.println(logger.getLevel());
                 // Notify the original node that it should handle the file replication
                 InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-                sendUnicast(nodeAddress, "REPLICATE:" + replicatedNodeIP + filename);
+                sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8000);
             } catch (UnknownHostException e) {
                 logger.log(Level.WARNING, "Unable to send unicast message", e);
             }
@@ -386,13 +425,6 @@ public class Server {
             }
         }
 
-        public void receiveFile()
-        {
-            FileTransfer ft1= new FileTransfer();
-            ft1.receiveFile(5678,"/root/receivedFiles" );
-            //ft1.receiveFile(5678,"src/main/java/be/uantwerpen/fti/ei/namingserver/files/copy123" );
-
-        }
 
     public static void main(String[] args){
         Server server = new Server();

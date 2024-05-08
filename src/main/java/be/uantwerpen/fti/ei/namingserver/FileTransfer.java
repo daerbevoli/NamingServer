@@ -6,28 +6,28 @@ import java.net.Socket;
 
 public class FileTransfer {
 
-    public void tranferFile(String path, String IP, int port)
+    public static void tranferFile(String path, String IP, int port)
     {
         try {
-            System.out.println("received IP:"+IP);
-            Socket socket= new Socket(IP,port);
-            ObjectOutputStream out=new ObjectOutputStream(socket.getOutputStream());
-            File file= new File(path);
-            String name=file.getName();
+            System.out.println("received IP:" + IP);
+            Socket socket = new Socket(IP, port);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            File file = new File(path);
+            String name = file.getName();
 
             //send over file name first
             out.writeUTF(name);
             out.flush();
 
             //send the file
-            FileInputStream fis= new FileInputStream(file);
+            FileInputStream fis = new FileInputStream(file);
             out.writeLong(file.length());
-            byte[] buffer= new byte[(int) file.length() +10];
-            int bytes=0;
-            while (bytes!=-1)
+            byte[] buffer = new byte[(int) file.length() + 10];
+            int bytes = 0;
+            while (bytes != -1)
             {
-                bytes= fis.read(buffer);
-                if(bytes!=-1){
+                bytes = fis.read(buffer);
+                if(bytes != -1){
                     out.write(buffer,0,bytes);
                     out.flush();}
             }
@@ -40,11 +40,11 @@ public class FileTransfer {
         }
     }
 
-    public void receiveFile(int port,String directory)
+    public static void receiveFile(int port,String directory)
     {
         try {
-            ServerSocket sSocket= new ServerSocket(port);
-            Socket cSocket= sSocket.accept();
+            ServerSocket sSocket = new ServerSocket(port);
+            Socket cSocket = sSocket.accept();
             ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream());
 
             //read file name

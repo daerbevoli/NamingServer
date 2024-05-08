@@ -148,6 +148,8 @@ public class Node {
         // Create a file system watcher
         try {
             WatchService watchService = FileSystems.getDefault().newWatchService();
+
+            // Entry case defines new files being creates in the dir
             folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
             // Wait for events
@@ -155,7 +157,6 @@ public class Node {
             if (key != null) {
                 System.out.println("Changes detected!");
                 processReplicate();
-                folderToWatch.getFileName();
             } else {
                 System.out.println("No changes detected.");
             }
@@ -175,6 +176,7 @@ public class Node {
 
     }
 
+    // general helper function used to send multicast message on the address 224.0.0.1
     private void sendMulticast(String purpose, String message, int port) {
         try (MulticastSocket socket = new MulticastSocket()) {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
@@ -194,6 +196,7 @@ public class Node {
         }
     }
 
+    // general helper function used to send unicast message on a target address
     private void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
 
@@ -213,21 +216,12 @@ public class Node {
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "unable to open server socket", e);
+            shutdown(); // failure
         }
     }
 
-    // Send a multicast message during bootstrap with name and IP address
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void Bootstrap() {
-        verifyAndReportLocalFiles();
-        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8000);
-        verifyAndReportLocalFiles();
-
-    }
-
-    // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
+    // Listen on port 3000 for incoming multicast messages,
+    // update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
         try (MulticastSocket socket = new MulticastSocket(3000)) {
 
@@ -252,9 +246,9 @@ public class Node {
         }
     }
 
-
+    // general helper function used to receive unicast message on a defined port
     private void receiveUnicast(String purpose, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
+        try (DatagramSocket socket = new DatagramSocket(port)) {
             System.out.println("Connected to datagram socket for purpose: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
@@ -281,6 +275,16 @@ public class Node {
         }
     }
 
+    // Send a multicast message during bootstrap with name and IP address
+    // to the multicast address of 224.0.0.1 to port 3000
+    private void Bootstrap() {
+        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
+        sendMulticast("send bootstrap ", message, 3000);
+        receiveUnicast("Receive number of nodes ", 8000);
+        verifyAndReportLocalFiles();
+
+    }
+
     /*
      * The shutdown method is used when closing a node. It is also used in exception for failure.
      * The method sends a multicast message with the indication of shutdown along with its IP,
@@ -291,9 +295,6 @@ public class Node {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         sendMulticast("Shutdown", message, 3000);
     }
-
-    // FAILURE can be handled with a "heartbeat" mechanism
-
 
     private void processReceivedMessage(String message) throws IOException {
         logger.log(Level.INFO,"message to process: "+message);
@@ -465,7 +466,7 @@ public class Node {
 
     // ping method to check whether a connection with a node can be made
     public void ping(InetAddress address){
-        try (Socket socket = new Socket(address, 0)){
+        try (Socket socket = new Socket(address, 15000)){
 
             logger.log(Level.INFO, "Connected to the node");
 
