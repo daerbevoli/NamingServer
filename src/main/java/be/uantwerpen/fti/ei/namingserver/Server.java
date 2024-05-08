@@ -36,7 +36,6 @@ public class Server {
 
     // Constructor to read the starting data from the JSON file
     public Server(){
-        readJSONIntoMap();
         clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
@@ -286,6 +285,27 @@ public class Server {
         }
     }
 
+    // Receive unicast message from a node
+    // It then processes the message
+    public void receiveUnicast() {
+        try (DatagramSocket socket = new DatagramSocket(8000)) {
+            System.out.println("Connected to UDP socket");
+
+            byte[] buffer = new byte[512];
+
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+
+                System.out.println("Received unicast message: " + message);
+                processReceivedMessage(message);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "unable to open server socket", e);
+        }
+    }
+
 
     private void processReceivedMessage(String message) {
         String[] parts = message.split(":");
@@ -294,7 +314,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendUnicast("send number of nodes", nodeIP, String.valueOf(nodesMap.size()), 8000);
+                sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8100);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
@@ -315,85 +335,18 @@ public class Server {
         if (replicatedNodeID < fileHash) { // Condition for replication
             try {
                 // Create log with file references
-                logger.log(Level.INFO,"Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
+                logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
                 System.out.println(logger.getLevel());
                 // Notify the original node that it should handle the file replication
                 InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-                sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8000);
+                sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8100);
             } catch (UnknownHostException e) {
                 logger.log(Level.WARNING, "Unable to send unicast message", e);
             }
         }
     }
 
-    // Send unicast message to a node
-    public void sendUnicast(InetAddress targetIP, String message) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to UDP socket");
 
-            byte[] buffer = message.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, 8100);
-
-            // Send the packet
-            socket.send(packet);
-
-            System.out.println("Message sent to the node");
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
-        }
-    }
-
-    // Receive unicast message from a node
-    // It then processes the message
-
-    public void receiveUnicast() {
-        try (DatagramSocket socket = new DatagramSocket(8000)) {
-            System.out.println("Connected to UDP socket");
-
-            byte[] buffer = new byte[512];
-
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-
-                System.out.println("Received unicast message: " + message);
-                processReceivedMessage(message);
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
-        }
-    }
-
-    // This method sends map size through port 8001 to port 8000 via localhost
-    public void sendNumNodesUnicast(String targetIP){
-        try(DatagramSocket socket = new DatagramSocket(null)){
-
-            System.out.println("Connected to UDP socket");
-
-            int mapSize = nodesMap.size();
-
-            InetAddress targetAddress = InetAddress.getByName(targetIP);
-
-            String message = "NUMNODES:" + mapSize;
-            byte[] buffer = message.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, 8200);
-
-            // Send the packet
-            socket.send(packet);
-
-            System.out.println("Number of nodes sent to the node");
-
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to open server socket", e);
-        }
-    }
 
     // Run the server
     public void run() {
