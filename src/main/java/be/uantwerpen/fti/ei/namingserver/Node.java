@@ -327,29 +327,30 @@ public class Node {
 
         int receivedHash = hash(IP);
 
-        logger.log(Level.INFO, "CurrentID:"+currentID+" receivedID:"+receivedHash);
+        logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
-            logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID+"\nMy number of nodes="+numOfNodes);
+            logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
             //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
-            if(numOfNodes==0)
-            {
+            while (numOfNodes == 0) {
+                System.out.println("Waiting for numofnodes > 0");
+
             }
-            if(numOfNodes >1)
-            {
-                logger.log(Level.INFO,"Condition met to start TCP connection");
+            if (numOfNodes > 1) {
+                logger.log(Level.INFO, "Condition met to start TCP connection");
                 receiveNodeResponse();
             }
-            return;
-        }
-        numOfNodes++;
+
+        } else {
+            numOfNodes++;
 
         try {
-            updateHash(receivedHash,IP);
+            updateHash(receivedHash, IP);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
+    }
     }
 
     private void processNumNodes(String message){
