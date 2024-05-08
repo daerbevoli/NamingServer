@@ -315,7 +315,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8200);
+                sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);

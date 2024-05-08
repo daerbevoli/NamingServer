@@ -224,7 +224,7 @@ public class Node {
         verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8200);
+        //receiveUnicast("Receive number of nodes", 8200);
         verifyAndReportLocalFiles();
 
     }
@@ -284,7 +284,7 @@ public class Node {
     }
 
     private void receiveNumOfNodes() {
-        try (DatagramSocket socket = new DatagramSocket(8200)) {
+        try (DatagramSocket socket = new DatagramSocket(8300)) {
             System.out.println("Connected to receive number of nodes");
 
             // Create buffer for incoming data
