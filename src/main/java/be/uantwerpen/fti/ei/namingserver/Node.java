@@ -222,7 +222,7 @@ public class Node {
         verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8000);
+        receiveUnicast("Receive number of nodes", 8200);
         verifyAndReportLocalFiles();
 
     }
@@ -409,7 +409,7 @@ public class Node {
         String purpose = "Reporting file hashes to server";
         sendUnicast(purpose, serverIP, message, 8000);
 
-        receiveUnicast("Receive replicated file", 8000);
+        receiveUnicast("Receive replicated file", 8100);
         // continuation with file transfer protocol
     }
 

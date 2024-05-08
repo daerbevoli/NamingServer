@@ -295,7 +295,7 @@ public class Server {
             byte[] buffer = message.getBytes();
 
             // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, 8000);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIP, 8100);
 
             // Send the packet
             socket.send(packet);
@@ -343,7 +343,7 @@ public class Server {
             byte[] buffer = message.getBytes();
 
             // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, 8000);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, 8200);
 
             // Send the packet
             socket.send(packet);
