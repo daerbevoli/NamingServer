@@ -312,6 +312,7 @@ public class Node {
     }
 
     private void processShutdown(String message) {
+        numOfNodes--;
         String[] parts = message.split(":");
         //String IP = parts[1];
         int prevId = Integer.parseInt(parts[2]);
@@ -334,9 +335,8 @@ public class Node {
             //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
             if (numOfNodes == 0) {
                 System.out.println("Waiting for numofnodes > 0");
-
             }
-            if (numOfNodes > 1) {
+            else if (numOfNodes > 1) {
                 logger.log(Level.INFO, "Condition met to start TCP connection");
                 receiveNodeResponse();
             }
@@ -362,7 +362,6 @@ public class Node {
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
-        numOfNodes--;
         if (currentID == prevID) {
             nextID = nxtID;
         }
