@@ -55,6 +55,8 @@ public class Node {
 
         executor.submit(this::Bootstrap);
 
+        executor.submit(this::receiveNumOfNodes);
+
         executor.submit(this::listenNodeMulticast);
 
         executor.scheduleAtFixedRate(this::watchFolder, 0, 2, TimeUnit.MINUTES);
@@ -222,7 +224,7 @@ public class Node {
         verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
-        //receiveUnicast("Receive number of nodes", 8200);
+        receiveUnicast("Receive number of nodes", 8200);
         verifyAndReportLocalFiles();
 
     }
@@ -281,6 +283,27 @@ public class Node {
         }
     }
 
+    private void receiveNumOfNodes() {
+        try (DatagramSocket socket = new DatagramSocket(8200)) {
+            System.out.println("Connected to receive number of nodes");
+
+            // Create buffer for incoming data
+            byte[] buffer = new byte[512];
+
+            while (true) {
+                // Receive file data and write to file
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+
+                String message = new String(packet.getData(), 0, packet.getLength());
+
+                processReceivedMessage(message);
+            }
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to connect to server", e);
+        }
+    }
     /*
      * The shutdown method is used when closing a node. It is also used in exception for failure.
      * The method sends a multicast message with the indication of shutdown along with its IP,
@@ -323,9 +346,9 @@ public class Node {
     // Process the message received from the multicast
     private void processBootstrap(String message) throws IOException {
         String[] parts = message.split(":");
-        //String command = parts[0];
+        String command = parts[0];
         String IP = parts[1];
-        receiveUnicast("Receive number of nodes", 8200);
+
         int receivedHash = hash(IP);
         logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
         // Update current node's network parameters based on the received node's hash
