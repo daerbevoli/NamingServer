@@ -220,7 +220,7 @@ public class Server {
     }
 
     // This method listen to port 3000 for messages in the form COMMAND:hostname
-    // It then returns the IP
+    // It then processes the received message
     private void listenForNodesMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
             System.out.println("connected to multicast network");
@@ -294,7 +294,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendUnicast("send num of nodes", nodeIP, String.valueOf(nodesMap.size()), 8000);
+                sendUnicast("send number of nodes", nodeIP, String.valueOf(nodesMap.size()), 8000);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);

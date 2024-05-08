@@ -195,7 +195,7 @@ public class Node {
         }
     }
 
-    // Send unicats
+    // general helper function used to send unicast message on a target address
     private void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
 
@@ -215,6 +215,7 @@ public class Node {
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "unable to open server socket", e);
+            shutdown(); // failure
         }
     }
 
@@ -456,7 +457,7 @@ public class Node {
 
     // ping method to check whether a connection with a node can be made
     public void ping(InetAddress address){
-        try (Socket socket = new Socket(address, 0)){
+        try (Socket socket = new Socket(address, 15000)){
 
             logger.log(Level.INFO, "Connected to the node");
 
