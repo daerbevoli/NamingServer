@@ -222,7 +222,7 @@ public class Node {
         verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8000);
+        receiveUnicast("Receive number of nodes", 8200);
         verifyAndReportLocalFiles();
 
     }
@@ -330,7 +330,7 @@ public class Node {
         logger.log(Level.INFO, "CurrentID:"+currentID+" receivedID:"+receivedHash);
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
-            logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
+            logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID+"\nMy number of nodes="+numOfNodes);
             if(numOfNodes >1)
             {
                 logger.log(Level.INFO,"Condition met to start TCP connection");
@@ -364,6 +364,7 @@ public class Node {
         if (currentID == nxtID) {
             previousID = prevID;
         }
+        logger.log(Level.INFO, "Post shutdown process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
 
 
@@ -453,10 +454,11 @@ public class Node {
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
                 System.out.println("Shutting down");
-
                 shutdown();
                 System.exit(0);
                 System.out.println("Shutting down");
+            } else if (command.equals("num")) {
+                System.out.println("Number of nodes: " + numOfNodes);
             } else {
                 System.out.println("Invalid command.");
             }
