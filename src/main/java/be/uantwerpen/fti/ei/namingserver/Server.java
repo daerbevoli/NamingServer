@@ -46,7 +46,7 @@ public class Server {
         clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
-        sendMulticast("send server IP ", "SERVER:" + IP, 3000);
+        helpMethods.sendMulticast("send server IP ", "SERVER:" + IP, 3000);
     }
 
     // Thread executor
@@ -59,15 +59,10 @@ public class Server {
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::clearMap));
 
         // Shutdown the executor once tasks are completed
         executor.shutdown();
-    }
-
-    // Shutdown method to clear the map when server shuts down, to fix numOfNodes not resetting
-    private void shutdown() {
-        clearMap();
     }
 
     private void clearMap() {
@@ -79,7 +74,7 @@ public class Server {
     @PostMapping("/clearMap")
     public ResponseEntity<String> clearMapREST() {
         clearMap();
-        return ResponseEntity.ok("Map cleared succesfully");
+        return ResponseEntity.ok("Map cleared successfully");
     }
 
     // Hash function provided by the teachers
@@ -226,25 +221,6 @@ public class Server {
         }
     }
 
-    private void sendMulticast(String purpose, String message, int port) {
-        try (MulticastSocket socket = new MulticastSocket()) {
-            InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
-            logger.log(Level.INFO,"connected to multicast send socket: " + purpose);
-
-            byte[] buffer = message.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);
-
-            // Send the packet to the multicast group
-            socket.send(packet);
-
-            logger.log(Level.INFO, "Multicast message: " + purpose + ", sent successfully.");
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to connect to multicast send socket: " + purpose, e);
-        }
-    }
-
     // This method listen to port 3000 for messages in the form COMMAND:hostname
     // It then processes the received message
     private void listenForNodesMulticast(){
@@ -268,29 +244,6 @@ public class Server {
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to open socket", e);
-        }
-    }
-
-    private void sendUnicast(String purpose, String targetIP, String message, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
-
-            logger.log(Level.INFO,"Connected to unicast send socket: " + purpose);
-
-            byte[] buffer = message.getBytes();
-
-            InetAddress targetIp = InetAddress.getByName(targetIP); // Uses the hostname of the target node (getByName)
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIp, port);
-
-            // Send the packet
-            socket.send(packet);
-
-            logger.log(Level.INFO,"Unicast message: " + purpose + ", sent successfully");
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open unicast send socket: " + purpose, e);
-            shutdown();
         }
     }
 
@@ -324,7 +277,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
+                helpMethods.sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
@@ -352,7 +305,7 @@ public class Server {
 
             // Notify the original node that it should handle the file replication
             InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-            sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
+            helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
         } catch (UnknownHostException e) {
             logger.log(Level.WARNING, "Unable to send unicast message", e);
         }

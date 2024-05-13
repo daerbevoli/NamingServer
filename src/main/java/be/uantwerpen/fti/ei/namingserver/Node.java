@@ -22,9 +22,7 @@ public class Node {
     private final String IP;
     private int previousID, nextID, currentID;
     private int numOfNodes;
-
     private final ServerSocket serverSocket;
-
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
@@ -73,7 +71,7 @@ public class Node {
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
     private void Bootstrap() {
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
+        helpMethods.sendMulticast("send bootstrap", message, 3000);
         verifyAndReportLocalFiles();
 
     }
@@ -86,7 +84,7 @@ public class Node {
      */
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        sendMulticast("Shutdown", message, 3000);
+        helpMethods.sendMulticast("Shutdown", message, 3000);
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -147,7 +145,7 @@ public class Node {
         String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
         String purpose = "Reporting file hashes to server";
 
-        sendUnicast(purpose, serverIP, message, 8000);
+        helpMethods.sendUnicast(purpose, serverIP, message, 8000);
     }
 
     private void watchFolder() {
@@ -171,47 +169,7 @@ public class Node {
         }
     }
 
-    private void sendMulticast(String purpose, String message, int port) {
-        try (MulticastSocket socket = new MulticastSocket()) {
-            InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
-            logger.log(Level.INFO,"connected to multicast send socket: " + purpose);
 
-            byte[] buffer = message.getBytes();
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, port);
-
-            // Send the packet to the multicast group
-            socket.send(packet);
-
-            logger.log(Level.INFO, "Multicast message: " + purpose + ", sent successfully.");
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to connect to multicast send socket: " + purpose, e);
-        }
-    }
-
-    private void sendUnicast(String purpose, String targetIP, String message, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
-
-            logger.log(Level.INFO,"Connected to unicast send socket: " + purpose);
-
-            byte[] buffer = message.getBytes();
-
-            InetAddress targetIp = InetAddress.getByName(targetIP); // Uses the hostname of the target node (getByName)
-
-            // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIp, port);
-
-            // Send the packet
-            socket.send(packet);
-
-            logger.log(Level.INFO,"Unicast message: " + purpose + ", sent successfully");
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open unicast send socket: " + purpose, e);
-            shutdown();
-        }
-    }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
     private void listenNodeMulticast() {
@@ -478,18 +436,6 @@ public class Node {
                     }
                     break;
             }
-        }
-    }
-
-
-    // ping method to check whether a connection with a node can be made
-    public void ping(InetAddress address){
-        try (Socket socket = new Socket(address, 0)){
-
-            logger.log(Level.INFO, "Connected to the node");
-
-        } catch (IOException e){
-            logger.log(Level.SEVERE, "Failed to connect to node", e);
         }
     }
 
