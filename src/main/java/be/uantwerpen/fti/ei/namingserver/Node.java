@@ -293,6 +293,9 @@ public class Node {
 
     private void processReceivedMessage(String message) throws IOException {
         logger.log(Level.INFO,"message to process: " + message);
+        if (message.startsWith("SERVER")){
+            serverIP = message.split(":")[1];
+        }
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
@@ -304,9 +307,6 @@ public class Node {
         }
         if (message.startsWith("REPLICATE")){
             processReplicate(message);
-        } else {
-            serverIP = message.split(":")[0];
-            logger.log(Level.INFO, "Server IP successfully received: " + serverIP);
         }
     }
 
