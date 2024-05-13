@@ -43,7 +43,7 @@ public class Server {
 
     // Thread executor
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
