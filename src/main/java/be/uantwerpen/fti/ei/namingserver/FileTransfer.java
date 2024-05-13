@@ -6,7 +6,7 @@ import java.net.Socket;
 
 public class FileTransfer {
 
-    public static void tranferFile(String path, String IP, int port)
+    public static void transferFile(String path, String IP, int port)
     {
         try {
             System.out.println("received IP:" + IP);
