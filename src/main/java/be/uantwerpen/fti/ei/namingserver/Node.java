@@ -108,7 +108,7 @@ public class Node {
             return;
         }
         String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
-        String purpose = "Reportigg file hashes to server";
+        String purpose = "Reporting file hashes to server";
 
         sendUnicast(purpose, serverIP, message, 8000);
     }
@@ -215,6 +215,7 @@ public class Node {
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "unable to open server socket", e);
+            shutdown();
         }
     }
 
