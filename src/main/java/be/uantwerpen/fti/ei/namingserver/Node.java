@@ -55,6 +55,8 @@ public class Node {
 
         executor.submit(this::Bootstrap);
 
+        executor.submit(this::receiveNumOfNodes);
+
         executor.submit(this::listenNodeMulticast);
 
         executor.scheduleAtFixedRate(this::watchFolder, 0, 2, TimeUnit.MINUTES);
@@ -222,7 +224,7 @@ public class Node {
         verifyAndReportLocalFiles();
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         sendMulticast("send bootstrap", message, 3000);
-        receiveUnicast("Receive number of nodes", 8200);
+        //receiveUnicast("Receive number of nodes", 8200);
         verifyAndReportLocalFiles();
 
     }
@@ -281,6 +283,27 @@ public class Node {
         }
     }
 
+    private void receiveNumOfNodes() {
+        try (DatagramSocket socket = new DatagramSocket(8300)) {
+            System.out.println("Connected to receive number of nodes");
+
+            // Create buffer for incoming data
+            byte[] buffer = new byte[512];
+
+            while (true) {
+                // Receive file data and write to file
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+
+                String message = new String(packet.getData(), 0, packet.getLength());
+
+                processReceivedMessage(message);
+            }
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to connect to server", e);
+        }
+    }
     /*
      * The shutdown method is used when closing a node. It is also used in exception for failure.
      * The method sends a multicast message with the indication of shutdown along with its IP,
@@ -312,6 +335,7 @@ public class Node {
     }
 
     private void processShutdown(String message) {
+        numOfNodes--;
         String[] parts = message.split(":");
         //String IP = parts[1];
         int prevId = Integer.parseInt(parts[2]);
@@ -322,30 +346,33 @@ public class Node {
     // Process the message received from the multicast
     private void processBootstrap(String message) throws IOException {
         String[] parts = message.split(":");
-        //String command = parts[0];
+        String command = parts[0];
         String IP = parts[1];
 
         int receivedHash = hash(IP);
-
-        logger.log(Level.INFO, "CurrentID:"+currentID+" receivedID:"+receivedHash);
+        logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
         // Update current node's network parameters based on the received node's hash
         if (receivedHash == currentID) { // Received info is about itself
-            logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID+"\nMy number of nodes="+numOfNodes);
-            if(numOfNodes >1)
-            {
-                logger.log(Level.INFO,"Condition met to start TCP connection");
+            logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
+            //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
+            if (numOfNodes == 0) {
+                System.out.println("Waiting for numofnodes > 0");
+            }
+            else if (numOfNodes > 1) {
+                logger.log(Level.INFO, "Condition met to start TCP connection");
                 receiveNodeResponse();
             }
-            return;
-        }
-        numOfNodes++;
+
+        } else {
+            numOfNodes++;
 
         try {
-            updateHash(receivedHash,IP);
+            updateHash(receivedHash, IP);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
+    }
     }
 
     private void processNumNodes(String message){
@@ -357,7 +384,6 @@ public class Node {
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
-        numOfNodes--;
         if (currentID == prevID) {
             nextID = nxtID;
         }
@@ -454,7 +480,6 @@ public class Node {
                 System.out.println(filename + " added.");
             } else if (command.equals("shutdown")) {
                 System.out.println("Shutting down");
-                shutdown();
                 System.exit(0);
                 System.out.println("Shutting down");
             } else if (command.equals("num")) {

@@ -266,7 +266,7 @@ public class Server {
     // Send unicast message to a node
     public void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to UDP socket for: " + purpose);
+            System.out.println("Connected to UDP socket for: " + purpose + "Number of nodes: " + nodesMap.size());
 
             byte[] buffer = message.getBytes();
 
@@ -307,6 +307,7 @@ public class Server {
     }
 
 
+
     private void processReceivedMessage(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
@@ -314,7 +315,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8200);
+                sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
@@ -355,26 +356,21 @@ public class Server {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();
             String[] parts = command.split(" ");
-            switch (command) {
-                case "removeNode":
-                    String ipRemove = parts[1];
-                    removeNode(ipRemove);
-                    break;
-                case "addNode":
-                    String ipAdd = parts[1];
-                    addNode(ipAdd);
-                    break;
-                case "getFile":
-                    String filename = parts[1];
-                    ResponseEntity<String> response = getHostname(filename);
-                    System.out.println(response.getBody()); // Print the response
-                    break;
-                case "clearMap":
-                    clearMap();
-                    break;
-                default:
-                    System.out.println("Invalid command");
-                }
+            if (command.startsWith("removeNode")) {
+                String ipRemove = parts[1];
+                removeNode(ipRemove);
+            } else if (command.startsWith("addNode")) {
+                String ipAdd = parts[1];
+                addNode(ipAdd);
+            } else if (command.startsWith("getFile")) {
+                String filename = parts[1];
+                ResponseEntity<String> response = getHostname(filename);
+                System.out.println(response.getBody()); // Print the response
+            } else if (command.startsWith("clearMap")) {
+                clearMap();
+            } else {
+                System.out.println("Invalid command");
+            }
             }
         }
 
