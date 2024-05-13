@@ -333,17 +333,15 @@ public class Server {
     private void processFileReport(String nodeIP, int fileHash, String filename) {
         int replicatedNodeID = nodeOfFile(fileHash);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
-        if (replicatedNodeID < fileHash) { // Condition for replication
-            try {
-                // Create log with file references
-                logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
-                System.out.println(logger.getLevel());
-                // Notify the original node that it should handle the file replication
-                InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-                sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8100);
-            } catch (UnknownHostException e) {
-                logger.log(Level.WARNING, "Unable to send unicast message", e);
-            }
+        try {
+            // Create log with file references
+            logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
+            System.out.println(logger.getLevel());
+            // Notify the original node that it should handle the file replication
+            InetAddress nodeAddress = InetAddress.getByName(nodeIP);
+            sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8100);
+        } catch (UnknownHostException e) {
+            logger.log(Level.WARNING, "Unable to send unicast message", e);
         }
     }
 
