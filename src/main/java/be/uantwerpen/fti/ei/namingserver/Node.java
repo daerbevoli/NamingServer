@@ -29,7 +29,7 @@ public class Node {
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
     public Node() {
-        this.IP = findLocalIP();
+        this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
 
         numOfNodes = 0;
@@ -149,37 +149,6 @@ public class Node {
 
         sendUnicast(purpose, serverIP, message, 8000);
     }
-
-
-    // Find the local ip of the remote node
-    // Find the local hostname of the remote node
-    // Used hostname because hash function returned same hash code for IPs in similar range
-    private String findLocalIP() {
-
-        try {
-            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            while (interfaces.hasMoreElements()) {
-                NetworkInterface iface = interfaces.nextElement();
-                // filters out 127.0.0.1 and inactive interfaces
-                if (iface.isLoopback() || !iface.isUp()) {
-                    continue;
-                }
-                Enumeration<InetAddress> addresses = iface.getInetAddresses();
-                while (addresses.hasMoreElements()) {
-                    InetAddress addr = addresses.nextElement();
-                    // Filters out IPv6 addresses
-                    if (addr instanceof Inet4Address) {
-                        return addr.getHostName();
-                        //return addr.getHostAddress();
-                    }
-                }
-            }
-        } catch (SocketException e) {
-            logger.log(Level.WARNING, "Unable to find local IP", e);
-        }
-        return "127.0.0.1"; // Default IP address localhost
-    }
-
 
     private void watchFolder() {
         Path folderToWatch = Paths.get("/root/localFiles");
@@ -313,7 +282,7 @@ public class Node {
 
                 String message = new String(packet.getData(), 0, packet.getLength());
 
-                serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
+                serverIP = packet.getAddress().getHostName();  // Get IP of the server by getting source address
 
                 processReceivedMessage(message);
             }
@@ -496,7 +465,7 @@ public class Node {
                     System.out.println("Number of nodes: " + numOfNodes);
                     break;
                 case "id":
-                    System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nectID: " + nextID);
+                    System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequestMapping("/NS") // NS = Naming Server
 public class Server {
 
+    private final String IP;
+
     // Logger to log details in a try block for the file modification methods
     private static final Logger logger = Logger.getLogger(Server.class.getName());
 
@@ -39,9 +41,12 @@ public class Server {
 
     // Constructor to read the starting data from the JSON file
     public Server(){
+        this.IP = helpMethods.findLocalIP();
+        logger.log(Level.INFO, "Server IP: " + IP);
         clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
+        sendMulticast("send server IP ", IP, 9000);
     }
 
     // Thread executor
