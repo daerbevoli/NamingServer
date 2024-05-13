@@ -108,7 +108,7 @@ public class Node {
             return;
         }
         String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
-        String purpose = "Reportigg file hashes to server";
+        String purpose = "Reporting file hashes to server";
 
         sendUnicast(purpose, serverIP, message, 8000);
     }
