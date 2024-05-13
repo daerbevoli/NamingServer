@@ -186,6 +186,7 @@ public class Node {
 
         // Create a file system watcher
         try {
+            logger.log(Level.INFO, "Watching the folder");
             WatchService watchService = FileSystems.getDefault().newWatchService();
             folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
@@ -197,7 +198,7 @@ public class Node {
                 reportFileHashToServer(hash(filename), filename);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.WARNING, "Unable to watch folder ", e);
         }
     }
 
@@ -286,7 +287,6 @@ public class Node {
             // Receive file data and write to file
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
             String message = new String(packet.getData(), 0, packet.getLength());
 
@@ -312,6 +312,8 @@ public class Node {
                 socket.receive(packet);
 
                 String message = new String(packet.getData(), 0, packet.getLength());
+
+                serverIP = packet.getAddress().getHostAddress();  // Get IP of the server by getting source address
 
                 processReceivedMessage(message);
             }
@@ -438,6 +440,7 @@ public class Node {
 
 
     private void processReplicate(String message){
+        logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[0];
         String filename = parts[1];
@@ -483,21 +486,30 @@ public class Node {
         while (true) {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();
-            if (command.startsWith("addFile ")) {
-                String filename = command.substring(8);
-                addFile(filename, "/root/localFiles");
-                System.out.println(filename + " added.");
-            } else if (command.equals("shutdown")) {
-                System.out.println("Shutting down");
-                System.exit(0);
-                System.out.println("Shutting down");
-            } else if (command.equals("num")) {
-                System.out.println("Number of nodes: " + numOfNodes);
-            } else {
-                System.out.println("Invalid command.");
+
+            switch (command) {
+                case "shutdown":
+                    System.out.println("Shutting down");
+                    System.exit(0);
+                    break;
+                case "num":
+                    System.out.println("Number of nodes: " + numOfNodes);
+                    break;
+                case "id":
+                    System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nectID: " + nextID);
+                default:
+                    if (command.startsWith("addFile ")) {
+                        String filename = command.substring(8);
+                        addFile(filename, "/root/localFiles");
+                        System.out.println(filename + " added.");
+                    } else {
+                        System.out.println("Invalid command.");
+                    }
+                    break;
             }
         }
     }
+
 
     // ping method to check whether a connection with a node can be made
     public void ping(InetAddress address){
