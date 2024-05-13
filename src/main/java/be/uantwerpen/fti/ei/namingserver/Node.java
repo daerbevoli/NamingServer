@@ -52,13 +52,13 @@ public class Node {
     public void runFunctionsOnThreads() {
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(6);
 
+        executor.submit(this::listenNodeMulticast);
+
         executor.submit(this::Bootstrap);
 
         executor.submit(this::Replicate);
 
         executor.submit(this::receiveNumOfNodes);
-
-        executor.submit(this::listenNodeMulticast);
 
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
@@ -295,6 +295,7 @@ public class Node {
         logger.log(Level.INFO,"message to process: " + message);
         if (message.startsWith("SERVER")){
             serverIP = message.split(":")[1];
+            logger.log(Level.INFO,"server IP successfully received: " + serverIP);
         }
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
