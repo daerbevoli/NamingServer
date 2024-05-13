@@ -69,6 +69,42 @@ public class Node {
     }
 
 
+    // Send a multicast message during bootstrap with name and IP address
+    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
+    private void Bootstrap() {
+        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
+        sendMulticast("send bootstrap", message, 3000);
+        verifyAndReportLocalFiles();
+
+    }
+
+    /*
+     * The shutdown method is used when closing a node. It is also used in exception for failure.
+     * The method sends a multicast message with the indication of shutdown along with its IP,
+     * previous and next node. The name server receives this message and removes the node from its map.
+     * The nodes receive this message and update their previous and next IDs
+     */
+    public void shutdown() {
+        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
+        sendMulticast("Shutdown", message, 3000);
+    }
+    // FAILURE can be handled with a "heartbeat" mechanism
+
+    private void Replicate(){
+        while (true) {
+            receiveUnicast("Receive replicated node", 8100);
+        }
+    }
+
+    // Hash function provided by the teachers
+    public int hash(String IP){
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
+
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
+    }
+
     // Add a local file to the node
     public void addFile(String filename, String directoryPath) {
         File directory = new File(directoryPath);
@@ -167,17 +203,6 @@ public class Node {
         }
     }
 
-
-    // Hash function
-    public int hash(String IP) {
-        double max = Integer.MAX_VALUE;
-        double min = Integer.MIN_VALUE;
-
-        double hashValue = (IP.hashCode() + max) * (32768 / (max + Math.abs(min)));
-        return (int) hashValue;
-
-    }
-
     private void sendMulticast(String purpose, String message, int port) {
         try (MulticastSocket socket = new MulticastSocket()) {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
@@ -218,33 +243,6 @@ public class Node {
             logger.log(Level.WARNING, "unable to open server socket", e);
             shutdown();
         }
-    }
-
-    // Send a multicast message during bootstrap with name and IP address
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void Bootstrap() {
-        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
-        //receiveUnicast("Receive number of nodes", 8200);
-        verifyAndReportLocalFiles();
-
-    }
-
-    /*
-     * The shutdown method is used when closing a node. It is also used in exception for failure.
-     * The method sends a multicast message with the indication of shutdown along with its IP,
-     * previous and next node. The name server receives this message and removes the node from its map.
-     * The nodes receive this message and update their previous and next IDs
-     */
-    public void shutdown() {
-        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        sendMulticast("Shutdown", message, 3000);
-    }
-
-    // FAILURE can be handled with a "heartbeat" mechanism
-
-    private void Replicate(){
-        receiveUnicast("Receive replicated node", 8100);
     }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
@@ -340,6 +338,14 @@ public class Node {
         }
     }
 
+    private void processNumNodes(String message){
+        String[] parts = message.split(":");
+        numOfNodes = Integer.parseInt(parts[1]);
+        System.out.println("Number of nodes: " + numOfNodes);
+        //logger.log(Level.INFO, "number of nodes is "+numOfNodes);
+        // yet to complete
+    }
+
     private void processShutdown(String message) {
         numOfNodes--;
         String[] parts = message.split(":");
@@ -382,14 +388,6 @@ public class Node {
         }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
-    }
-
-    private void processNumNodes(String message){
-        String[] parts = message.split(":");
-        numOfNodes = Integer.parseInt(parts[1]);
-        System.out.println("Number of nodes: " + numOfNodes);
-        //logger.log(Level.INFO, "number of nodes is "+numOfNodes);
-        // yet to complete
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
