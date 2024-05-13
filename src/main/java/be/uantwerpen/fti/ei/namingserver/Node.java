@@ -361,10 +361,13 @@ public class Node {
         if (receivedHash == currentID) { // Received info is about itself
             logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
             //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
-            if (numOfNodes == 0) {
-                System.out.println("Waiting for numofnodes > 0");
+            int i=0;
+            while (numOfNodes == 0) {
+                i=(i+1)%100000;
+                if(i==50){
+                    System.out.println("Waiting for numofnodes > 0");}
             }
-            else if (numOfNodes > 1) {
+            if (numOfNodes > 1) {
                 logger.log(Level.INFO, "Condition met to start TCP connection");
                 receiveNodeResponse();
             }
