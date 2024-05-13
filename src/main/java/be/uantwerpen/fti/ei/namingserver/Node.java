@@ -50,16 +50,17 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        //ScheduledExecutorService executor = (ScheduledExecutorService) Executors.newFixedThreadPool(4);
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(6);
 
         executor.submit(this::Bootstrap);
+
+        executor.submit(this::Replicate);
 
         executor.submit(this::receiveNumOfNodes);
 
         executor.submit(this::listenNodeMulticast);
 
-        executor.scheduleAtFixedRate(this::watchFolder, 0, 2, TimeUnit.MINUTES);
+        executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -67,6 +68,42 @@ public class Node {
         executor.shutdown();
     }
 
+
+    // Send a multicast message during bootstrap with name and IP address
+    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
+    private void Bootstrap() {
+        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
+        sendMulticast("send bootstrap", message, 3000);
+        verifyAndReportLocalFiles();
+
+    }
+
+    /*
+     * The shutdown method is used when closing a node. It is also used in exception for failure.
+     * The method sends a multicast message with the indication of shutdown along with its IP,
+     * previous and next node. The name server receives this message and removes the node from its map.
+     * The nodes receive this message and update their previous and next IDs
+     */
+    public void shutdown() {
+        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
+        sendMulticast("Shutdown", message, 3000);
+    }
+    // FAILURE can be handled with a "heartbeat" mechanism
+
+    private void Replicate(){
+        while (true) {
+            receiveUnicast("Receive replicated node", 8100);
+        }
+    }
+
+    // Hash function provided by the teachers
+    public int hash(String IP){
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
+
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
+    }
 
     // Add a local file to the node
     public void addFile(String filename, String directoryPath) {
@@ -157,25 +194,14 @@ public class Node {
             WatchKey key = watchService.poll();
             if (key != null) {
                 System.out.println("Changes detected!");
-                processReplicate();
-                folderToWatch.getFileName();
+                String filename = String.valueOf(folderToWatch.getFileName());
+                reportFileHashToServer(hash(filename), filename);
             } else {
                 System.out.println("No changes detected.");
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-
-    // Hash function
-    public int hash(String IP) {
-        double max = Integer.MAX_VALUE;
-        double min = Integer.MIN_VALUE;
-
-        double hashValue = (IP.hashCode() + max) * (32768 / (max + Math.abs(min)));
-        return (int) hashValue;
-
     }
 
     private void sendMulticast(String purpose, String message, int port) {
@@ -218,17 +244,6 @@ public class Node {
             logger.log(Level.WARNING, "unable to open server socket", e);
             shutdown();
         }
-    }
-
-    // Send a multicast message during bootstrap with name and IP address
-    // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
-    private void Bootstrap() {
-        verifyAndReportLocalFiles();
-        String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        sendMulticast("send bootstrap", message, 3000);
-        //receiveUnicast("Receive number of nodes", 8200);
-        verifyAndReportLocalFiles();
-
     }
 
     // Listen on port 3000 for incoming multicast messages, update the arrangement in the topology accordingly
@@ -306,18 +321,6 @@ public class Node {
             logger.log(Level.WARNING, "Unable to connect to server", e);
         }
     }
-    /*
-     * The shutdown method is used when closing a node. It is also used in exception for failure.
-     * The method sends a multicast message with the indication of shutdown along with its IP,
-     * previous and next node. The name server receives this message and removes the node from its map.
-     * The nodes receive this message and update their previous and next IDs
-     */
-    public void shutdown() {
-        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        sendMulticast("Shutdown", message, 3000);
-    }
-
-    // FAILURE can be handled with a "heartbeat" mechanism
 
 
     private void processReceivedMessage(String message) throws IOException {
@@ -332,8 +335,16 @@ public class Node {
             processNumNodes(message);
         }
         if (message.startsWith("REPLICATE")){
-            processReplicate();
+            processReplicate(message);
         }
+    }
+
+    private void processNumNodes(String message){
+        String[] parts = message.split(":");
+        numOfNodes = Integer.parseInt(parts[1]);
+        System.out.println("Number of nodes: " + numOfNodes);
+        //logger.log(Level.INFO, "number of nodes is "+numOfNodes);
+        // yet to complete
     }
 
     private void processShutdown(String message) {
@@ -378,14 +389,6 @@ public class Node {
         }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
-    }
-
-    private void processNumNodes(String message){
-        String[] parts = message.split(":");
-        numOfNodes = Integer.parseInt(parts[1]);
-        System.out.println("Number of nodes: " + numOfNodes);
-        //logger.log(Level.INFO, "number of nodes is "+numOfNodes);
-        // yet to complete
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
@@ -435,15 +438,16 @@ public class Node {
     }
 
 
-
-    private void processReplicate(){
-        String message = "REPORT" + ":" + IP;
-        String purpose = "Reporting file hashes to server";
-        sendUnicast(purpose, serverIP, message, 8000);
-
-        receiveUnicast("Receive replicated file", 8100);
-        // continuation with file transfer protocol
-
+    private void processReplicate(String message){
+        String[] parts = message.split(":");
+        String nodeToReplicateTo = parts[0];
+        String filename = parts[1];
+        String path = "/root/localFiles/" + filename;
+        if (IP.equals(nodeToReplicateTo)){
+            FileTransfer.receiveFile(8500, "root/replicatedFiles");
+        } else {
+            FileTransfer.transferFile(path, nodeToReplicateTo, 8500);
+        }
     }
 
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {

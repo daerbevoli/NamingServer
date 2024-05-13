@@ -40,7 +40,7 @@ public class FileTransfer {
         }
     }
 
-    public static void receiveFile(int port,String directory)
+    public static void receiveFile(int port, String directory)
     {
         try {
             ServerSocket sSocket = new ServerSocket(port);
