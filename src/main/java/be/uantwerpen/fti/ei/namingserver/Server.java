@@ -244,7 +244,7 @@ public class Server {
     // It then processes the received message
     private void listenForNodesMulticast(){
         try (MulticastSocket socket = new MulticastSocket(3000)){
-            System.out.println("connected to multicast network");
+            logger.log(Level.INFO, "connected to multicast network");
 
             // Join the multicast group
             InetAddress group = InetAddress.getByName("224.0.0.1");
@@ -258,7 +258,7 @@ public class Server {
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
 
-                System.out.println("Received multicast message: " + message);
+                logger.log(Level.INFO, "Received multicast message: " + message);
                 processReceivedMessage(message);
             }
         } catch (IOException e) {
@@ -293,7 +293,7 @@ public class Server {
     // It then processes the message
     public void receiveUnicast() {
         try (DatagramSocket socket = new DatagramSocket(8000)) {
-            System.out.println("Connected to UDP socket");
+            logger.log(Level.INFO, "Connected to unicast receive socket");
 
             byte[] buffer = new byte[512];
 
@@ -302,11 +302,11 @@ public class Server {
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
 
-                System.out.println("Received unicast message: " + message);
+                logger.log(Level.INFO, "Received unicast message: " + message);
                 processReceivedMessage(message);
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
+            logger.log(Level.WARNING, "unable to open server unicast socket", e);
         }
     }
 
@@ -323,7 +323,7 @@ public class Server {
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
-                System.out.println("Node with IP: " + nodeIP + " has shut down and been removed from the network");
+                logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
                 int fileHash = Integer.parseInt(parts[2]);
@@ -340,7 +340,6 @@ public class Server {
         try {
             // Log the ownership of the file
             logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with filename: " + filename + " and hash: " + fileHash);
-            System.out.println(logger.getLevel());
 
             // Add the file info to the file ownership map
             FileInfo fileInfo = new FileInfo(nodeIP, replicatedNodeIP.getHostAddress());

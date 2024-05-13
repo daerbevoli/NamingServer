@@ -30,7 +30,7 @@ public class Node {
 
     public Node() {
         this.IP = findLocalIP();
-        System.out.println("node IP: " + IP);
+        logger.log(Level.INFO, "node IP: " + IP);
 
         numOfNodes = 0;
 
@@ -114,13 +114,13 @@ public class Node {
         File file = new File (directoryPath + "/" + filename);
         try {
             if (file.createNewFile()) {
-                System.out.println(filename + " created successfully at " + file.getPath());
+                logger.log(Level.INFO, filename + " created successfully at " + file.getPath());
 
             } else {
-                System.out.println("File already exists at" + file.getPath());
+                logger.log(Level.INFO, "File already exists at" + file.getPath());
             }
         } catch (IOException e) {
-            System.out.println("Error creating the file: " + e.getMessage());
+            logger.log(Level.INFO, "Error creating the file: " + e.getMessage());
         }
     }
 
@@ -141,7 +141,7 @@ public class Node {
 
     private void reportFileHashToServer(int fileHash, String filename) {
         if (serverIP == null) {
-            System.out.println("Server IP is not available, cannot report file hash");
+            logger.log(Level.INFO, "Server IP is not available, cannot report file hash");
             return;
         }
         String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
@@ -272,7 +272,7 @@ public class Node {
 
     private void receiveUnicast(String purpose, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to unicast receive socket: " + purpose);
+            logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
             // (which can occur after the socket is closed).
@@ -301,7 +301,7 @@ public class Node {
 
     private void receiveNumOfNodes() {
         try (DatagramSocket socket = new DatagramSocket(8300)) {
-            System.out.println("Connected to unicast socket: receive number of nodes");
+            logger. log(Level.INFO, "Connected to unicast socket: receive number of nodes");
 
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
@@ -341,17 +341,17 @@ public class Node {
     private void processNumNodes(String message){
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
-        System.out.println("Number of nodes: " + numOfNodes);
-        //logger.log(Level.INFO, "number of nodes is "+numOfNodes);
-        // yet to complete
+        logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
+
     }
 
     private void processShutdown(String message) {
         numOfNodes--;
         String[] parts = message.split(":");
-        //String IP = parts[1];
+
         int prevId = Integer.parseInt(parts[2]);
         int nxtID = Integer.parseInt(parts[3]);
+
         updateHashShutdown(prevId, nxtID);
     }
 
@@ -464,16 +464,16 @@ public class Node {
         try (Socket cSocket = serverSocket.accept();
              DataInputStream in = new DataInputStream(cSocket.getInputStream())) {
             String msg = in.readUTF();
-            System.out.println("Received message: " + msg);
+            logger.log(Level.INFO, "Received message: " + msg);
             String[] parts = msg.split(":");
             if (parts[0].equalsIgnoreCase("next")) {
                 nextID = Integer.parseInt(parts[1]);
                 previousID = Integer.parseInt(parts[2]);
-                System.out.println("Next and previous ID were updated because of the response of another node, previousID:"+previousID+"Next:"+ nextID);
+                logger.log(Level.INFO, "Next and previous ID updated, previousID: "+ previousID + "Next: " + nextID);
             } else if (parts[0].equalsIgnoreCase("prev")) {
                 nextID = Integer.parseInt(parts[2]);
                 previousID = Integer.parseInt(parts[1]);
-                System.out.println("Next and previous ID were updated because of the response of another node, previousID:"+previousID+"Next:"+ nextID);
+                logger.log(Level.INFO, "Next and previous ID updated, previousID: "+ previousID + "Next: " + nextID);
             }
         }
     }
