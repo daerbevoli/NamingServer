@@ -1,5 +1,7 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import jdk.incubator.vector.LongVector;
+
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
@@ -282,8 +284,6 @@ public class Node {
 
                 String message = new String(packet.getData(), 0, packet.getLength());
 
-                serverIP = packet.getAddress().getHostName();  // Get IP of the server by getting source address
-
                 processReceivedMessage(message);
             }
 
@@ -294,7 +294,7 @@ public class Node {
 
 
     private void processReceivedMessage(String message) throws IOException {
-        logger.log(Level.INFO,"message to process: "+message);
+        logger.log(Level.INFO,"message to process: " + message);
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
@@ -306,6 +306,9 @@ public class Node {
         }
         if (message.startsWith("REPLICATE")){
             processReplicate(message);
+        } else {
+            serverIP = message.split(":")[0];
+            logger.log(Level.INFO, "Server IP successfully received: " + serverIP);
         }
     }
 
