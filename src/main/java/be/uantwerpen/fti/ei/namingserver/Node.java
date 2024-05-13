@@ -215,6 +215,7 @@ public class Node {
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "unable to open server socket", e);
+            shutdown();
         }
     }
 
