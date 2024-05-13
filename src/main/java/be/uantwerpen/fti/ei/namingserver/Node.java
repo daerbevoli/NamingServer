@@ -504,13 +504,6 @@ public class Node {
         }
     }
 
-    public void sendFile()
-    {
-        FileTransfer ft1= new FileTransfer();
-        ft1.tranferFile("/root/localFiles/b.txt" ,serverIP,5678);
-
-    }
-
     public static void main(String[] args) {
         Node node = new Node();
         node.run();
