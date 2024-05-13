@@ -46,7 +46,6 @@ public class Server {
         clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
-        helpMethods.sendMulticast("send server IP ", "SERVER:" + IP, 3000);
     }
 
     // Thread executor

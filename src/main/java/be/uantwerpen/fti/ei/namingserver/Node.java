@@ -72,7 +72,6 @@ public class Node {
     private void Bootstrap() {
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         helpMethods.sendMulticast("send bootstrap", message, 3000);
-        verifyAndReportLocalFiles();
 
     }
 
@@ -89,6 +88,7 @@ public class Node {
     // FAILURE can be handled with a "heartbeat" mechanism
 
     private void Replicate(){
+        verifyAndReportLocalFiles();
         while (true) {
             receiveUnicast("Receive replicated node", 8100);
         }
