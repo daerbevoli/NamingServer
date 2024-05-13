@@ -31,6 +31,9 @@ public class Server {
     // Map to save the hash corresponding to the node's ip
     private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();
 
+    // Map to save file information
+    private final ConcurrentHashMap<String, FileInfo> fileOwnershipMap = new ConcurrentHashMap<>();
+
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
@@ -334,12 +337,17 @@ public class Server {
         int replicatedNodeID = nodeOfFile(fileHash);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
         try {
-            // Create log with file references
-            logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with fileHash: " + fileHash);
+            // Log the ownership of the file
+            logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with filename: " + filename + " and hash: " + fileHash);
             System.out.println(logger.getLevel());
+
+            // Add the file info to the file ownership map
+            FileInfo fileInfo = new FileInfo(nodeIP, replicatedNodeIP.getHostAddress());
+            fileOwnershipMap.put(filename, fileInfo);
+
             // Notify the original node that it should handle the file replication
             InetAddress nodeAddress = InetAddress.getByName(nodeIP);
-            sendUnicast("file replication", nodeIP, "REPLICATE:" + replicatedNodeIP + fileHash, 8100);
+            sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
         } catch (UnknownHostException e) {
             logger.log(Level.WARNING, "Unable to send unicast message", e);
         }

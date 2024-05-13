@@ -133,6 +133,7 @@ public class Node {
                     // Filters out IPv6 addresses
                     if (addr instanceof Inet4Address) {
                         return addr.getHostName();
+                        //return addr.getHostAddress();
                     }
                 }
             }
