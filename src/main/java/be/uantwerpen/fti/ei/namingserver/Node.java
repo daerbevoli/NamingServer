@@ -1,7 +1,5 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import jdk.incubator.vector.LongVector;
-
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
