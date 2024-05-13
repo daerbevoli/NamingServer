@@ -181,7 +181,6 @@ public class Node {
     }
 
 
-    // Yet to try and make complete
     private void watchFolder() {
         Path folderToWatch = Paths.get("/root/localFiles");
 
@@ -193,11 +192,9 @@ public class Node {
             // Wait for events
             WatchKey key = watchService.poll();
             if (key != null) {
-                System.out.println("Changes detected!");
+                logger.log(Level.INFO, "A file was added to the localFiles dir");
                 String filename = String.valueOf(folderToWatch.getFileName());
                 reportFileHashToServer(hash(filename), filename);
-            } else {
-                System.out.println("No changes detected.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -207,7 +204,7 @@ public class Node {
     private void sendMulticast(String purpose, String message, int port) {
         try (MulticastSocket socket = new MulticastSocket()) {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
-            System.out.println("connected to multicast server for purpose: " + purpose);
+            logger.log(Level.INFO,"connected to multicast send socket: " + purpose);
 
             byte[] buffer = message.getBytes();
 
@@ -217,16 +214,16 @@ public class Node {
             // Send the packet to the multicast group
             socket.send(packet);
 
-            System.out.println("Multicast message sent successfully.");
+            logger.log(Level.INFO, "Multicast message: " + purpose + ", sent successfully.");
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
+            logger.log(Level.WARNING, "Unable to connect to multicast send socket: " + purpose, e);
         }
     }
 
     private void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
 
-            System.out.println("Connected to UDP socket for purpose: " + purpose);
+            logger.log(Level.INFO,"Connected to unicast send socket: " + purpose);
 
             byte[] buffer = message.getBytes();
 
@@ -238,10 +235,10 @@ public class Node {
             // Send the packet
             socket.send(packet);
 
-            System.out.println("Unicast message with purpose: " + purpose + "sent successfully");
+            logger.log(Level.INFO,"Unicast message: " + purpose + ", sent successfully");
 
         } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
+            logger.log(Level.WARNING, "unable to open unicast send socket: " + purpose, e);
             shutdown();
         }
     }
@@ -250,7 +247,7 @@ public class Node {
     private void listenNodeMulticast() {
         try (MulticastSocket socket = new MulticastSocket(3000)) {
 
-            System.out.println("connected to multicast network");
+            logger.log(Level.INFO,"connected to multicast receive socket: listen for incoming messages");
 
             // Join the multicast group
             InetAddress group = InetAddress.getByName("224.0.0.1");
@@ -262,26 +259,26 @@ public class Node {
             while (true) {  // Keep listening indefinitely
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);
+
                 String message = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Received message: " + message);
+                logger.log(Level.INFO, "Multicast message received successfully: " + message);
                 processReceivedMessage(message);
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to open socket", e);
+            logger.log(Level.WARNING,"Unable to open multicast receive socket: listen for incoming messages");
         }
     }
 
 
     private void receiveUnicast(String purpose, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to datagram socket for purpose: " + purpose);
+            System.out.println("Connected to unicast receive socket: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
             // (which can occur after the socket is closed).
             socket.setReuseAddress(true);
 
             socket.bind(new InetSocketAddress(port));
-            System.out.println("Connected to receive unicast");
 
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
@@ -293,6 +290,8 @@ public class Node {
 
             String message = new String(packet.getData(), 0, packet.getLength());
 
+            logger.log(Level.INFO, "Unicast message received successfully: " + message);
+
             processReceivedMessage(message);
 
         } catch (IOException e) {
@@ -302,7 +301,7 @@ public class Node {
 
     private void receiveNumOfNodes() {
         try (DatagramSocket socket = new DatagramSocket(8300)) {
-            System.out.println("Connected to receive number of nodes");
+            System.out.println("Connected to unicast socket: receive number of nodes");
 
             // Create buffer for incoming data
             byte[] buffer = new byte[512];

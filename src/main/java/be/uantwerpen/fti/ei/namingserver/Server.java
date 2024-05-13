@@ -224,7 +224,7 @@ public class Server {
     private void sendMulticast(String purpose, String message, int port) {
         try (MulticastSocket socket = new MulticastSocket()) {
             InetAddress group = InetAddress.getByName("224.0.0.1"); // Multicast group address
-            System.out.println("connected to multicast server for purpose: " + purpose);
+            logger.log(Level.INFO,"connected to multicast send socket: " + purpose);
 
             byte[] buffer = message.getBytes();
 
@@ -234,9 +234,9 @@ public class Server {
             // Send the packet to the multicast group
             socket.send(packet);
 
-            System.out.println("Multicast message sent successfully.");
+            logger.log(Level.INFO, "Multicast message: " + purpose + ", sent successfully.");
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to connect to multicast socket", e);
+            logger.log(Level.WARNING, "Unable to connect to multicast send socket: " + purpose, e);
         }
     }
 
@@ -266,25 +266,26 @@ public class Server {
         }
     }
 
-    // Send unicast message to a node
-    public void sendUnicast(String purpose, String targetIP, String message, int port) {
+    private void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
-            System.out.println("Connected to UDP socket for: " + purpose + "Number of nodes: " + nodesMap.size());
+
+            logger.log(Level.INFO,"Connected to unicast send socket: " + purpose);
 
             byte[] buffer = message.getBytes();
 
-            InetAddress target = InetAddress.getByName(targetIP);
+            InetAddress targetIp = InetAddress.getByName(targetIP); // Uses the hostname of the target node (getByName)
 
             // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, target, port);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetIp, port);
 
             // Send the packet
             socket.send(packet);
 
-            System.out.println("Message sent to the node");
+            logger.log(Level.INFO,"Unicast message: " + purpose + ", sent successfully");
 
         } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server socket", e);
+            logger.log(Level.WARNING, "unable to open unicast send socket: " + purpose, e);
+            shutdown();
         }
     }
 
