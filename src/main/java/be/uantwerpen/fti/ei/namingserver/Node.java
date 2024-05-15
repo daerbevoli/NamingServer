@@ -150,7 +150,7 @@ public class Node {
             logger.log(Level.INFO, "Server IP is not available, cannot report file hash");
             return;
         }
-        String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
+        String message = "REPORT" + ":" + IP + ":" + fileHash + ":" + filename;
         String purpose = "Reporting file hashes to server";
 
         helpMethods.sendUnicast(purpose, serverIP, message, 8000);
