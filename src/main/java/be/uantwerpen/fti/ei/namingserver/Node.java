@@ -72,6 +72,22 @@ public class Node {
     private void Bootstrap() {
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         helpMethods.sendMulticast("send bootstrap", message, 3000);
+        logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
+        //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
+        int i=0;
+        while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
+            i=(i+1)%300000;
+            if(i==1){
+                System.out.println("Waiting for numofnodes > 0");}
+        }
+        if (numOfNodes > 1) {
+            logger.log(Level.INFO, "Condition met to start TCP connection");
+            try {
+                receiveNodeResponse();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
     }
 
@@ -295,21 +311,7 @@ public class Node {
         int receivedHash = hash(IP);
         logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
         // Update current node's network parameters based on the received node's hash
-        if (receivedHash == currentID) { // Received info is about itself
-            logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-            //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
-            int i=0;
-            while (numOfNodes == 0) {
-                i=(i+1)%100000;
-                if(i==50){
-                    System.out.println("Waiting for numofnodes > 0");}
-            }
-            if (numOfNodes > 1) {
-                logger.log(Level.INFO, "Condition met to start TCP connection");
-                receiveNodeResponse();
-            }
-
-        } else {
+        if (receivedHash != currentID) { // Received bootstrap different from its own
             numOfNodes++;
 
         try {
