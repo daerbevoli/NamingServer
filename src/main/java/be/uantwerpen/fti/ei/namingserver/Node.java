@@ -26,6 +26,8 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
+    boolean BootstrapComplete = false;
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -73,6 +75,24 @@ public class Node {
 
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         helpMethods.sendMulticast("send bootstrap", message, 3000);
+
+        logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
+        //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
+        int i=0;
+        while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
+            i=(i+1)%300000;
+            if(i==1){
+                System.out.println("Waiting for numofnodes > 0");}
+        }
+        if (numOfNodes > 1) {
+            logger.log(Level.INFO, "Condition met to start TCP connection");
+            try {
+                receiveNodeResponse();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
 
     /*
@@ -88,9 +108,13 @@ public class Node {
     // FAILURE can be handled with a "heartbeat" mechanism
 
     private void Replicate(){
-        verifyAndReportLocalFiles();
-        while (true) {
-            receiveUnicast("Receive replicated node", 8100);
+        if (BootstrapComplete){
+            verifyAndReportLocalFiles();
+            logger.log(Level.INFO, "Verification & Report started");
+
+            while (true) {
+                receiveUnicast("Receive replicated node", 8100);
+            }
         }
     }
 
@@ -199,7 +223,7 @@ public class Node {
 
 
     private void receiveUnicast(String purpose, int port) {
-        try (DatagramSocket socket = new DatagramSocket(port)) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
             logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
@@ -273,7 +297,8 @@ public class Node {
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
-
+        BootstrapComplete = true;
+        logger.log(Level.INFO, "Bootstrap complete");
     }
 
     private void processShutdown(String message) {
@@ -295,21 +320,7 @@ public class Node {
         int receivedHash = hash(IP);
         logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
         // Update current node's network parameters based on the received node's hash
-        if (receivedHash == currentID) { // Received info is about itself
-            logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-            //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
-            int i=0;
-            while (numOfNodes == 0) {
-                i=(i+1)%100000;
-                if(i==50){
-                    System.out.println("Waiting for numofnodes > 0");}
-            }
-            if (numOfNodes > 1) {
-                logger.log(Level.INFO, "Condition met to start TCP connection");
-                receiveNodeResponse();
-            }
-
-        } else {
+        if (receivedHash != currentID) { // Received bootstrap different from its own
             numOfNodes++;
 
         try {
