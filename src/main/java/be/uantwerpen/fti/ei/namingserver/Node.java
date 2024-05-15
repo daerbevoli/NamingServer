@@ -26,6 +26,8 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
+    boolean BootstrapComplete = false;
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -104,9 +106,11 @@ public class Node {
     // FAILURE can be handled with a "heartbeat" mechanism
 
     private void Replicate(){
-        verifyAndReportLocalFiles();
-        while (true) {
-            receiveUnicast("Receive replicated node", 8100);
+        if (BootstrapComplete){
+            verifyAndReportLocalFiles();
+            while (true) {
+                receiveUnicast("Receive replicated node", 8100);
+            }
         }
     }
 
@@ -289,6 +293,7 @@ public class Node {
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
+        BootstrapComplete = true;
 
     }
 
