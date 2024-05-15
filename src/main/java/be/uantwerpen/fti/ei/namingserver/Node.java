@@ -248,6 +248,8 @@ public class Node {
 
                 String message = new String(packet.getData(), 0, packet.getLength());
 
+                serverIP = packet.getAddress().getHostName();
+
                 processReceivedMessage(message);
             }
 
@@ -259,10 +261,6 @@ public class Node {
 
     private void processReceivedMessage(String message) throws IOException {
         logger.log(Level.INFO,"message to process: " + message);
-        if (message.startsWith("SERVER")){
-            serverIP = message.split(":")[1];
-            logger.log(Level.INFO,"server IP successfully received: " + serverIP);
-        }
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
