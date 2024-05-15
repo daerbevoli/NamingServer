@@ -199,7 +199,7 @@ public class Node {
 
 
     private void receiveUnicast(String purpose, int port) {
-        try (DatagramSocket socket = new DatagramSocket(port)) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
             logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
 
             // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
