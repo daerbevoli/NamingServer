@@ -291,20 +291,16 @@ public class Server {
     private void processFileReport(String nodeIP, int fileHash, String filename) {
         int replicatedNodeID = nodeOfFile(fileHash);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
-        try {
-            // Log the ownership of the file
-            logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with filename: " + filename + " and hash: " + fileHash);
+        // Log the ownership of the file
+        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with filename: " + filename + " and hash: " + fileHash);
 
-            // Notify the original node that it should handle the file replication
-            InetAddress targetIP = InetAddress.getByName(nodeIP);
-            helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
+        // Notify the original node that a file has to be replicated
+        helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
 
-            // Notify the replicated node that it should create a file log
-            helpMethods.sendUnicast("file log", replicatedNodeIP.getHostAddress(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8100);
-        } catch (UnknownHostException e) {
-            logger.log(Level.WARNING, "Unable to send unicast message", e);
+        // Notify the replicated node that it should create a file log
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostAddress(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8100);
         }
-    }
+
 
 
 
