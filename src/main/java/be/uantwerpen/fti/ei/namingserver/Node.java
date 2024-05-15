@@ -26,8 +26,6 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    boolean BootstrapComplete = false;
-
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -55,8 +53,6 @@ public class Node {
         executor.submit(this::listenNodeMulticast);
 
         executor.submit(this::Bootstrap);
-
-        executor.submit(this::Replicate);
 
         executor.submit(this::receiveNumOfNodes);
 
@@ -108,15 +104,14 @@ public class Node {
     // FAILURE can be handled with a "heartbeat" mechanism
 
     private void Replicate(){
-        if (BootstrapComplete){
             verifyAndReportLocalFiles();
             logger.log(Level.INFO, "Verification & Report started");
 
             while (true) {
                 receiveUnicast("Receive replicated node", 8100);
-            }
         }
     }
+
 
     // Hash function provided by the teachers
     public int hash(String IP){
@@ -297,8 +292,9 @@ public class Node {
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
-        BootstrapComplete = true;
-        logger.log(Level.INFO, "Bootstrap complete");
+        verifyAndReportLocalFiles();
+        receiveUnicast("Receive replicated node", 8100);
+
     }
 
     private void processShutdown(String message) {
