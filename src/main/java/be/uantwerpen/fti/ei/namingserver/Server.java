@@ -298,7 +298,7 @@ public class Server {
         helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostAddress(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8100);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostAddress(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8700);
         }
 
 

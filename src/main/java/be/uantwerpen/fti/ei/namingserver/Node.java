@@ -30,7 +30,7 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
-    private final File fileLog = new File("root/fileLog.json");
+    private final File fileLog = new File("root/logs/fileLog.json");
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -138,6 +138,12 @@ public class Node {
     // Create/Update a log file with file references when replicating a file
     private void updateLogFile(String localOwnerIP, String filename) {
         try {
+            // Ensure the directory exists
+            File directory = fileLog.getParentFile();
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs();
+            }
+
             JSONObject root;
             if (fileLog.exists()) {
                 String content = new String(Files.readAllBytes(fileLog.toPath()));
@@ -416,6 +422,7 @@ public class Node {
         } else {
             FileTransfer.transferFile(path, nodeToReplicateTo, 8500);
         }
+        receiveUnicast("receive create log", 8700);
     }
 
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
