@@ -78,7 +78,6 @@ public class Node {
         helpMethods.sendMulticast("send bootstrap", message, 3000);
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
         int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
             i=(i+1)%300000;
@@ -107,16 +106,6 @@ public class Node {
         helpMethods.sendMulticast("Shutdown", message, 3000);
     }
     // FAILURE can be handled with a "heartbeat" mechanism
-
-    private void Replicate(){
-            verifyAndReportLocalFiles();
-            logger.log(Level.INFO, "Verification & Report started");
-
-            while (true) {
-                receiveUnicast("Receive replicated node", 8100);
-        }
-    }
-
 
     // Hash function provided by the teachers
     public int hash(String IP){
@@ -333,7 +322,6 @@ public class Node {
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
         verifyAndReportLocalFiles();
-        receiveUnicast("Receive replicated node", 8100);
 
     }
 
@@ -348,7 +336,7 @@ public class Node {
     }
 
     // Process the message received from the multicast
-    private void processBootstrap(String message) throws IOException {
+    private void processBootstrap(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
         String IP = parts[1];
@@ -359,13 +347,15 @@ public class Node {
         if (receivedHash != currentID) { // Received bootstrap different from its own
             numOfNodes++;
 
-        try {
+            try {
             updateHash(receivedHash, IP);
-        } catch (IOException e) {
+            } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+            }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
-    }
+        }
+        receiveUnicast("receive replication node", 8100);
+
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
