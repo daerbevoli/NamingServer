@@ -71,7 +71,6 @@ public class Node {
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         helpMethods.sendMulticast("send bootstrap", message, 3000);
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
         int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
             i=(i+1)%300000;
@@ -295,7 +294,7 @@ public class Node {
     }
 
     // Process the message received from the multicast
-    private void processBootstrap(String message) throws IOException {
+    private void processBootstrap(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
         String IP = parts[1];
