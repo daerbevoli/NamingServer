@@ -249,14 +249,8 @@ public class Node {
 
 
     private void receiveUnicast(String purpose, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
+        try (DatagramSocket socket = new DatagramSocket(port)) {
             logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
-
-            // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
-            // (which can occur after the socket is closed).
-            socket.setReuseAddress(true);
-
-            socket.bind(new InetSocketAddress(port));
 
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
