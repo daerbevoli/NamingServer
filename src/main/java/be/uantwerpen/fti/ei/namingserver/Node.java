@@ -107,16 +107,6 @@ public class Node {
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
-    private void Replicate(){
-            verifyAndReportLocalFiles();
-            logger.log(Level.INFO, "Verification & Report started");
-
-            while (true) {
-                receiveUnicast("Receive replicated node", 8100);
-        }
-    }
-
-
     // Hash function provided by the teachers
     public int hash(String IP){
         double max = Integer.MAX_VALUE;
@@ -333,7 +323,6 @@ public class Node {
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
         verifyAndReportLocalFiles();
-        receiveUnicast("Receive replicated node", 8100);
 
     }
 
@@ -359,13 +348,15 @@ public class Node {
         if (receivedHash != currentID) { // Received bootstrap different from its own
             numOfNodes++;
 
-        try {
+            try {
             updateHash(receivedHash, IP);
-        } catch (IOException e) {
+            } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+            }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
-    }
+        }
+        receiveUnicast("receive replication node", 8100);
+
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
