@@ -9,6 +9,10 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+
 /**
  * This is the class that represents a node in the system. It has the property hostname, ip address,
  * previous, next and currentID and numOfNodes (needs to find a better way).
@@ -26,6 +30,7 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
+    private final File fileLog = new File("root/fileLog.json");
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -68,8 +73,10 @@ public class Node {
     // Send a multicast message during bootstrap with name and IP address
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
     private void Bootstrap() {
+
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         helpMethods.sendMulticast("send bootstrap", message, 3000);
+
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
         int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
@@ -100,6 +107,15 @@ public class Node {
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
+    private void Replicate(){
+            verifyAndReportLocalFiles();
+            logger.log(Level.INFO, "Verification & Report started");
+
+            while (true) {
+                receiveUnicast("Receive replicated node", 8100);
+        }
+    }
+
 
     // Hash function provided by the teachers
     public int hash(String IP){
@@ -127,6 +143,35 @@ public class Node {
         } catch (IOException e) {
             logger.log(Level.INFO, "Error creating the file: " + e.getMessage());
         }
+    }
+
+    // Create a log file with file references when replicating a file
+    private void updateLogFile(String localOwnerIP, String filename) {
+        try {
+            JSONObject root;
+            if (fileLog.exists()) {
+                String content = new String(Files.readAllBytes(fileLog.toPath()));
+                root = new JSONObject(content);
+            } else {
+                root = new JSONObject();
+            }
+            JSONObject fileInfo = new JSONObject();
+            fileInfo.put("localOwnerIP", localOwnerIP);
+            fileInfo.put("replicatedOwnerIP", IP);
+            fileInfo.put("replicatedFilename", filename);
+            root.put(filename, fileInfo);
+
+            try (FileWriter writer = new FileWriter(fileLog)) {
+                writer.write(root.toString());
+            }
+            logger.log(Level.INFO, "File log updated successfully");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error updating file log", e);
+
+        } catch (JSONException e) {
+            logger.log(Level.WARNING, "Error creating JSON object", e);
+        }
+
     }
 
     // Node verifies local files and report to the naming server
@@ -263,17 +308,26 @@ public class Node {
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
-        if (message.startsWith("SHUTDOWN")){
+        else if (message.startsWith("SHUTDOWN")){
             processShutdown(message);
         }
-        if (message.startsWith("NUMNODES")){
+        else if (message.startsWith("NUMNODES")){
             processNumNodes(message);
         }
-        if (message.startsWith("REPLICATE")){
+        else if (message.startsWith("REPLICATE")){
             processReplicate(message);
+        }
+        else if (message.startsWith("CREATE_LOG")) {
+            processCreateLog(message);
         }
     }
 
+    private void processCreateLog(String message) {
+        String[] parts = message.split(":");
+        String localOwnerIP = parts[1];
+        String filename = parts[2];
+        updateLogFile(localOwnerIP, filename);
+    }
     private void processNumNodes(String message){
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
