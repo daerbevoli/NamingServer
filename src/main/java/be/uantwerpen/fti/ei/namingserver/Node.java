@@ -414,9 +414,7 @@ public class Node {
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
         String path = "/root/localFiles/" + filename;
-        if (IP.equals(nodeToReplicateTo)){
-            FileTransfer.receiveFile(8500, "root/replicatedFiles");
-        } else {
+        if (!IP.equals(nodeToReplicateTo)){
             FileTransfer.transferFile(path, nodeToReplicateTo, 8500);
         }
         receiveUnicast("receive create log", 8700);
