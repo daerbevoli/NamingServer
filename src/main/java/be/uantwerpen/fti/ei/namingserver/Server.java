@@ -329,7 +329,20 @@ public class Server {
             }
         }
 
+        public void sendIPOfNewReplicatedNode(int hashOfShutdownNode, boolean prevNodeOwner)
+        {
+            ArrayList<Integer> hashes =new ArrayList<>(nodesMap.keySet());
+            Collections.sort(hashes);
+            int index= hashes.indexOf(hashOfShutdownNode);
+            String ipOfFileReceiver;
+            int indexShutdownReceiver;
+            indexShutdownReceiver = prevNodeOwner? Math.abs((index-2)%hashes.size()) : Math.abs((index-1)%hashes.size());
+            ipOfFileReceiver= nodesMap.get(hashes.get(indexShutdownReceiver)).getHostAddress();
+            helpMethods.sendUnicast("Send IP for new replicated owner after shutdown", nodesMap.get(hashOfShutdownNode).getHostAddress(), "ReceiverIpShutdown:"+ipOfFileReceiver, 9020 );
 
+
+
+        }
     public static void main(String[] args){
         Server server = new Server();
         server.run();

@@ -449,6 +449,13 @@ public class Node {
             }
         }
     }
+
+    private void askID()
+    {
+
+    }
+
+
     public void run() {
         Scanner scanner = new Scanner(System.in);
 
