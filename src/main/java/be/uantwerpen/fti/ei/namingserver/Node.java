@@ -64,6 +64,9 @@ public class Node {
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
+        executor.submit(() -> FileTransfer.receiveFile(8500, "root/replicatedFiles"));
+
+
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
