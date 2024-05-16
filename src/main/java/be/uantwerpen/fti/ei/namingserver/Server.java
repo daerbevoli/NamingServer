@@ -282,7 +282,9 @@ public class Server {
             case "REPORT":
                 int fileHash = Integer.parseInt(parts[2]);
                 String filename = parts[3];
-                processFileReport(nodeIP, fileHash, filename);
+                if (nodesMap.size() > 1) {
+                    processFileReport(nodeIP, fileHash, filename);
+                }
                 break;
         }
     }
@@ -292,13 +294,16 @@ public class Server {
         int replicatedNodeID = nodeOfFile(fileHash);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
         // Log the ownership of the file
-        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with filename: " + filename + " and hash: " + fileHash);
+        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
+                "now owns file with filename: " + filename + " and hash: " + fileHash);
 
         // Notify the original node that a file has to be replicated
-        helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostName() + ":" + filename + ":" +  fileHash, 8100);
+        helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" +
+                 replicatedNodeIP.getHostName() + ":" + filename + ":" +  fileHash, 8100);
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), "CREATE_LOG" + ":"
+                + filename + ":" + fileHash, 8700);
         }
 
 
