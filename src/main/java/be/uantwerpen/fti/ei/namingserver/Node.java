@@ -146,7 +146,7 @@ public class Node {
         }
     }
 
-    // Create a log file with file references when replicating a file
+    // Create/Update a log file with file references when replicating a file
     private void updateLogFile(String localOwnerIP, String filename) {
         try {
             JSONObject root;
@@ -159,7 +159,6 @@ public class Node {
             JSONObject fileInfo = new JSONObject();
             fileInfo.put("localOwnerIP", localOwnerIP);
             fileInfo.put("replicatedOwnerIP", IP);
-            fileInfo.put("replicatedFilename", filename);
             root.put(filename, fileInfo);
 
             try (FileWriter writer = new FileWriter(fileLog)) {
@@ -419,8 +418,8 @@ public class Node {
     private void processReplicate(String message){
         logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
-        String nodeToReplicateTo = parts[0];
-        String filename = parts[1];
+        String nodeToReplicateTo = parts[1];
+        String filename = parts[2];
         String path = "/root/localFiles/" + filename;
         if (IP.equals(nodeToReplicateTo)){
             FileTransfer.receiveFile(8500, "root/replicatedFiles");

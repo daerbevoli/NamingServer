@@ -3,8 +3,12 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FileTransfer {
+
+    private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
 
     public static void transferFile(String path, String IP, int port)
     {
@@ -15,28 +19,29 @@ public class FileTransfer {
             File file = new File(path);
             String name = file.getName();
 
-            //send over file name first
+            // send over file name first
             out.writeUTF(name);
             out.flush();
 
-            //send the file
-            FileInputStream fis = new FileInputStream(file);
+            // send the file length
             out.writeLong(file.length());
+
+            // send the file data
+            FileInputStream fis = new FileInputStream(file);
             byte[] buffer = new byte[(int) file.length() + 10];
             int bytes = 0;
-            while (bytes != -1)
+            while ((bytes = fis.read(buffer)) != -1)
             {
-                bytes = fis.read(buffer);
                 if(bytes != -1){
                     out.write(buffer,0,bytes);
                     out.flush();}
             }
-            System.out.println("FileSend");
+            logger.log(Level.INFO, "File sent successfully: " + name);
             fis.close();
             out.close();
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            logger.log(Level.WARNING, "Unable to send file", e);
         }
     }
 
@@ -47,26 +52,34 @@ public class FileTransfer {
             Socket cSocket = sSocket.accept();
             ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream());
 
-            //read file name
+            // Create directory if it does not exist
+            File dir = new File(directory);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            // read file name
             String fileName = in.readUTF();
             File file = new File(directory, fileName);
 
-
-            FileOutputStream fos = new FileOutputStream(file);
+            // read file length
             long length = in.readLong();
-            byte[] buf = new byte[(int) length + 10];
-            int bytes = 0;
-            while (length > 0 && bytes != -1) {
-                bytes = in.read(buf, 0, (int) length);
-                fos.write(buf, 0, bytes);
-                length = length - bytes;
+
+            // read file data
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                byte[] buf = new byte[(int) length + 10];
+                int bytes = 0;
+                while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
+                    fos.write(buf, 0, bytes);
+                    length -= bytes;
+                }
+                logger.log(Level.INFO, "File received successfully: " + fileName);
+                fos.close();
+                in.close();
+                cSocket.close();
             }
-            System.out.println("File received");
-            fos.close();
-            in.close();
-            cSocket.close();;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            logger.log(Level.WARNING, "ERROR receiving file", e);
         }
     }
 }
