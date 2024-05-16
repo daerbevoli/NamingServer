@@ -9,6 +9,10 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+
 /**
  * This is the class that represents a node in the system. It has the property hostname, ip address,
  * previous, next and currentID and numOfNodes (needs to find a better way).
@@ -26,6 +30,7 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
 
+    private final File fileLog = new File("root/logs/fileLog.json");
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -54,9 +59,10 @@ public class Node {
 
         executor.submit(this::Bootstrap);
 
-        executor.submit(this::Replicate);
-
         executor.submit(this::receiveNumOfNodes);
+
+        executor.submit(() -> receiveUnicast("Replication purpose", 8100));
+        executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
@@ -70,10 +76,11 @@ public class Node {
     // Send a multicast message during bootstrap with name and IP address
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
     private void Bootstrap() {
+
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
         helpMethods.sendMulticast("send bootstrap", message, 3000);
+
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        //logger.log(Level.INFO,"Received own bootstrap, my ID: "+currentID);
         int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
             i=(i+1)%300000;
@@ -103,13 +110,6 @@ public class Node {
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
-    private void Replicate(){
-        verifyAndReportLocalFiles();
-        while (true) {
-            receiveUnicast("Receive replicated node", 8100);
-        }
-    }
-
     // Hash function provided by the teachers
     public int hash(String IP){
         double max = Integer.MAX_VALUE;
@@ -138,6 +138,40 @@ public class Node {
         }
     }
 
+    // Create/Update a log file with file references when replicating a file
+    private void updateLogFile(String localOwnerIP, String filename) {
+        try {
+            // Ensure the directory exists
+            File directory = fileLog.getParentFile();
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs();
+            }
+
+            JSONObject root;
+            if (fileLog.exists()) {
+                String content = new String(Files.readAllBytes(fileLog.toPath()));
+                root = new JSONObject(content);
+            } else {
+                root = new JSONObject();
+            }
+            JSONObject fileInfo = new JSONObject();
+            fileInfo.put("localOwnerIP", localOwnerIP);
+            fileInfo.put("replicatedOwnerIP", IP);
+            root.put(filename, fileInfo);
+
+            try (FileWriter writer = new FileWriter(fileLog)) {
+                writer.write(root.toString());
+            }
+            logger.log(Level.INFO, "File log updated successfully");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error updating file log", e);
+
+        } catch (JSONException e) {
+            logger.log(Level.WARNING, "Error creating JSON object", e);
+        }
+
+    }
+
     // Node verifies local files and report to the naming server
     private void verifyAndReportLocalFiles() {
         File directory = new File("/root/localFiles");
@@ -158,7 +192,7 @@ public class Node {
             logger.log(Level.INFO, "Server IP is not available, cannot report file hash");
             return;
         }
-        String message = "REPORT" + ":" + IP + ":" + fileHash + filename;
+        String message = "REPORT" + ":" + IP + ":" + fileHash + ":" + filename;
         String purpose = "Reporting file hashes to server";
 
         helpMethods.sendUnicast(purpose, serverIP, message, 8000);
@@ -215,14 +249,8 @@ public class Node {
 
 
     private void receiveUnicast(String purpose, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
+        try (DatagramSocket socket = new DatagramSocket(port)) {
             logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
-
-            // tells the OS that it's okay to bind to a port that is still in the TIME_WAIT state
-            // (which can occur after the socket is closed).
-            socket.setReuseAddress(true);
-
-            socket.bind(new InetSocketAddress(port));
 
             // Create buffer for incoming data
             byte[] buffer = new byte[512];
@@ -256,6 +284,8 @@ public class Node {
 
                 String message = new String(packet.getData(), 0, packet.getLength());
 
+                serverIP = packet.getAddress().getHostName();
+
                 processReceivedMessage(message);
             }
 
@@ -267,28 +297,34 @@ public class Node {
 
     private void processReceivedMessage(String message) throws IOException {
         logger.log(Level.INFO,"message to process: " + message);
-        if (message.startsWith("SERVER")){
-            serverIP = message.split(":")[1];
-            logger.log(Level.INFO,"server IP successfully received: " + serverIP);
-        }
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
-        if (message.startsWith("SHUTDOWN")){
+        else if (message.startsWith("SHUTDOWN")){
             processShutdown(message);
         }
-        if (message.startsWith("NUMNODES")){
+        else if (message.startsWith("NUMNODES")){
             processNumNodes(message);
         }
-        if (message.startsWith("REPLICATE")){
+        else if (message.startsWith("REPLICATE")){
             processReplicate(message);
+        }
+        else if (message.startsWith("CREATE_LOG")) {
+            processCreateLog(message);
         }
     }
 
+    private void processCreateLog(String message) {
+        String[] parts = message.split(":");
+        String localOwnerIP = parts[1];
+        String filename = parts[2];
+        updateLogFile(localOwnerIP, filename);
+    }
     private void processNumNodes(String message){
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
+        verifyAndReportLocalFiles();
 
     }
 
@@ -303,7 +339,7 @@ public class Node {
     }
 
     // Process the message received from the multicast
-    private void processBootstrap(String message) throws IOException {
+    private void processBootstrap(String message) {
         String[] parts = message.split(":");
         String command = parts[0];
         String IP = parts[1];
@@ -314,13 +350,14 @@ public class Node {
         if (receivedHash != currentID) { // Received bootstrap different from its own
             numOfNodes++;
 
-        try {
+            try {
             updateHash(receivedHash, IP);
-        } catch (IOException e) {
+            } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+            }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
-    }
+        }
+
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
@@ -373,12 +410,10 @@ public class Node {
     private void processReplicate(String message){
         logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
-        String nodeToReplicateTo = parts[0];
-        String filename = parts[1];
+        String nodeToReplicateTo = parts[1];
+        String filename = parts[2];
         String path = "/root/localFiles/" + filename;
-        if (IP.equals(nodeToReplicateTo)){
-            FileTransfer.receiveFile(8500, "root/replicatedFiles");
-        } else {
+        if (!IP.equals(nodeToReplicateTo)){
             FileTransfer.transferFile(path, nodeToReplicateTo, 8500);
         }
     }
