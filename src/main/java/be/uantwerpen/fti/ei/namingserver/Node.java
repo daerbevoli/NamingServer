@@ -409,8 +409,8 @@ public class Node {
     private void processReplicate(String message){
         logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
-        String nodeToReplicateTo = parts[0];
-        String filename = parts[1];
+        String nodeToReplicateTo = parts[1];
+        String filename = parts[2];
         String path = "/root/localFiles/" + filename;
         if (IP.equals(nodeToReplicateTo)){
             FileTransfer.receiveFile(8500, "root/replicatedFiles");
