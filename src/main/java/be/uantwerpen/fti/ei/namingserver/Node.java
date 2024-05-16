@@ -415,7 +415,9 @@ public class Node {
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
         String path = "/root/localFiles/" + filename;
-        if (!IP.equals(nodeToReplicateTo)){
+        if (IP.equals(nodeToReplicateTo)){
+            logger.log(Level.INFO, "File is origin");
+        } else {
             FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
         }
     }
