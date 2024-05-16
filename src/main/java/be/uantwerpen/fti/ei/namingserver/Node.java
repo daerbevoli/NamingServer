@@ -357,7 +357,6 @@ public class Node {
             }
         logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
         }
-        receiveUnicast("receive replication node", 8100);
 
     }
 
@@ -419,7 +418,6 @@ public class Node {
         } else {
             FileTransfer.transferFile(path, nodeToReplicateTo, 8500);
         }
-        receiveUnicast("receive create log", 8700);
     }
 
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
