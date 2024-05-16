@@ -66,7 +66,6 @@ public class Node {
 
         executor.submit(() -> FileTransfer.receiveFile(8500, "root/replicatedFiles"));
 
-
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));

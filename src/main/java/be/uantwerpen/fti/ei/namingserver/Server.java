@@ -295,10 +295,10 @@ public class Server {
         logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostAddress() + " now owns file with filename: " + filename + " and hash: " + fileHash);
 
         // Notify the original node that a file has to be replicated
-        helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostAddress() + ":" + filename + ":" +  fileHash, 8100);
+        helpMethods.sendUnicast("file replication", nodeIP, "REPLICATE" + ":" + replicatedNodeIP.getHostName() + ":" + filename + ":" +  fileHash, 8100);
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostAddress(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), "CREATE_LOG" + ":" + filename + ":" + fileHash, 8700);
         }
 
 
