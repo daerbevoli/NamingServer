@@ -7,6 +7,7 @@ import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,6 +30,7 @@ public class Node {
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("root/logs/fileLog.json");
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -394,8 +396,8 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
-        if (IP.equals(nodeToReplicateTo)){
-            logger.log(Level.INFO, "File is origin");
+        if (IP.equals(nodeToReplicateTo) || numOfNodes < 2){
+            logger.log(Level.INFO, "File is origin or only one node");
         } else {
             FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
         }
@@ -453,6 +455,41 @@ public class Node {
                     break;
                 case "id":
                     System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
+                    break;
+                case "local":
+                    // Specify the directory path
+                    String directoryPathLocal = "root/localFiles";
+
+                    // Create a Path object
+                    Path pathLocal = Paths.get(directoryPathLocal);
+
+                    try (Stream<Path> files = Files.list(pathLocal)) {
+                        files.forEach(filePath -> {
+                            if (Files.isRegularFile(filePath)) {
+                                System.out.println(filePath.getFileName());
+                            }
+                        });
+                    } catch (IOException e) {
+                        logger.log(Level.INFO, "no files");
+                    }
+                    break;
+                case "replicate":
+                    // Specify the directory path
+                    String directoryPathRepl = "root/replicatedFiles";
+
+                    // Create a Path object
+                    Path pathRepl = Paths.get(directoryPathRepl);
+
+                    try (Stream<Path> files = Files.list(pathRepl)) {
+                        files.forEach(filePath -> {
+                            if (Files.isRegularFile(filePath)) {
+                                System.out.println(filePath.getFileName());
+                            }
+                        });
+                    } catch (IOException e) {
+                        logger.log(Level.INFO, "no files");
+                    }
+                    break;
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);
