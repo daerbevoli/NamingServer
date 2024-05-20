@@ -47,7 +47,7 @@ public class FileTransfer {
 
 
     public static void transferFile2(String IP, String filename, int port) {
-        File fileToSend = new File("root/localFiles/" + filename);
+        File fileToSend = new File("/root/localFiles/" + filename);
 
         if (!fileToSend.exists()) {
             System.out.println("File not found: " + filename);

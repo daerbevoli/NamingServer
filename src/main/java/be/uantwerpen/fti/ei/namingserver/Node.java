@@ -29,7 +29,7 @@ public class Node {
     private final ServerSocket serverSocket;
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
-    private final File fileLog = new File("root/logs/fileLog.json");
+    private final File fileLog = new File("/root/logs/fileLog.json");
 
     public Node() {
         this.IP = helpMethods.findLocalIP();
@@ -64,7 +64,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
-        executor.submit(() -> FileTransfer.receiveFile(8500, "root/replicatedFiles"));
+        executor.submit(() -> FileTransfer.receiveFile(8500, "/root/replicatedFiles"));
 
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
