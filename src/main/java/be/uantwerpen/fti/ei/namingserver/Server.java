@@ -326,6 +326,8 @@ public class Server {
         String replicateMessage = "REPLICATE" + ":" +
                 replicatedNodeIP.getHostName() + ":" + filename + ":" + fileHash;
 
+        String logMessage = "LOG" + nodeIP + ":" + filename + ":" + fileHash;
+
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
         // Log the ownership of the file
         logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
@@ -333,8 +335,7 @@ public class Server {
 
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), "CREATE_LOG" + ":"
-                + filename + ":" + fileHash, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
     }
 
 

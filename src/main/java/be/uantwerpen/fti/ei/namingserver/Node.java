@@ -7,7 +7,6 @@ import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -292,7 +291,7 @@ public class Node {
         else if (message.startsWith("REPLICATE")){
             processReplicate(message);
         }
-        else if (message.startsWith("CREATE_LOG")) {
+        else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
     }
