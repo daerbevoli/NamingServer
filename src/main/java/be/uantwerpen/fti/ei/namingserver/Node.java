@@ -461,6 +461,8 @@ public class Node {
                 case "replicate":
                     helpMethods.getFiles("/root/replicatedFiles");
                     break;
+                case "log":
+                    helpMethods.getFiles("/root/logs");
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);
