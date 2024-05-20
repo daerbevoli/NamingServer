@@ -457,10 +457,10 @@ public class Node {
                     System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
                     break;
                 case "local":
-                    helpMethods.getFiles("root/localFiles");
+                    helpMethods.getFiles("/root/localFiles");
                     break;
                 case "replicate":
-                    helpMethods.getFiles("root/replicatedFiles");
+                    helpMethods.getFiles("/root/replicatedFiles");
                     break;
                 default:
                     if (command.startsWith("addFile ")) {
