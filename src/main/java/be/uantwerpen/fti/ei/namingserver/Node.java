@@ -457,38 +457,10 @@ public class Node {
                     System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
                     break;
                 case "local":
-                    // Specify the directory path
-                    String directoryPathLocal = "root/localFiles";
-
-                    // Create a Path object
-                    Path pathLocal = Paths.get(directoryPathLocal);
-
-                    try (Stream<Path> files = Files.list(pathLocal)) {
-                        files.forEach(filePath -> {
-                            if (Files.isRegularFile(filePath)) {
-                                System.out.println(filePath.getFileName());
-                            }
-                        });
-                    } catch (IOException e) {
-                        logger.log(Level.INFO, "no files");
-                    }
+                    helpMethods.getFiles("root/localFiles");
                     break;
                 case "replicate":
-                    // Specify the directory path
-                    String directoryPathRepl = "root/replicatedFiles";
-
-                    // Create a Path object
-                    Path pathRepl = Paths.get(directoryPathRepl);
-
-                    try (Stream<Path> files = Files.list(pathRepl)) {
-                        files.forEach(filePath -> {
-                            if (Files.isRegularFile(filePath)) {
-                                System.out.println(filePath.getFileName());
-                            }
-                        });
-                    } catch (IOException e) {
-                        logger.log(Level.INFO, "no files");
-                    }
+                    helpMethods.getFiles("root/replicatedFiles");
                     break;
                 default:
                     if (command.startsWith("addFile ")) {

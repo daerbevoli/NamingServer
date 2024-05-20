@@ -100,6 +100,20 @@ public class helpMethods {
         }
     }
 
+    public static void getFiles(String path){
+        File dir = new File(path);
+
+        File[] filesList = dir.listFiles();
+
+        if (filesList != null) {
+            for (File file : filesList) {
+                System.out.println("File: " + file.getName());
+            }
+        } else {
+            System.out.println("The specified directory does not exist or is not a directory.");
+        }
+    }
+
 
 
     // ping method to check whether a connection with a node can be made
