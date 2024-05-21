@@ -340,8 +340,6 @@ public class Server {
             ipOfFileReceiver= nodesMap.get(hashes.get(indexShutdownReceiver)).getHostAddress();
             helpMethods.sendUnicast("Send IP for new replicated owner after shutdown", nodesMap.get(hashOfShutdownNode).getHostAddress(), "ReceiverIpShutdown:"+ipOfFileReceiver, 9020 );
 
-
-
         }
     public static void main(String[] args){
         Server server = new Server();

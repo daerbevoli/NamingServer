@@ -450,6 +450,7 @@ public class Node {
     private void askID()
     {
 
+        helpMethods.sendUnicast("Ask IP Of Shutdown File Receiver", serverIP, "ShutdownReceiverIp:" , 8000);
     }
 
 
