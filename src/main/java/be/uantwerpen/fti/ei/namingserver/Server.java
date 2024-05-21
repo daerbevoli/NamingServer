@@ -326,7 +326,7 @@ public class Server {
         String replicateMessage = "REPLICATE" + ":" +
                 replicatedNodeIP.getHostName() + ":" + filename + ":" + fileHash;
 
-        String logMessage = "LOG" + nodeIP + ":" + filename + ":" + fileHash;
+        String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
         // Log the ownership of the file
