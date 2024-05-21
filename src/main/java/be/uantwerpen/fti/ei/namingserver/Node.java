@@ -3,7 +3,6 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
-import java.util.Enumeration;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -29,8 +28,8 @@ public class Node {
     private final ServerSocket serverSocket;
     private String serverIP;
     private static final Logger logger = Logger.getLogger(Node.class.getName());
+    private final File fileLog = new File("/root/logs/fileLog.json");
 
-    private final File fileLog = new File("root/logs/fileLog.json");
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -64,6 +63,8 @@ public class Node {
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
+        executor.submit(() -> FileTransfer.receiveFile(8500, "/root/replicatedFiles"));
+
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
@@ -81,12 +82,12 @@ public class Node {
         helpMethods.sendMulticast("send bootstrap", message, 3000);
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        int i=0;
+        /*int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
             i=(i+1)%300000;
             if(i==1){
                 System.out.println("Waiting for numofnodes > 0");}
-        }
+        }*/
         if (numOfNodes > 1) {
             logger.log(Level.INFO, "Condition met to start TCP connection");
             try {
@@ -117,25 +118,6 @@ public class Node {
 
         double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
         return (int) hashValue;
-    }
-
-    // Add a local file to the node
-    public void addFile(String filename, String directoryPath) {
-        File directory = new File(directoryPath);
-        if (!directory.exists()) {
-            directory.mkdirs(); // Create the directory if it does not exist
-        }
-        File file = new File (directoryPath + "/" + filename);
-        try {
-            if (file.createNewFile()) {
-                logger.log(Level.INFO, filename + " created successfully at " + file.getPath());
-
-            } else {
-                logger.log(Level.INFO, "File already exists at" + file.getPath());
-            }
-        } catch (IOException e) {
-            logger.log(Level.INFO, "Error creating the file: " + e.getMessage());
-        }
     }
 
     // Create/Update a log file with file references when replicating a file
@@ -309,7 +291,7 @@ public class Node {
         else if (message.startsWith("REPLICATE")){
             processReplicate(message);
         }
-        else if (message.startsWith("CREATE_LOG")) {
+        else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
     }
@@ -341,7 +323,7 @@ public class Node {
     // Process the message received from the multicast
     private void processBootstrap(String message) {
         String[] parts = message.split(":");
-        String command = parts[0];
+        //String command = parts[0];
         String IP = parts[1];
 
         int receivedHash = hash(IP);
@@ -349,6 +331,7 @@ public class Node {
         // Update current node's network parameters based on the received node's hash
         if (receivedHash != currentID) { // Received bootstrap different from its own
             numOfNodes++;
+
 
             try {
             updateHash(receivedHash, IP);
@@ -412,9 +395,10 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
-        String path = "/root/localFiles/" + filename;
-        if (!IP.equals(nodeToReplicateTo)){
-            FileTransfer.transferFile(path, nodeToReplicateTo, 8500);
+        if (IP.equals(nodeToReplicateTo)){
+            logger.log(Level.INFO, "File is origin");
+        } else {
+            FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
         }
     }
 
@@ -471,10 +455,19 @@ public class Node {
                     break;
                 case "id":
                     System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
+                    break;
+                case "local":
+                    helpMethods.getFiles("/root/localFiles");
+                    break;
+                case "replicate":
+                    helpMethods.getFiles("/root/replicatedFiles");
+                    break;
+                case "log":
+                    helpMethods.getFiles("/root/logs");
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);
-                        addFile(filename, "/root/localFiles");
+                        helpMethods.addFile(filename, "/root/localFiles");
                         System.out.println(filename + " added.");
                     } else {
                         System.out.println("Invalid command.");

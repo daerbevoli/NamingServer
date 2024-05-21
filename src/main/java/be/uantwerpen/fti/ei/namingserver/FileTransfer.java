@@ -45,6 +45,48 @@ public class FileTransfer {
         }
     }
 
+
+    public static void transferFile2(String IP, String filename, int port) {
+        File fileToSend = new File("/root/localFiles/" + filename);
+
+        if (!fileToSend.exists()) {
+            System.out.println("File not found: " + filename);
+            return;
+        }
+
+        try (Socket clientSocket = new Socket(IP, port);
+             ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+             FileInputStream fileInputStream = new FileInputStream(fileToSend)) {
+
+            System.out.println("Sending file: " + filename);
+
+            // Send the file name
+            outputStream.writeUTF(filename);
+            outputStream.flush();
+
+            // Send the file length
+            outputStream.writeLong(fileToSend.length());
+            outputStream.flush();
+
+            // Buffer to store chunks of file data
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+
+            // Read the file data and send it to the server
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            // Ensure all data is sent immediately
+            outputStream.flush();
+
+            System.out.println("File sent successfully");
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to send file", e);
+        }
+    }
+
     public static void receiveFile(int port, String directory)
     {
         try {
