@@ -306,7 +306,7 @@ public class Server {
                 break;
             case "REPORT":
                 reportList.add(message);
-                if (nodesMap.size() > 1) {
+                if (nodesMap.size() == 3) {
                     for (String reportMessage : reportList){
                         String reportNodeIP = reportMessage.split(":")[1];
                         int fileHash = Integer.parseInt(reportMessage.split(":")[2]);
