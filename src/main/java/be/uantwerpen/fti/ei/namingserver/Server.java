@@ -132,9 +132,8 @@ public class Server {
 
     private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
-        List<Integer> nodeKeys = nodesMap.entrySet().stream()
-                .filter(entry -> entry.getKey() < fileHash && !entry.getValue().getHostName().equals(reportingNodeIP))
-                .map(Map.Entry::getKey)
+        List<Integer> nodeKeys = nodesMap.keySet().stream()
+                .filter(key -> key < fileHash && !key.equals(hash(reportingNodeIP)))
                 .toList();
 
         if (nodeKeys.isEmpty()) {
@@ -338,7 +337,6 @@ public class Server {
 
         int replicatedNodeID = ReplicateNodeOfFile(fileHash, nodeIP);
         String replicatedNodeIP = nodesMap.get(replicatedNodeID).getHostName();
-
 
         String replicateMessage = "REPLICATE" + ":" +
                 replicatedNodeIP + ":" + filename + ":" + fileHash;
