@@ -321,7 +321,7 @@ public class Server {
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
         int replicatedNodeID = nodeOfFile2(fileHash);
-        InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
+        String replicatedNodeIP = nodesMap.get(replicatedNodeID).getHostName();
 
         String replicateMessage = "REPLICATE" + ":" +
                 replicatedNodeIP + ":" + filename + ":" + fileHash;
@@ -335,7 +335,7 @@ public class Server {
 
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.toString(), logMessage, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP, logMessage, 8700);
     }
 
 
