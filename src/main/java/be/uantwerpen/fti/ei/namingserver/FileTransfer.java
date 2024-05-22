@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.spi.InetAddressResolver;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
