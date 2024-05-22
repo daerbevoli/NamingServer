@@ -113,15 +113,15 @@ public class Server {
 
     }
 
-    private int nodeOfFile2(int fileHash, Map<Integer, InetAddress> mapOfNodes) {
-        // Find all nodes with a hash smaller than or equal to the file hash
-        List<Integer> nodeKeys = mapOfNodes.keySet().stream()
+    private int nodeOfFile2(int fileHash) {
+        // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
+        List<Integer> nodeKeys = nodesMap.keySet().stream()
                 .filter(key -> key < fileHash)
                 .toList();
 
         if (nodeKeys.isEmpty()) {
             // If no such nodes exist, return the node with the largest hash
-            return mapOfNodes.keySet().stream().mapToInt(Integer::intValue).max()
+            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
         } else {
             // Find the node with the smallest difference between its hash and the file hash
@@ -130,6 +130,26 @@ public class Server {
         }
     }
 
+    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
+        // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
+        List<Integer> nodeKeys = nodesMap.entrySet().stream()
+                .filter(entry -> entry.getKey() < fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (nodeKeys.isEmpty()) {
+            // If no such nodes exist, return the node with the largest hash excluding the reporting node
+            return nodesMap.entrySet().stream()
+                    .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                    .mapToInt(Map.Entry::getKey)
+                    .max()
+                    .orElseThrow(NoSuchElementException::new);
+        } else {
+            // Find the node with the smallest difference between its hash and the file hash
+            return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
+                    .orElseThrow(NoSuchElementException::new);
+        }
+    }
 
     // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
@@ -185,7 +205,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash, nodesMap);
+            int nodeID = nodeOfFile2(fileHash);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -308,16 +328,17 @@ public class Server {
                 int fileHash = Integer.parseInt(message.split(":")[2]);
                 String filename = message.split(":")[3];
                 processFileReport(nodeIP, fileHash, filename);
+
                 break;
         }
     }
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
-        Map<Integer, InetAddress> mapOfNodes = nodesMap;
-        mapOfNodes.remove(hash(nodeIP));
-        int replicatedNodeID = nodeOfFile2(fileHash, mapOfNodes);
+
+        int replicatedNodeID = ReplicateNodeOfFile(fileHash, nodeIP);
         String replicatedNodeIP = nodesMap.get(replicatedNodeID).getHostName();
+
 
         String replicateMessage = "REPLICATE" + ":" +
                 replicatedNodeIP + ":" + filename + ":" + fileHash;
