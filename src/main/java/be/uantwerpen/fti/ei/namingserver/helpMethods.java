@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.util.Enumeration;
@@ -79,6 +80,40 @@ public class helpMethods {
             logger.log(Level.WARNING, "unable to open unicast send socket: " + purpose, e);
         }
     }
+
+    // Add a local file to the node
+    public static void addFile(String filename, String directoryPath) {
+        File directory = new File(directoryPath);
+        if (!directory.exists()) {
+            directory.mkdirs(); // Create the directory if it does not exist
+        }
+        File file = new File (directoryPath + "/" + filename);
+        try {
+            if (file.createNewFile()) {
+                logger.log(Level.INFO, filename + " created successfully at " + file.getPath());
+
+            } else {
+                logger.log(Level.INFO, "File already exists at" + file.getPath());
+            }
+        } catch (IOException e) {
+            logger.log(Level.INFO, "Error creating the file: " + e.getMessage());
+        }
+    }
+
+    public static void getFiles(String path){
+        File dir = new File(path);
+
+        File[] filesList = dir.listFiles();
+
+        if (filesList != null) {
+            for (File file : filesList) {
+                System.out.println("File: " + file.getName());
+            }
+        } else {
+            System.out.println("The specified directory does not exist or is not a directory.");
+        }
+    }
+
 
 
     // ping method to check whether a connection with a node can be made
