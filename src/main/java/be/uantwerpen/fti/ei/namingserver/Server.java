@@ -114,7 +114,7 @@ public class Server {
     }
 
     private int nodeOfFile2(int fileHash) {
-        // Find all nodes with a hash smaller than or equal to the file hash
+        // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
                 .filter(key -> key < fileHash)
                 .toList();
@@ -130,6 +130,26 @@ public class Server {
         }
     }
 
+    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
+        // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
+        List<Integer> nodeKeys = nodesMap.entrySet().stream()
+                .filter(entry -> entry.getKey() < fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (nodeKeys.isEmpty()) {
+            // If no such nodes exist, return the node with the largest hash excluding the reporting node
+            return nodesMap.entrySet().stream()
+                    .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                    .mapToInt(Map.Entry::getKey)
+                    .max()
+                    .orElseThrow(NoSuchElementException::new);
+        } else {
+            // Find the node with the smallest difference between its hash and the file hash
+            return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
+                    .orElseThrow(NoSuchElementException::new);
+        }
+    }
 
     // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
@@ -305,22 +325,19 @@ public class Server {
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
-                reportList.add(message);
-                if (nodesMap.size() == 3) {
-                    for (String reportMessage : reportList){
-                        String reportNodeIP = reportMessage.split(":")[1];
-                        int fileHash = Integer.parseInt(reportMessage.split(":")[2]);
-                        String filename = reportMessage.split(":")[3];
-                        processFileReport(reportNodeIP, fileHash, filename);
+                if (nodesMap.size() > 1) {
+                    String reportNodeIP = message.split(":")[1];
+                    int fileHash = Integer.parseInt(message.split(":")[2]);
+                    String filename = message.split(":")[3];
+                    processFileReport(reportNodeIP, fileHash, filename);
                     }
-                }
                 break;
         }
     }
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
-        int replicatedNodeID = nodeOfFile2(fileHash);
+        int replicatedNodeID = ReplicateNodeOfFile(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +
