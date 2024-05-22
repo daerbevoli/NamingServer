@@ -132,22 +132,22 @@ public class Server {
     }
 
     private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
-        List<Map.Entry<Integer, InetAddress>> nodeEntries = nodesMap.entrySet().stream()
+        // Find all nodes with a hash smaller than or equal to the file hash, excluding the reporting node
+        List<Map.Entry<Integer, InetAddress>> candidates = nodesMap.entrySet().stream()
                 .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
                 .collect(Collectors.toList());
 
-        logger.log(Level.INFO, "Filtered nodes: " + nodeEntries);
-
-        if (nodeEntries.isEmpty()) {
-            // If no such nodes exist, return the node with the largest hash excluding the reporting node
+        // If there are no candidates, select the node with the largest hash that is not the reporting node
+        if (candidates.isEmpty()) {
             return nodesMap.entrySet().stream()
                     .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
-                    .mapToInt(Map.Entry::getKey)
-                    .max()
-                    .orElseThrow(NoSuchElementException::new);
+                    .max(Comparator.comparingInt(Map.Entry::getKey))
+                    .orElseThrow(NoSuchElementException::new)
+                    .getKey();
         } else {
-            // Find the node with the smallest difference between its hash and the file hash
-            return nodeEntries.stream().min(Comparator.comparingInt(entry -> Math.abs(entry.getKey() - fileHash)))
+            // Select the candidate with the smallest difference between its hash and the file hash
+            return candidates.stream()
+                    .min(Comparator.comparingInt(entry -> Math.abs(entry.getKey() - fileHash)))
                     .orElseThrow(NoSuchElementException::new)
                     .getKey();
         }
@@ -340,21 +340,21 @@ public class Server {
     private void processFileReport(String nodeIP, int fileHash, String filename) {
 
         int replicatedNodeID = ReplicateNodeOfFile(fileHash, nodeIP);
-        String replicatedNodeIP = nodesMap.get(replicatedNodeID).getHostName();
+        InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +
-                replicatedNodeIP + ":" + filename + ":" + fileHash;
+                replicatedNodeIP.getHostName() + ":" + filename + ":" + fileHash;
 
         String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
         // Log the ownership of the file
-        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP + " " +
+        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
                 "now owns file with filename: " + filename + " and hash: " + fileHash);
 
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP, logMessage, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
     }
 
 
