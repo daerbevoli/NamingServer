@@ -133,14 +133,14 @@ public class Server {
     private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.entrySet().stream()
-                .filter(entry -> entry.getKey() < fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                .filter(entry -> entry.getKey() < fileHash && !entry.getValue().getHostName().equals(reportingNodeIP))
                 .map(Map.Entry::getKey)
                 .toList();
 
         if (nodeKeys.isEmpty()) {
             // If no such nodes exist, return the node with the largest hash excluding the reporting node
             return nodesMap.entrySet().stream()
-                    .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                    .filter(entry -> !entry.getValue().getHostName().equals(reportingNodeIP))
                     .mapToInt(Map.Entry::getKey)
                     .max()
                     .orElseThrow(NoSuchElementException::new);
