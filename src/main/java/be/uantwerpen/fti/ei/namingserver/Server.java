@@ -305,15 +305,9 @@ public class Server {
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
-                reportList.add(message);
-                if (nodesMap.size() == 3) {
-                    for (String reportMessage : reportList){
-                        String reportNodeIP = reportMessage.split(":")[1];
-                        int fileHash = Integer.parseInt(reportMessage.split(":")[2]);
-                        String filename = reportMessage.split(":")[3];
-                        processFileReport(reportNodeIP, fileHash, filename);
-                    }
-                }
+                int fileHash = Integer.parseInt(message.split(":")[2]);
+                String filename = message.split(":")[3];
+                processFileReport(nodeIP, fileHash, filename);
                 break;
         }
     }
