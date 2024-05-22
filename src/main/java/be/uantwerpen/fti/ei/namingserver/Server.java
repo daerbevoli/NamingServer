@@ -113,15 +113,15 @@ public class Server {
 
     }
 
-    private int nodeOfFile2(int fileHash) {
+    private int nodeOfFile2(int fileHash, Map<Integer, InetAddress> mapOfNodes) {
         // Find all nodes with a hash smaller than or equal to the file hash
-        List<Integer> nodeKeys = nodesMap.keySet().stream()
+        List<Integer> nodeKeys = mapOfNodes.keySet().stream()
                 .filter(key -> key < fileHash)
                 .toList();
 
         if (nodeKeys.isEmpty()) {
             // If no such nodes exist, return the node with the largest hash
-            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
+            return mapOfNodes.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
         } else {
             // Find the node with the smallest difference between its hash and the file hash
@@ -185,7 +185,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash);
+            int nodeID = nodeOfFile2(fileHash, nodesMap);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -305,37 +305,33 @@ public class Server {
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
-                reportList.add(message);
-                if (nodesMap.size() == 3) {
-                    for (String reportMessage : reportList){
-                        String reportNodeIP = reportMessage.split(":")[1];
-                        int fileHash = Integer.parseInt(reportMessage.split(":")[2]);
-                        String filename = reportMessage.split(":")[3];
-                        processFileReport(reportNodeIP, fileHash, filename);
-                    }
-                }
+                int fileHash = Integer.parseInt(message.split(":")[2]);
+                String filename = message.split(":")[3];
+                processFileReport(nodeIP, fileHash, filename);
                 break;
         }
     }
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
-        int replicatedNodeID = nodeOfFile2(fileHash);
-        InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
+        Map<Integer, InetAddress> mapOfNodes = nodesMap;
+        mapOfNodes.remove(hash(nodeIP));
+        int replicatedNodeID = nodeOfFile2(fileHash, mapOfNodes);
+        String replicatedNodeIP = nodesMap.get(replicatedNodeID).getHostName();
 
         String replicateMessage = "REPLICATE" + ":" +
-                replicatedNodeIP.getHostName() + ":" + filename + ":" + fileHash;
+                replicatedNodeIP + ":" + filename + ":" + fileHash;
 
         String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
         // Log the ownership of the file
-        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
+        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP + " " +
                 "now owns file with filename: " + filename + " and hash: " + fileHash);
 
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP, logMessage, 8700);
     }
 
 
