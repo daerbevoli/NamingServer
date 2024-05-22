@@ -66,7 +66,6 @@ public class Node {
 
         executor.submit(() -> FileTransfer.receiveFile(8500, "root/replicatedFiles"));
 
-
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
@@ -145,8 +144,8 @@ public class Node {
     private void updateLogFile(String localOwnerIP, String filename) {
         try {
             // Ensure the directory exists
-            File directory = fileLog.getParentFile();
-            if (directory != null && !directory.exists()) {
+            File directory = new File("root/logs");
+            if (!directory.exists()) {
                 directory.mkdirs();
             }
 
@@ -421,6 +420,7 @@ public class Node {
         }
     }
 
+
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
         int port = 5231;
         try (Socket cSocket = new Socket(nodeIP, port);
@@ -473,6 +473,7 @@ public class Node {
                     break;
                 case "id":
                     System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
+                    break;
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);

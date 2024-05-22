@@ -1,8 +1,10 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.spi.InetAddressResolver;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -14,7 +16,8 @@ public class FileTransfer {
     {
         try {
             System.out.println("received IP:" + IP);
-            Socket socket = new Socket(IP, port);
+            InetAddress address = InetAddress.getByName(IP);
+            Socket socket = new Socket(address, port);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             File file = new File(path);
             String name = file.getName();
@@ -25,6 +28,7 @@ public class FileTransfer {
 
             // send the file length
             out.writeLong(file.length());
+            out.flush();
 
             // send the file data
             FileInputStream fis = new FileInputStream(file);
@@ -39,6 +43,7 @@ public class FileTransfer {
             logger.log(Level.INFO, "File sent successfully: " + name);
             fis.close();
             out.close();
+            socket.close();
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);

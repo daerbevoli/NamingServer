@@ -302,8 +302,6 @@ public class Server {
         }
 
 
-
-
     // Run the server
     public void run() {
         Scanner scanner = new Scanner(System.in);
