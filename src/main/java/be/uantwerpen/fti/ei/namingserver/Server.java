@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -131,24 +132,27 @@ public class Server {
     }
 
     private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
-        // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
-        List<Integer> nodeKeys = nodesMap.keySet().stream()
-                .filter(key -> key < fileHash && !key.equals(hash(reportingNodeIP)))
-                .toList();
+        List<Map.Entry<Integer, InetAddress>> nodeEntries = nodesMap.entrySet().stream()
+                .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                .collect(Collectors.toList());
 
-        if (nodeKeys.isEmpty()) {
+        logger.log(Level.INFO, "Filtered nodes: " + nodeEntries);
+
+        if (nodeEntries.isEmpty()) {
             // If no such nodes exist, return the node with the largest hash excluding the reporting node
             return nodesMap.entrySet().stream()
-                    .filter(entry -> !entry.getValue().getHostName().equals(reportingNodeIP))
+                    .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
                     .mapToInt(Map.Entry::getKey)
                     .max()
                     .orElseThrow(NoSuchElementException::new);
         } else {
             // Find the node with the smallest difference between its hash and the file hash
-            return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
-                    .orElseThrow(NoSuchElementException::new);
+            return nodeEntries.stream().min(Comparator.comparingInt(entry -> Math.abs(entry.getKey() - fileHash)))
+                    .orElseThrow(NoSuchElementException::new)
+                    .getKey();
         }
     }
+
 
     // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
