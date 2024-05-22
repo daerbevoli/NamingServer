@@ -324,18 +324,18 @@ public class Server {
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +
-                replicatedNodeIP.getHostName() + ":" + filename + ":" + fileHash;
+                replicatedNodeIP + ":" + filename + ":" + fileHash;
 
         String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
         // Log the ownership of the file
-        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
+        logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP + " " +
                 "now owns file with filename: " + filename + " and hash: " + fileHash);
 
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.toString(), logMessage, 8700);
     }
 
 
