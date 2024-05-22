@@ -131,16 +131,18 @@ public class Server {
         }
     }
 
-    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
+    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) throws UnknownHostException {
+        InetAddress reportingNodeAddress = InetAddress.getByName(reportingNodeIP);
+
         // Find all nodes with a hash smaller than or equal to the file hash, excluding the reporting node
         List<Map.Entry<Integer, InetAddress>> candidates = nodesMap.entrySet().stream()
-                .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().equals(reportingNodeAddress))
                 .collect(Collectors.toList());
 
         // If there are no candidates, select the node with the largest hash that is not the reporting node
         if (candidates.isEmpty()) {
             return nodesMap.entrySet().stream()
-                    .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
+                    .filter(entry -> !entry.getValue().equals(reportingNodeAddress))
                     .max(Comparator.comparingInt(Map.Entry::getKey))
                     .orElseThrow(NoSuchElementException::new)
                     .getKey();
@@ -152,7 +154,6 @@ public class Server {
                     .getKey();
         }
     }
-
 
     // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
