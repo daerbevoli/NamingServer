@@ -309,9 +309,9 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
+        logger.log(Level.INFO, "IP: " + IP + ", " + "replicate IP: " + nodeToReplicateTo);
         if (IP.equals(nodeToReplicateTo)){
             logger.log(Level.INFO, "File is origin");
-            logger.log(Level.INFO, "IP: " + IP + ", " + "replicate IP: " + nodeToReplicateTo);
         } else {
             FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
         }
