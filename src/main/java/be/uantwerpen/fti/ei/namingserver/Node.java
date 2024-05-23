@@ -333,6 +333,11 @@ public class Node {
         String[] parts = message.split(":");
         String localOwnerIP = parts[1];
         String filename = parts[2];
+        // TEMPORARY
+        // Do not create log if same ip (which should never be the case)
+        if (localOwnerIP.equals(IP)){
+            return;
+        }
         updateLogFile(localOwnerIP, filename);
     }
 
@@ -352,6 +357,7 @@ public class Node {
             } else {
                 root = new JSONObject();
             }
+
             JSONObject fileInfo = new JSONObject();
             fileInfo.put("localOwnerIP", localOwnerIP);
             fileInfo.put("replicatedOwnerIP", IP);

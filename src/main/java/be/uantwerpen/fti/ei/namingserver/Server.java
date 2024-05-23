@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -92,30 +91,14 @@ public class Server {
     hash is the owner of the file. If N is empty, the node with the biggest hash stores
     the requested file.
      */
-    private int nodeOfFile(int fileHash){
-
-        ConcurrentHashMap<Integer, InetAddress> N = new ConcurrentHashMap<>();
-
-        for (Map.Entry<Integer, InetAddress> entry : nodesMap.entrySet()){
-            if (entry.getKey() <= fileHash){
-                N.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        if (N.isEmpty()){
-            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max().getAsInt();
-        } else {
-            return N.keySet().stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash))).get();
-        }
-
-    }
-
     private int nodeOfFile2(int fileHash, String sameIP) {
+
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
                 .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
+        // PROBLEM : NO NODES EXIST AND sameIP IS BIGGEST NODE -> FILE IS ORIGIN
         if (nodeKeys.isEmpty()) {
             // If no such nodes exist, return the node with the largest hash
             return nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
@@ -124,30 +107,6 @@ public class Server {
             // Find the node with the smallest difference between its hash and the file hash
             return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
                     .orElseThrow(NoSuchElementException::new);
-        }
-    }
-
-    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) throws UnknownHostException {
-        InetAddress reportingNodeAddress = InetAddress.getByName(reportingNodeIP);
-
-        // Find all nodes with a hash smaller than or equal to the file hash, excluding the reporting node
-        List<Map.Entry<Integer, InetAddress>> candidates = nodesMap.entrySet().stream()
-                .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().equals(reportingNodeAddress))
-                .toList();
-
-        // If there are no candidates, select the node with the largest hash that is not the reporting node
-        if (candidates.isEmpty()) {
-            return nodesMap.entrySet().stream()
-                    .filter(entry -> !entry.getValue().equals(reportingNodeAddress))
-                    .max(Comparator.comparingInt(Map.Entry::getKey))
-                    .orElseThrow(NoSuchElementException::new)
-                    .getKey();
-        } else {
-            // Select the candidate with the smallest difference between its hash and the file hash
-            return candidates.stream()
-                    .min(Comparator.comparingInt(entry -> Math.abs(entry.getKey() - fileHash)))
-                    .orElseThrow(NoSuchElementException::new)
-                    .getKey();
         }
     }
 
