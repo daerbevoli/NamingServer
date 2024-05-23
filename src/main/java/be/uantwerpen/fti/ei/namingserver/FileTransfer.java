@@ -10,9 +10,10 @@ public class FileTransfer {
 
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
 
-    public static void transferFile(String path, String IP, int port)
+    public static void transferFile(String path, String IP, int port, String potentialMessage)
     {
         try {
+            if (potentialMessage==null) {potentialMessage="";}
             System.out.println("received IP:" + IP);
             Socket socket = new Socket(IP, port);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -25,6 +26,7 @@ public class FileTransfer {
 
             // send the file length
             out.writeLong(file.length());
+            out.flush();
 
             // send the file data
             FileInputStream fis = new FileInputStream(file);
@@ -39,6 +41,9 @@ public class FileTransfer {
             logger.log(Level.INFO, "File sent successfully: " + name);
             fis.close();
             out.close();
+
+            out.writeUTF(potentialMessage);
+            out.flush();
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
@@ -87,8 +92,8 @@ public class FileTransfer {
         }
     }
 
-    public static void receiveFile(int port, String directory)
-    {
+    public static String receiveFile(int port, String directory) {
+        String message = null;
         try {
             ServerSocket sSocket = new ServerSocket(port);
             Socket cSocket = sSocket.accept();
@@ -120,8 +125,12 @@ public class FileTransfer {
                 in.close();
                 cSocket.close();
             }
+
+            message = in.readUTF();
+
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
         }
+        return message;
     }
 }

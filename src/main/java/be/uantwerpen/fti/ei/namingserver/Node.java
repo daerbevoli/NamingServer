@@ -3,6 +3,7 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.util.Iterator;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -27,6 +28,7 @@ public class Node {
     private int numOfNodes;
     private final ServerSocket serverSocket;
     private String serverIP;
+
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
@@ -108,6 +110,12 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+        if(fileLog.exists())
+        {
+            helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
+            receiveUnicast("Get Previous IPs", 9020);
+        }
+
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -294,6 +302,9 @@ public class Node {
         else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
+        else if (message.startsWith("ReceivePreviousIPs")) {
+            sendReplicatedFilesShutdown(message);
+        }
     }
 
     private void processCreateLog(String message) {
@@ -431,11 +442,39 @@ public class Node {
         }
     }
 
-    private void askID()
+    private void sendReplicatedFilesShutdown(String msg)
     {
+        if(fileLog.exists() )
+        {
+            String[] parts = msg.split(":");
 
-        helpMethods.sendUnicast("Ask IP Of Shutdown File Receiver", serverIP, "ShutdownReceiverIp:" , 8000);
+        try {
+            String fileString= new String(Files.readAllBytes(fileLog.toPath()));
+            JSONObject jsonLog = new JSONObject(fileString);
+            Iterator<String> keys= jsonLog.keys();
+            while(keys.hasNext())
+            {
+                String fileName= keys.next();
+                JSONObject jsonEntry= jsonLog.getJSONObject(fileName);
+                boolean prevNodeOwner;
+                if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
+                {
+                    prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
+                    if (prevNodeOwner)
+                    {
+                        FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[2],7526,"LocalOwner:"+jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                    } else
+                    {FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[1],7526,"LocalOwner:"+jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+
+                }
+            }
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        }
     }
+    }
+
+
 
 
     public void run() {
