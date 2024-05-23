@@ -128,40 +128,6 @@ public class Node {
         return (int) hashValue;
     }
 
-    // Create/Update a log file with file references when replicating a file
-    private void updateLogFile(String localOwnerIP, String filename) {
-        try {
-            // Ensure the directory exists
-            File directory = fileLog.getParentFile();
-            if (directory != null && !directory.exists()) {
-                directory.mkdirs();
-            }
-
-            JSONObject root;
-            if (fileLog.exists()) {
-                String content = new String(Files.readAllBytes(fileLog.toPath()));
-                root = new JSONObject(content);
-            } else {
-                root = new JSONObject();
-            }
-            JSONObject fileInfo = new JSONObject();
-            fileInfo.put("localOwnerIP", localOwnerIP);
-            fileInfo.put("replicatedOwnerIP", IP);
-            root.put(filename, fileInfo);
-
-            try (FileWriter writer = new FileWriter(fileLog)) {
-                writer.write(root.toString());
-            }
-            logger.log(Level.INFO, "File log updated successfully");
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error updating file log", e);
-
-        } catch (JSONException e) {
-            logger.log(Level.WARNING, "Error creating JSON object", e);
-        }
-
-    }
-
     // Node verifies local files and report to the naming server
     private void verifyAndReportLocalFiles() {
         File directory = new File("/root/localFiles");
@@ -307,12 +273,29 @@ public class Node {
         }
     }
 
-    private void processCreateLog(String message) {
+    // Process the message received from the multicast
+    private void processBootstrap(String message) {
         String[] parts = message.split(":");
-        String localOwnerIP = parts[1];
-        String filename = parts[2];
-        updateLogFile(localOwnerIP, filename);
+        //String command = parts[0];
+        String IP = parts[1];
+
+        int receivedHash = hash(IP);
+        logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
+        // Update current node's network parameters based on the received node's hash
+        if (receivedHash != currentID) { // Received bootstrap different from its own
+            numOfNodes++;
+
+
+            try {
+                updateHash(receivedHash, IP);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
+        }
+
     }
+
     private void processNumNodes(String message){
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
@@ -329,27 +312,60 @@ public class Node {
         int nxtID = Integer.parseInt(parts[3]);
 
         updateHashShutdown(prevId, nxtID);
+
     }
 
-    // Process the message received from the multicast
-    private void processBootstrap(String message) {
+
+    private void processReplicate(String message){
+        logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
-        //String command = parts[0];
-        String IP = parts[1];
+        String nodeToReplicateTo = parts[1];
+        String filename = parts[2];
+        logger.log(Level.INFO, "IP: " + IP + ", " + "replicate IP: " + nodeToReplicateTo);
+        if (IP.equals(nodeToReplicateTo)){
+            logger.log(Level.INFO, "File is origin");
+        } else {
+            FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
+        }
+    }
 
-        int receivedHash = hash(IP);
-        logger.log(Level.INFO, "CurrentID:" + currentID + " receivedID:" + receivedHash);
-        // Update current node's network parameters based on the received node's hash
-        if (receivedHash != currentID) { // Received bootstrap different from its own
-            numOfNodes++;
+    private void processCreateLog(String message) {
+        String[] parts = message.split(":");
+        String localOwnerIP = parts[1];
+        String filename = parts[2];
+        updateLogFile(localOwnerIP, filename);
+    }
 
-
-            try {
-            updateHash(receivedHash, IP);
-            } catch (IOException e) {
-            throw new RuntimeException(e);
+    // Create/Update a log file with file references when replicating a file
+    private void updateLogFile(String localOwnerIP, String filename) {
+        try {
+            // Ensure the directory exists
+            File directory = fileLog.getParentFile();
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs();
             }
-        logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
+
+            JSONObject root;
+            if (fileLog.exists()) {
+                String content = new String(Files.readAllBytes(fileLog.toPath()));
+                root = new JSONObject(content);
+            } else {
+                root = new JSONObject();
+            }
+            JSONObject fileInfo = new JSONObject();
+            fileInfo.put("localOwnerIP", localOwnerIP);
+            fileInfo.put("replicatedOwnerIP", IP);
+            root.put(filename, fileInfo);
+
+            try (FileWriter writer = new FileWriter(fileLog)) {
+                writer.write(root.toString());
+            }
+            logger.log(Level.INFO, "File log updated successfully");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error updating file log", e);
+
+        } catch (JSONException e) {
+            logger.log(Level.WARNING, "Error creating JSON object", e);
         }
 
     }
@@ -397,19 +413,6 @@ public class Node {
             previousID = receivedHash;
             sendNodeResponse(false, IP, oldPrevious);
             logger.log(Level.INFO, "Previous ID updated to: "+previousID);
-        }
-    }
-
-
-    private void processReplicate(String message){
-        logger.log(Level.INFO, "In the processReplication method");
-        String[] parts = message.split(":");
-        String nodeToReplicateTo = parts[1];
-        String filename = parts[2];
-        if (IP.equals(nodeToReplicateTo)){
-            logger.log(Level.INFO, "File is origin");
-        } else {
-            FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
         }
     }
 
@@ -517,6 +520,7 @@ public class Node {
     }
 
     public static void main(String[] args) {
+
         Node node = new Node();
         node.run();
     }

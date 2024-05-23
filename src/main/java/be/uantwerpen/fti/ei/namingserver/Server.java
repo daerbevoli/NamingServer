@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -36,11 +37,7 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
-    // nodes flag to check whether a new node has entered the topology
-    boolean nodeAdded = false;
 
-    // list to have all report messages
-    List<String> reportList = new ArrayList<>();
 
     // Constructor to read the starting data from the JSON file
     public Server(){
@@ -113,10 +110,10 @@ public class Server {
 
     }
 
-    private int nodeOfFile2(int fileHash) {
-        // Find all nodes with a hash smaller than or equal to the file hash
+    private int nodeOfFile2(int fileHash, String sameIP) {
+        // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
-                .filter(key -> key < fileHash)
+                .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
         if (nodeKeys.isEmpty()) {
@@ -130,6 +127,29 @@ public class Server {
         }
     }
 
+    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) throws UnknownHostException {
+        InetAddress reportingNodeAddress = InetAddress.getByName(reportingNodeIP);
+
+        // Find all nodes with a hash smaller than or equal to the file hash, excluding the reporting node
+        List<Map.Entry<Integer, InetAddress>> candidates = nodesMap.entrySet().stream()
+                .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().equals(reportingNodeAddress))
+                .toList();
+
+        // If there are no candidates, select the node with the largest hash that is not the reporting node
+        if (candidates.isEmpty()) {
+            return nodesMap.entrySet().stream()
+                    .filter(entry -> !entry.getValue().equals(reportingNodeAddress))
+                    .max(Comparator.comparingInt(Map.Entry::getKey))
+                    .orElseThrow(NoSuchElementException::new)
+                    .getKey();
+        } else {
+            // Select the candidate with the smallest difference between its hash and the file hash
+            return candidates.stream()
+                    .min(Comparator.comparingInt(entry -> Math.abs(entry.getKey() - fileHash)))
+                    .orElseThrow(NoSuchElementException::new)
+                    .getKey();
+        }
+    }
 
     // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
@@ -146,7 +166,6 @@ public class Server {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
-                nodeAdded = true;
                 logger.log(Level.INFO, ip + " successfully added to the network");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
@@ -185,7 +204,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash);
+            int nodeID = nodeOfFile2(fileHash, IP);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -305,15 +324,9 @@ public class Server {
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
-                reportList.add(message);
-                if (nodesMap.size() > 1) {
-                    for (String reportMessage : reportList){
-                        String reportNodeIP = reportMessage.split(":")[1];
-                        int fileHash = Integer.parseInt(reportMessage.split(":")[2]);
-                        String filename = reportMessage.split(":")[3];
-                        processFileReport(reportNodeIP, fileHash, filename);
-                    }
-                }
+                int fileHash = Integer.parseInt(message.split(":")[2]);
+                String filename = message.split(":")[3];
+                processFileReport(nodeIP, fileHash, filename);
                 break;
             case "AskIP":
                 sendIPOfPrevNodes(parts[1]);
@@ -323,13 +336,16 @@ public class Server {
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
-        int replicatedNodeID = nodeOfFile2(fileHash);
+        if (nodesMap.size() <= 1){
+            return;
+        }
+        int replicatedNodeID = nodeOfFile2(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +
                 replicatedNodeIP.getHostName() + ":" + filename + ":" + fileHash;
 
-        String logMessage = "LOG" + nodeIP + ":" + filename + ":" + fileHash;
+        String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
         // Log the ownership of the file
@@ -340,8 +356,6 @@ public class Server {
         // Notify the replicated node that it should create a file log
         helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
     }
-
-
 
 
     // Run the server
