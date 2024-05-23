@@ -37,11 +37,7 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
-    // nodes flag to check whether a new node has entered the topology
-    boolean nodeAdded = false;
 
-    // list to have all report messages
-    List<String> reportList = new ArrayList<>();
 
     // Constructor to read the starting data from the JSON file
     public Server(){
@@ -114,10 +110,10 @@ public class Server {
 
     }
 
-    private int nodeOfFile2(int fileHash) {
+    private int nodeOfFile2(int fileHash, String sameIP) {
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
-                .filter(key -> key < fileHash)
+                .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
         if (nodeKeys.isEmpty()) {
@@ -137,7 +133,7 @@ public class Server {
         // Find all nodes with a hash smaller than or equal to the file hash, excluding the reporting node
         List<Map.Entry<Integer, InetAddress>> candidates = nodesMap.entrySet().stream()
                 .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().equals(reportingNodeAddress))
-                .collect(Collectors.toList());
+                .toList();
 
         // If there are no candidates, select the node with the largest hash that is not the reporting node
         if (candidates.isEmpty()) {
@@ -170,7 +166,6 @@ public class Server {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
-                nodeAdded = true;
                 logger.log(Level.INFO, ip + " successfully added to the network");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
@@ -209,7 +204,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash);
+            int nodeID = nodeOfFile2(fileHash, IP);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -339,8 +334,7 @@ public class Server {
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
-
-        int replicatedNodeID = ReplicateNodeOfFile(fileHash, nodeIP);
+        int replicatedNodeID = nodeOfFile2(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +
