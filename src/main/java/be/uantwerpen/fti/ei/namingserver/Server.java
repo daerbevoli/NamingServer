@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,11 +36,7 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
-    // nodes flag to check whether a new node has entered the topology
-    boolean nodeAdded = false;
 
-    // list to have all report messages
-    List<String> reportList = new ArrayList<>();
 
     // Constructor to read the starting data from the JSON file
     public Server(){
@@ -96,30 +91,14 @@ public class Server {
     hash is the owner of the file. If N is empty, the node with the biggest hash stores
     the requested file.
      */
-    private int nodeOfFile(int fileHash){
+    private int nodeOfFile2(int fileHash, String sameIP) {
 
-        ConcurrentHashMap<Integer, InetAddress> N = new ConcurrentHashMap<>();
-
-        for (Map.Entry<Integer, InetAddress> entry : nodesMap.entrySet()){
-            if (entry.getKey() <= fileHash){
-                N.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        if (N.isEmpty()){
-            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max().getAsInt();
-        } else {
-            return N.keySet().stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash))).get();
-        }
-
-    }
-
-    private int nodeOfFile2(int fileHash) {
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
-                .filter(key -> key < fileHash)
+                .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
+        // PROBLEM : NO NODES EXIST AND sameIP IS BIGGEST NODE -> FILE IS ORIGIN
         if (nodeKeys.isEmpty()) {
             // If no such nodes exist, return the node with the largest hash
             return nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
@@ -128,28 +107,6 @@ public class Server {
             // Find the node with the smallest difference between its hash and the file hash
             return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
                     .orElseThrow(NoSuchElementException::new);
-        }
-    }
-
-    private int ReplicateNodeOfFile(int fileHash, String reportingNodeIP) {
-        // Find all nodes with a hash smaller than or equal to the file hash, excluding the reporting node
-        List<Map.Entry<Integer, InetAddress>> candidates = nodesMap.entrySet().stream()
-                .filter(entry -> entry.getKey() <= fileHash && !entry.getValue().getHostAddress().equals(reportingNodeIP))
-                .collect(Collectors.toList());
-
-        // If there are no candidates, select the node with the largest hash that is not the reporting node
-        if (candidates.isEmpty()) {
-            return nodesMap.entrySet().stream()
-                    .filter(entry -> !entry.getValue().getHostAddress().equals(reportingNodeIP))
-                    .max(Comparator.comparingInt(Map.Entry::getKey))
-                    .orElseThrow(NoSuchElementException::new)
-                    .getKey();
-        } else {
-            // Select the candidate with the smallest difference between its hash and the file hash
-            return candidates.stream()
-                    .min(Comparator.comparingInt(entry -> Math.abs(entry.getKey() - fileHash)))
-                    .orElseThrow(NoSuchElementException::new)
-                    .getKey();
         }
     }
 
@@ -168,7 +125,6 @@ public class Server {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
-                nodeAdded = true;
                 logger.log(Level.INFO, ip + " successfully added to the network");
                 return ResponseEntity.ok(ip + " successfully added to the network\n");
             } catch (UnknownHostException e) {
@@ -207,7 +163,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash);
+            int nodeID = nodeOfFile2(fileHash, IP);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -330,15 +286,16 @@ public class Server {
                 int fileHash = Integer.parseInt(message.split(":")[2]);
                 String filename = message.split(":")[3];
                 processFileReport(nodeIP, fileHash, filename);
-
                 break;
         }
     }
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
-
-        int replicatedNodeID = ReplicateNodeOfFile(fileHash, nodeIP);
+        if (nodesMap.size() <= 1){
+            return;
+        }
+        int replicatedNodeID = nodeOfFile2(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +
