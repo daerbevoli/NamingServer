@@ -1,9 +1,13 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,7 +19,7 @@ public class FileTransfer {
     {
         try {
             if (potentialMessage==null) {potentialMessage="";}
-            System.out.println("received IP:" + IP);
+            System.out.println("received IP:" + IP+"/nWith Message: "+potentialMessage);
             InetAddress address = InetAddress.getByName(IP);
             Socket socket = new Socket(address, port);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -43,10 +47,12 @@ public class FileTransfer {
             logger.log(Level.INFO, "File sent successfully: " + name);
             fis.close();
             out.close();
+
+            out.writeUTF(potentialMessage+":"+IP);
+            out.flush();
             socket.close();
 
-            out.writeUTF(potentialMessage);
-            out.flush();
+
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
@@ -88,6 +94,10 @@ public class FileTransfer {
             // Ensure all data is sent immediately
             outputStream.flush();
 
+            //Sending extra UTF because receiveFile method was changed and this is now required
+            outputStream.writeUTF("");
+            outputStream.flush();
+
             System.out.println("File sent successfully");
 
         } catch (IOException e) {
@@ -95,7 +105,7 @@ public class FileTransfer {
         }
     }
 
-    public static String receiveFile(int port, String directory) {
+    public static void receiveFile(int port, String directory) {
         String message = null;
         try {
             ServerSocket sSocket = new ServerSocket(port);
@@ -107,33 +117,73 @@ public class FileTransfer {
             if (!dir.exists()) {
                 dir.mkdirs();
             }
+            while(true){
+                // read file name
+                String fileName = in.readUTF();
+                File file = new File(directory, fileName);
 
-            // read file name
-            String fileName = in.readUTF();
-            File file = new File(directory, fileName);
+                // read file length
+                long length = in.readLong();
 
-            // read file length
-            long length = in.readLong();
-
-            // read file data
-            try (FileOutputStream fos = new FileOutputStream(file)) {
-                byte[] buf = new byte[(int) length + 10];
-                int bytes = 0;
-                while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
-                    fos.write(buf, 0, bytes);
-                    length -= bytes;
+                // read file data
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    byte[] buf = new byte[(int) length + 10];
+                    int bytes = 0;
+                    while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
+                        fos.write(buf, 0, bytes);
+                        length -= bytes;
+                    }
+                    logger.log(Level.INFO, "File received successfully: " + fileName);
+                    fos.close();
+                    in.close();
+                    cSocket.close();
                 }
-                logger.log(Level.INFO, "File received successfully: " + fileName);
-                fos.close();
-                in.close();
-                cSocket.close();
+                message = in.readUTF();
+                String[] parts = message.split(":");
+                if(parts.length==3)
+                    {
+                        updateLogFile(parts[0],parts[1],parts[2]);
+                    }
             }
-
-            message = in.readUTF();
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
         }
-        return message;
+
     }
+
+    private static void updateLogFile(String localOwnerIP, String filename, String IP) {
+        File fileLog = new File("/root/logs/fileLog.json");
+        try {
+            // Ensure the directory exists
+            File directory = fileLog.getParentFile();
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs();
+            }
+
+            JSONObject root;
+            if (fileLog.exists()) {
+                String content = new String(Files.readAllBytes(fileLog.toPath()));
+                root = new JSONObject(content);
+            } else {
+                root = new JSONObject();
+            }
+            JSONObject fileInfo = new JSONObject();
+            fileInfo.put("localOwnerIP", localOwnerIP);
+            fileInfo.put("replicatedOwnerIP", IP);
+            root.put(filename, fileInfo);
+
+            try (FileWriter writer = new FileWriter(fileLog)) {
+                writer.write(root.toString());
+            }
+            logger.log(Level.INFO, "File log updated successfully");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error updating file log", e);
+
+        } catch (JSONException e) {
+            logger.log(Level.WARNING, "Error creating JSON object", e);
+        }
+
+    }
+
 }

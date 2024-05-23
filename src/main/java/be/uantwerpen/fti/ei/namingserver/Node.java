@@ -29,6 +29,8 @@ public class Node {
     private final ServerSocket serverSocket;
     private String serverIP;
 
+    boolean receivingFiles=true;
+
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
@@ -54,6 +56,7 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
+
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(6);
 
         executor.submit(this::listenNodeMulticast);
@@ -64,6 +67,7 @@ public class Node {
 
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
+
 
         executor.submit(() -> FileTransfer.receiveFile(8500, "/root/replicatedFiles"));
 
@@ -112,6 +116,7 @@ public class Node {
         helpMethods.sendMulticast("Shutdown", message, 3000);
         if(fileLog.exists())
         {
+
             helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
             receiveUnicast("Get Previous IPs", 9020);
         }
@@ -465,9 +470,9 @@ public class Node {
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
-                        FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[2],7526,"LocalOwner:"+jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[2],7526,jsonEntry.getString("localOwnerIP")+":"+fileName);  //send to previous node of previous node
                     } else
-                    {FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[1],7526,"LocalOwner:"+jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                    {FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[1],7526,jsonEntry.getString("localOwnerIP")+":"+fileName);} //send to previous node , if previous is not the owner
 
                 }
             }
