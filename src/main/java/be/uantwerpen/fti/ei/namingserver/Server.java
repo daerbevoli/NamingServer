@@ -327,13 +327,15 @@ public class Server {
                 int fileHash = Integer.parseInt(message.split(":")[2]);
                 String filename = message.split(":")[3];
                 processFileReport(nodeIP, fileHash, filename);
-
                 break;
         }
     }
 
     // Process the file report sent by the node
     private void processFileReport(String nodeIP, int fileHash, String filename) {
+        if (nodesMap.size() <= 1){
+            return;
+        }
         int replicatedNodeID = nodeOfFile2(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
