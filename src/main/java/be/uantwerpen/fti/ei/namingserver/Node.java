@@ -30,6 +30,7 @@ public class Node {
     private final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
+    // ScheduledExecutor to run multiple methods on different threads
     private final ScheduledExecutorService executor;
 
     public Node() {
@@ -47,12 +48,14 @@ public class Node {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        // Initialization of the executor with a pool of 8 threads
         executor = Executors.newScheduledThreadPool(8);
         runFunctionsOnThreads();
 
     }
 
-    // Thread executor to run the functions on different threads
+    // Thread executor method to run the functions on different threads
     public void runFunctionsOnThreads() {
 
         executor.submit(this::listenNodeMulticast);
@@ -62,6 +65,7 @@ public class Node {
         executor.submit(this::receiveNumOfNodes);
 
         // optimization for later
+        // This optimization is to use the general receive function and may be errorless
         // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
@@ -97,7 +101,6 @@ public class Node {
                 throw new RuntimeException(e);
             }
         }
-
     }
 
     /*
@@ -110,7 +113,7 @@ public class Node {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
 
-        // Shutdown the executor once tasks are completed
+        // Shutdown the executor when the node shuts down
         executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
@@ -150,11 +153,10 @@ public class Node {
         helpMethods.sendUnicast(purpose, serverIP, message, 8000);
     }
 
-    // Yet to improve
     private void watchFolder() {
         try {
             // Specify the directory which supposed to be watched
-            Path directoryPath = Paths.get("./Files");
+            Path directoryPath = Paths.get("/root/localFiles");
 
             // Create a WatchService
             WatchService watchService = FileSystems.getDefault().newWatchService();
@@ -221,6 +223,7 @@ public class Node {
     }
 
 
+    // General receive unicast function
     private void receiveUnicast(String purpose, int port) {
         try (DatagramSocket socket = new DatagramSocket(port)) {
             logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
