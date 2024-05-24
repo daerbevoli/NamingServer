@@ -177,7 +177,7 @@ public class Node {
                     // Handle the specific event
                     if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
                         logger.log(Level.INFO, "File created: " + event.context());
-                        reportFileHashToServer(hash((String) event.context()), (String) event.context());
+                        reportFileHashToServer(hash(String.valueOf(event.context())), String.valueOf(event.context()));
                     }
                     if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
                         logger.log(Level.INFO, "File deleted: " + event.context());
@@ -191,7 +191,6 @@ public class Node {
         } catch (IOException | InterruptedException e) {
             logger.log(Level.WARNING, "unable to watch folder", e);
         }
-
     }
 
 
