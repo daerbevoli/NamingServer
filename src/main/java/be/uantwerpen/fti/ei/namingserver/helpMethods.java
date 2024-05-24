@@ -1,7 +1,5 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -10,18 +8,13 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class helpMethods {
 
     private static final Logger logger = Logger.getLogger(helpMethods.class.getName());
-
-    private static final File fileLog = new File("/root/logs/fileLog.json");
-
 
 
     // Find the local ip of the remote node

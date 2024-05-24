@@ -28,7 +28,7 @@ public class Server {
     private final String IP;
 
     // Logger to log details in a try block for the file modification methods
-    private static final Logger logger = Logger.getLogger(Server.class.getName());
+    private final Logger logger = Logger.getLogger(Server.class.getName());
 
     // Map to save the hash corresponding to the node's ip
     private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();

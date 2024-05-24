@@ -16,7 +16,7 @@ import org.json.JSONObject;
  * This is the class that represents a node in the system. It has the property hostname, ip address,
  * previous, next and currentID and numOfNodes (needs to find a better way).
  * The node first sends a multicast message in the form of hostname:IP to the network,
- * It then listens for incoming multicast messages from other nodes and a unicast message from the name server
+ * It then listens for incoming multicast messages from other nodes and an unicast message from the name server
  * With these messages, the node arranges itself correctly in the system.
  */
 
@@ -27,10 +27,10 @@ public class Node {
     private int numOfNodes;
     private final ServerSocket serverSocket;
     private String serverIP;
-    private static final Logger logger = Logger.getLogger(Node.class.getName());
+    private final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
-    private ScheduledExecutorService executor;
+    private final ScheduledExecutorService executor;
 
     public Node() {
         this.IP = helpMethods.findLocalIP();
@@ -47,14 +47,13 @@ public class Node {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
+        executor = Executors.newScheduledThreadPool(8);
         runFunctionsOnThreads();
 
     }
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        executor = Executors.newScheduledThreadPool(8);
 
         executor.submit(this::listenNodeMulticast);
 
@@ -67,9 +66,9 @@ public class Node {
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
-        executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
+        executor.scheduleWithFixedDelay(this::watchFolder, 0, 30, TimeUnit.SECONDS);
 
-        executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
+        executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -153,24 +152,44 @@ public class Node {
 
     // Yet to improve
     private void watchFolder() {
-        Path folderToWatch = Paths.get("/root/localFiles");
-
-        // Create a file system watcher
         try {
-            logger.log(Level.INFO, "Watching the folder");
-            WatchService watchService = FileSystems.getDefault().newWatchService();
-            folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+            // Specify the directory which supposed to be watched
+            Path directoryPath = Paths.get("./Files");
 
-            // Wait for events
+            // Create a WatchService
+            WatchService watchService = FileSystems.getDefault().newWatchService();
+
+            // Register the directory for specific events
+            directoryPath.register(watchService,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY);
+
+            logger.log(Level.INFO, "Watching directory: " + directoryPath);
+
+            // Infinite loop to continuously watch for events
             WatchKey key = watchService.take();
-            if (key != null) {
-                logger.log(Level.INFO, "A file was added to the localFiles dir");
-                String filename = String.valueOf(folderToWatch.getFileName());
-                reportFileHashToServer(hash(filename), filename);
+
+            for (WatchEvent<?> event : key.pollEvents())
+            {
+                // Handle the specific event
+                if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE)
+                {
+                    logger.log(Level.INFO, "File created: " + event.context());
+                }
+                if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE)
+                {
+                    logger.log(Level.INFO, "File deleted: " + event.context());
+                }
             }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to watch folder ", e);
+
+            // To receive further events, reset the key
+            key.reset();
+
+        } catch (IOException | InterruptedException e) {
+            logger.log(Level.WARNING, "unable to watch folder", e);
         }
+
     }
 
 
