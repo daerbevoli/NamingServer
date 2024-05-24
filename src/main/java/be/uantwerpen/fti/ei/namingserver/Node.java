@@ -67,7 +67,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
-        executor.submit(() -> FileTransfer.receiveFile(8500, "/root/replicatedFiles"));
+        executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
 
         executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
 
@@ -319,7 +319,7 @@ public class Node {
         if (IP.equals(nodeToReplicateTo)){
             logger.log(Level.INFO, "File is origin");
         } else {
-            FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
+            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500);
         }
     }
 
@@ -476,6 +476,7 @@ public class Node {
                     helpMethods.getFiles("/root/replicatedFiles");
                     break;
                 case "log":
+                    helpMethods.getFiles("/root/logs");
                     helpMethods.displayLogContents("/root/logs/fileLog.json");
                 default:
                     if (command.startsWith("addFile ")) {

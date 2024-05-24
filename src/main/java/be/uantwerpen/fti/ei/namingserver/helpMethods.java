@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -9,12 +10,18 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class helpMethods {
 
     private static final Logger logger = Logger.getLogger(helpMethods.class.getName());
+
+    private static final File fileLog = new File("/root/logs/fileLog.json");
+
 
 
     // Find the local ip of the remote node
@@ -121,19 +128,20 @@ public class helpMethods {
 
     public static void displayLogContents(String filePath) {
         try {
+            // Read content from JSON file
             String content = new String(Files.readAllBytes(Paths.get(filePath)));
+
+            // Parse JSON content into JSONObject
             JSONObject json = new JSONObject(content);
 
-            // Assuming the JSON is an object with an array of logs
-            if (json.has("logs")) {
-                JSONArray logs = json.getJSONArray("logs");
-                for (int i = 0; i < logs.length(); i++) {
-                    JSONObject log = logs.getJSONObject(i);
-                    System.out.println(log.toString(4)); // Pretty print with an indent of 4 spaces
-                }
-            } else {
-                System.out.println("No logs found in the file.");
+            // Get an iterator over the keys
+            Iterator<String> keysIterator = json.keys();
+            while (keysIterator.hasNext()) {
+                String key = keysIterator.next();
+                Object value = json.get(key);
+                System.out.println("Key: " + key + ", Value: " + value);
             }
+
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());
         } catch (Exception e) {
