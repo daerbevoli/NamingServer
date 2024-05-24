@@ -177,6 +177,7 @@ public class Node {
                 // Handle the specific event
                 if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE)
                 {
+                    reportFileHashToServer(hash((String) event.context()), (String) event.context());
                     logger.log(Level.INFO, "File created: " + event.context());
                 }
                 if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE)
