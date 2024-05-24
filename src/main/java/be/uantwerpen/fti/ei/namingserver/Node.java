@@ -70,7 +70,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
-        executor.scheduleWithFixedDelay(this::watchFolder, 0, 30, TimeUnit.SECONDS);
+        executor.submit(this::watchFolder);
 
         executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
 
@@ -176,8 +176,8 @@ public class Node {
                 for (WatchEvent<?> event : key.pollEvents()) {
                     // Handle the specific event
                     if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                        reportFileHashToServer(hash((String) event.context()), (String) event.context());
                         logger.log(Level.INFO, "File created: " + event.context());
+                        reportFileHashToServer(hash((String) event.context()), (String) event.context());
                     }
                     if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
                         logger.log(Level.INFO, "File deleted: " + event.context());
