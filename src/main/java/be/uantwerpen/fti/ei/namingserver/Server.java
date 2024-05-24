@@ -97,18 +97,28 @@ public class Server {
     hash is the owner of the file. If N is empty, the node with the biggest hash stores
     the requested file.
      */
-    private int nodeOfFile2(int fileHash, String sameIP) {
+    private int nodeOfFile(int fileHash, String sameIP) {
 
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
                 .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
-        // PROBLEM : NO NODES EXIST AND sameIP IS BIGGEST NODE -> FILE IS ORIGIN
+        // PROBLEM : NO NODES EXIST AND sameIP IS THE BIGGEST NODE -> FILE IS ORIGIN
         if (nodeKeys.isEmpty()) {
+
             // If no such nodes exist, return the node with the largest hash
-            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
+            int largestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
+
+            int smallestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).min()
+                    .orElseThrow(NoSuchElementException::new);
+
+            if (hash(sameIP) == largestNodeID){
+                return smallestNodeID;
+            } else {
+                return largestNodeID;
+            }
         } else {
             // Find the node with the smallest difference between its hash and the file hash
             return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
@@ -169,7 +179,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash, IP);
+            int nodeID = nodeOfFile(fileHash, IP);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -301,7 +311,7 @@ public class Server {
         if (nodesMap.size() <= 1){
             return;
         }
-        int replicatedNodeID = nodeOfFile2(fileHash, nodeIP);
+        int replicatedNodeID = nodeOfFile(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +

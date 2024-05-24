@@ -110,6 +110,7 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+
         // Shutdown the executor once tasks are completed
         executor.shutdown();
     }
@@ -161,7 +162,7 @@ public class Node {
             folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
             // Wait for events
-            WatchKey key = watchService.poll();
+            WatchKey key = watchService.take();
             if (key != null) {
                 logger.log(Level.INFO, "A file was added to the localFiles dir");
                 String filename = String.valueOf(folderToWatch.getFileName());
@@ -475,7 +476,7 @@ public class Node {
                     helpMethods.getFiles("/root/replicatedFiles");
                     break;
                 case "log":
-                    helpMethods.getFiles("/root/logs");
+                    helpMethods.displayLogContents("/root/logs/fileLog.json");
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);
