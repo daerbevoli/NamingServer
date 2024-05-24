@@ -43,9 +43,10 @@ public class Server {
     public Server(){
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "Server IP: " + IP);
-        clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
+        clearMap(); // clear the map when server starts up
+
     }
 
     // Thread executor
