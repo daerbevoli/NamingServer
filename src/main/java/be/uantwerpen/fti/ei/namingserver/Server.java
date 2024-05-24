@@ -44,8 +44,9 @@ public class Server {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "Server IP: " + IP);
 
-        runFunctionsOnThreads(); // A possible way to use threads but needs to improve
         clearMap(); // clear the map when server starts up
+
+        runFunctionsOnThreads(); // A possible way to use threads but needs to improve
 
     }
 
@@ -59,7 +60,7 @@ public class Server {
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(this::clearMap));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
     }
 
@@ -67,7 +68,10 @@ public class Server {
         nodesMap.clear();
         saveMapToJSON();
         logger.log(Level.INFO, "Map cleared");
-        // Shutdown the executor once tasks are completed
+    }
+
+    private void shutdown(){
+        clearMap();
         executor.shutdown();
     }
 
