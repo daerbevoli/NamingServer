@@ -36,6 +36,7 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
+    private ExecutorService executor;
 
 
     // Constructor to read the starting data from the JSON file
@@ -49,7 +50,7 @@ public class Server {
 
     // Thread executor
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        executor = Executors.newFixedThreadPool(3);
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
@@ -59,14 +60,14 @@ public class Server {
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::clearMap));
 
-        // Shutdown the executor once tasks are completed
-        executor.shutdown();
     }
 
     private void clearMap() {
         nodesMap.clear();
         saveMapToJSON();
         logger.log(Level.INFO, "Map cleared");
+        // Shutdown the executor once tasks are completed
+        executor.shutdown();
     }
 
     @PostMapping("/clearMap")

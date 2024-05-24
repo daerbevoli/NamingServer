@@ -30,6 +30,8 @@ public class Node {
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
+    private ScheduledExecutorService executor;
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -52,7 +54,7 @@ public class Node {
 
     // Thread executor to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(6);
+        executor = Executors.newScheduledThreadPool(8);
 
         executor.submit(this::listenNodeMulticast);
 
@@ -69,8 +71,6 @@ public class Node {
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
-        // Shutdown the executor once tasks are completed
-        executor.shutdown();
     }
 
 
@@ -108,6 +108,8 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+        // Shutdown the executor once tasks are completed
+        executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -303,7 +305,6 @@ public class Node {
         updateHashShutdown(prevId, nxtID);
 
     }
-
 
     private void processReplicate(String message){
         logger.log(Level.INFO, "In the processReplication method");
