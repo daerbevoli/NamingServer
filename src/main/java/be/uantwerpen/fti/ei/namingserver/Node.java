@@ -62,6 +62,8 @@ public class Node {
 
         executor.submit(this::receiveNumOfNodes);
 
+        // optimization for later
+        // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
@@ -148,6 +150,7 @@ public class Node {
         helpMethods.sendUnicast(purpose, serverIP, message, 8000);
     }
 
+    // Yet to improve
     private void watchFolder() {
         Path folderToWatch = Paths.get("/root/localFiles");
 
@@ -206,14 +209,14 @@ public class Node {
             byte[] buffer = new byte[512];
 
             // Receive file data and write to file
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
+            while (true) {  // Keep listening indefinitely
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
 
-            String message = new String(packet.getData(), 0, packet.getLength());
-
-            logger.log(Level.INFO, "Unicast message received successfully: " + message);
-
-            processReceivedMessage(message);
+                logger.log(Level.INFO, "Unicast message received successfully: " + message);
+                processReceivedMessage(message);
+            }
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
