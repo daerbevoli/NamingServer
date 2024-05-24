@@ -170,24 +170,23 @@ public class Node {
             logger.log(Level.INFO, "Watching directory: " + directoryPath);
 
             // Infinite loop to continuously watch for events
-            WatchKey key = watchService.take();
+            while (true) {
+                WatchKey key = watchService.take();
 
-            for (WatchEvent<?> event : key.pollEvents())
-            {
-                // Handle the specific event
-                if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE)
-                {
-                    reportFileHashToServer(hash((String) event.context()), (String) event.context());
-                    logger.log(Level.INFO, "File created: " + event.context());
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    // Handle the specific event
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                        reportFileHashToServer(hash((String) event.context()), (String) event.context());
+                        logger.log(Level.INFO, "File created: " + event.context());
+                    }
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                        logger.log(Level.INFO, "File deleted: " + event.context());
+                    }
                 }
-                if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE)
-                {
-                    logger.log(Level.INFO, "File deleted: " + event.context());
-                }
+
+                // To receive further events, reset the key
+                key.reset();
             }
-
-            // To receive further events, reset the key
-            key.reset();
 
         } catch (IOException | InterruptedException e) {
             logger.log(Level.WARNING, "unable to watch folder", e);
