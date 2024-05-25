@@ -27,6 +27,8 @@ public class Node {
     private final String IP;
     private int previousID, nextID, currentID;
     private int numOfNodes;
+
+    private FileTransfer ft;
     private final ServerSocket serverSocket;
     private String serverIP;
     private boolean finishSending;
@@ -40,6 +42,11 @@ public class Node {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
 
+        try {
+            ft= new FileTransfer(8500);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         numOfNodes = 0;
         finishSending=false;
 
@@ -75,7 +82,7 @@ public class Node {
 
         executor.submit(this::watchFolder);
 
-        executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
+        executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -358,7 +365,7 @@ public class Node {
         if (IP.equals(nodeToReplicateTo)){
             logger.log(Level.INFO, "File is origin");
         } else {
-            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500,null);
+            ft.transferFile(nodeToReplicateTo, filename,null);
         }
     }
 
@@ -491,6 +498,7 @@ public class Node {
             String[] parts = msg.split(":");
 
         try {
+            ft.stopListening();
             String fileString= new String(Files.readAllBytes(fileLog.toPath()));
             JSONObject jsonLog = new JSONObject(fileString);
             System.out.println("the log is this size:"+jsonLog.length());
@@ -507,12 +515,12 @@ public class Node {
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
-                        System.out.println(parts[2]+";"+fileName+";"+8500+";"+jsonEntry.getString("localOwnerIP"));
-                        FileTransfer.transferFile( parts[2],fileName,8500,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        System.out.println(parts[2]+";"+fileName +";"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile( parts[2],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
                     } else
                     {
-                        System.out.println(parts[1]+";"+fileName+";"+8500+";"+jsonEntry.getString("localOwnerIP"));
-                        FileTransfer.transferFile(parts[1],fileName, 8500,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                        System.out.println(parts[1]+";"+fileName+";"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
 
                 }
                 finishSending=true;

@@ -16,9 +16,17 @@ public class FileTransfer {
 
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
     private static final ExecutorService executor = Executors.newCachedThreadPool();
+
+    private int port;
+    private ServerSocket sSocket;
+    private  boolean listening=true;
     private static final File fileLog = new File("/root/logs/fileLog.json");
 
-    public static void transferFile(String IP, String filename, int port, String potentialMessage) {
+    public FileTransfer(int port) throws IOException {
+           this.port=port;
+    }
+
+    public void transferFile(String IP, String filename, String potentialMessage) {
         File fileToSend = new File("/root/localFiles/" + filename);
 
         if(potentialMessage==null){potentialMessage="";} else{potentialMessage=potentialMessage+":"+IP;}
@@ -62,9 +70,10 @@ public class FileTransfer {
         }
     }
 
-    public static void receiveFiles(int port, String directory) {
+    public void receiveFiles(String directory) {
+        listening=true;
         try (ServerSocket sSocket = new ServerSocket(port)){
-            while (true) {
+            while (listening) {
                 Socket cSocket = sSocket.accept();
                 executor.submit(() -> handleFileTransfer(cSocket, directory));
             }
@@ -152,6 +161,21 @@ public class FileTransfer {
         }
 
     }
+
+    public  void stopListening()
+    {
+        listening=false;
+
+        if (sSocket != null && !sSocket.isClosed()) {
+            try {
+                sSocket.close();
+                System.out.println("Server stopped.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 
 
 }
