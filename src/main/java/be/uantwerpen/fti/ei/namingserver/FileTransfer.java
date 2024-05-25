@@ -27,18 +27,22 @@ public class FileTransfer {
     }
 
     public void transferFile(String IP, String filename, String potentialMessage) {
-        System.out.println("tf1");
-        File fileToSend = new File("/root/localFiles/" + filename);
-        System.out.println("tf2");
-        if(potentialMessage==null){potentialMessage="";} else{potentialMessage=potentialMessage+":"+IP;}
-        System.out.println("tf3");
+        File fileToSend;
+        if(potentialMessage==null)
+        {
+            potentialMessage="";
+            fileToSend = new File("/root/localFiles/" + filename);
+        } else
+        {
+            potentialMessage=potentialMessage+":"+IP;
+            fileToSend = new File("/root/replicatedFiles/" + filename);
+        }
+
         if (!fileToSend.exists()) {
             logger.log(Level.WARNING, "File not found: " + filename);
-            System.out.println("tf3.5");
             return;
         }
 
-        System.out.println("tf4");
 
         try (Socket clientSocket = new Socket(IP, port);
              ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
