@@ -507,9 +507,9 @@ public class Node {
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
-                        FileTransfer.transferFile( parts[2],"root/replicatedFiles/"+fileName,7526,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        FileTransfer.transferFile( parts[2],"root/replicatedFiles/"+fileName,8500,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
                     } else
-                    {FileTransfer.transferFile(parts[1],"root/replicatedFiles/"+fileName, 7526,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                    {FileTransfer.transferFile(parts[1],"root/replicatedFiles/"+fileName, 8500,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
 
                 }
                 finishSending=true;
