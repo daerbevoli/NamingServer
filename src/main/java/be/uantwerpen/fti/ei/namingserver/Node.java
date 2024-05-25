@@ -112,7 +112,7 @@ public class Node {
      * previous and next node. The name server receives this message and removes the node from its map.
      * The nodes receive this message and update their previous and next IDs
      */
-    public void shutdown() throws InterruptedException {
+    public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         if(fileLog.exists()&&numOfNodes>2)
         {
@@ -122,7 +122,6 @@ public class Node {
             System.out.println("2:sendingUnicast");
             while(!finishSending)
             {
-                wait();
             }
         }
         helpMethods.sendMulticast("Shutdown", message, 3000);
