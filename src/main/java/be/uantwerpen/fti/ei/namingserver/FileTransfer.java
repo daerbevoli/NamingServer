@@ -1,22 +1,27 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class FileTransfer {1
+public class FileTransfer {
 
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
     private static final ExecutorService executor = Executors.newCachedThreadPool();
+    private static final File fileLog = new File("/root/logs/fileLog.json");
 
-    public static void transferFile(String IP, String filename, int port) {
+    public static void transferFile(String IP, String filename, int port, String potentialMessage) {
         File fileToSend = new File("/root/localFiles/" + filename);
 
+        if(potentialMessage==null){potentialMessage="";} else{potentialMessage=potentialMessage+":"+IP;}
         if (!fileToSend.exists()) {
             logger.log(Level.WARNING, "File not found: " + filename);
             return;
@@ -47,6 +52,8 @@ public class FileTransfer {1
 
             // Ensure all data is sent immediately
             outputStream.flush();
+
+            outputStream.writeUTF(potentialMessage);
 
             logger.log(Level.INFO, "File sent successfully");
 
@@ -91,6 +98,13 @@ public class FileTransfer {1
                 }
                 logger.log(Level.INFO, "File received successfully: " + fileName);
             }
+
+            String msg=in.readUTF();
+            if(!msg.isEmpty())
+            {
+                updateLogFile(msg,fileName);
+            }
+
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
         } finally {
@@ -101,4 +115,43 @@ public class FileTransfer {1
             }
         }
     }
+
+    private static void updateLogFile(String msg,  String filename) {
+        try {
+
+            String[] parts = msg.split(":");
+            String localOwnerIP=parts[0], IP=parts[1];
+            // Ensure the directory exists
+            File directory = fileLog.getParentFile();
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs();
+            }
+
+            JSONObject root;
+            if (fileLog.exists()) {
+                String content = new String(Files.readAllBytes(fileLog.toPath()));
+                root = new JSONObject(content);
+            } else {
+                root = new JSONObject();
+            }
+
+            JSONObject fileInfo = new JSONObject();
+            fileInfo.put("localOwnerIP", localOwnerIP);
+            fileInfo.put("replicatedOwnerIP", IP);
+            root.put(filename, fileInfo);
+
+            try (FileWriter writer = new FileWriter(fileLog)) {
+                writer.write(root.toString());
+            }
+            logger.log(Level.INFO, "File log updated successfully");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error updating file log", e);
+
+        } catch (JSONException e) {
+            logger.log(Level.WARNING, "Error creating JSON object", e);
+        }
+
+    }
+
+
 }

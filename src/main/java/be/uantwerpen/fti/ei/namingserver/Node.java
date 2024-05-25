@@ -349,7 +349,7 @@ public class Node {
         if (IP.equals(nodeToReplicateTo)){
             logger.log(Level.INFO, "File is origin");
         } else {
-            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500);
+            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500,"");
         }
     }
 
@@ -495,9 +495,9 @@ public class Node {
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
-                        FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[2],7526,"LocalOwner:"+jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        FileTransfer.transferFile( parts[2],"root/replicatedFiles/"+fileName,7526,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
                     } else
-                    {FileTransfer.transferFile("root/replicatedFiles/"+fileName, parts[1],7526,"LocalOwner:"+jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                    {FileTransfer.transferFile(parts[1],"root/replicatedFiles/"+fileName, 7526,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
 
                 }
             }
