@@ -50,6 +50,7 @@ public class Node {
         }
 
         // Initialization of the executor with a pool of 8 threads
+        // NEEDS TO BE CHANGED TO FixedThreadPool
         executor = Executors.newScheduledThreadPool(8);
         runFunctionsOnThreads();
 
@@ -59,9 +60,7 @@ public class Node {
     public void runFunctionsOnThreads() {
 
         executor.submit(this::listenNodeMulticast);
-
         executor.submit(this::Bootstrap);
-
         executor.submit(this::receiveNumOfNodes);
 
         // optimization for later
