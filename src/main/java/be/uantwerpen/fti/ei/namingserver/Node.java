@@ -503,13 +503,16 @@ public class Node {
                 System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
                 if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
                 {
-
+                    System.out.println("this happens , right?");
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
-                        FileTransfer.transferFile( parts[2],"root/replicatedFiles/"+fileName,8500,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        System.out.println(parts[2]+";"+fileName+";"+8500+";"+jsonEntry.getString("localOwnerIP"));
+                        FileTransfer.transferFile( parts[2],fileName,8500,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
                     } else
-                    {FileTransfer.transferFile(parts[1],"root/replicatedFiles/"+fileName, 8500,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                    {
+                        System.out.println(parts[1]+";"+fileName+";"+8500+";"+jsonEntry.getString("localOwnerIP"));
+                        FileTransfer.transferFile(parts[1],fileName, 8500,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
 
                 }
                 finishSending=true;
