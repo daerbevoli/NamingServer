@@ -500,8 +500,10 @@ public class Node {
                 String fileName= keys.next();
                 JSONObject jsonEntry= jsonLog.getJSONObject(fileName);
                 boolean prevNodeOwner;
+                System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
                 if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
                 {
+
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
