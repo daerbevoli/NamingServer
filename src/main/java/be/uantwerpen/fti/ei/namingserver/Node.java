@@ -493,6 +493,7 @@ public class Node {
         try {
             String fileString= new String(Files.readAllBytes(fileLog.toPath()));
             JSONObject jsonLog = new JSONObject(fileString);
+            System.out.println("the log is this size:"+jsonLog.length());
             Iterator<String> keys= jsonLog.keys();
             while(keys.hasNext())
             {
