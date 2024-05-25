@@ -29,6 +29,7 @@ public class Node {
     private int numOfNodes;
     private final ServerSocket serverSocket;
     private String serverIP;
+    private boolean finishSending;
     private final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
@@ -40,6 +41,7 @@ public class Node {
         logger.log(Level.INFO, "node IP: " + IP);
 
         numOfNodes = 0;
+        finishSending=false;
 
         currentID = hash(IP);
         nextID = currentID;
@@ -88,12 +90,12 @@ public class Node {
         helpMethods.sendMulticast("send bootstrap", message, 3000);
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        /*int i=0;
+        int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
             i=(i+1)%300000;
             if(i==1){
                 System.out.println("Waiting for numofnodes > 0");}
-        }*/
+        }
         if (numOfNodes > 1) {
             logger.log(Level.INFO, "Condition met to start TCP connection");
             try {
@@ -110,14 +112,18 @@ public class Node {
      * previous and next node. The name server receives this message and removes the node from its map.
      * The nodes receive this message and update their previous and next IDs
      */
-    public void shutdown() {
+    public void shutdown() throws InterruptedException {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         if(fileLog.exists()&&numOfNodes>2)
         {
+            executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
             System.out.println("1:Condition met to transfer files for shutdown");
             helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
             System.out.println("2:sendingUnicast");
-            receiveUnicast("Get Previous IPs", 9020);
+            while(!finishSending)
+            {
+                wait();
+            }
         }
         helpMethods.sendMulticast("Shutdown", message, 3000);
 
@@ -504,6 +510,7 @@ public class Node {
                     {FileTransfer.transferFile(parts[1],"root/replicatedFiles/"+fileName, 7526,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
 
                 }
+                finishSending=true;
             }
         } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
