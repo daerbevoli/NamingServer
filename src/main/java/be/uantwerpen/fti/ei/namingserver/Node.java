@@ -172,6 +172,7 @@ public class Node {
             while (true) {
                 WatchKey key = watchService.take();
 
+                // NOT SURE IF THE FOR LOOP IS NECESSARY, TRY A TEST WITHOUT 
                 for (WatchEvent<?> event : key.pollEvents()) {
                     // Handle the specific event
                     if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
