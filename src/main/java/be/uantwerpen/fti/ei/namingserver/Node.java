@@ -3,6 +3,7 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.sql.SQLOutput;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.concurrent.*;
@@ -114,7 +115,9 @@ public class Node {
         helpMethods.sendMulticast("Shutdown", message, 3000);
         if(fileLog.exists()&&numOfNodes>2)
         {
+            System.out.println("1:Condition met to transfer files for shutdown");
             helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
+            System.out.println("2:sendingUnicast");
             receiveUnicast("Get Previous IPs", 9020);
         }
 
