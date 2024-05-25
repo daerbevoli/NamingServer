@@ -28,7 +28,7 @@ public class Server {
     private final String IP;
 
     // Logger to log details in a try block for the file modification methods
-    private static final Logger logger = Logger.getLogger(Server.class.getName());
+    private final Logger logger = Logger.getLogger(Server.class.getName());
 
     // Map to save the hash corresponding to the node's ip
     private final ConcurrentHashMap<Integer, InetAddress> nodesMap = new ConcurrentHashMap<>();
@@ -36,20 +36,23 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
+    private ExecutorService executor;
 
 
     // Constructor to read the starting data from the JSON file
     public Server(){
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "Server IP: " + IP);
+
         clearMap(); // clear the map when server starts up
 
         runFunctionsOnThreads(); // A possible way to use threads but needs to improve
+
     }
 
     // Thread executor
     public void runFunctionsOnThreads() {
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        executor = Executors.newFixedThreadPool(3);
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
@@ -57,16 +60,19 @@ public class Server {
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(this::clearMap));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
-        // Shutdown the executor once tasks are completed
-        executor.shutdown();
     }
 
     private void clearMap() {
         nodesMap.clear();
         saveMapToJSON();
         logger.log(Level.INFO, "Map cleared");
+    }
+
+    private void shutdown(){
+        clearMap();
+        executor.shutdown();
     }
 
     @PostMapping("/clearMap")
@@ -91,18 +97,28 @@ public class Server {
     hash is the owner of the file. If N is empty, the node with the biggest hash stores
     the requested file.
      */
-    private int nodeOfFile2(int fileHash, String sameIP) {
+    private int nodeOfFile(int fileHash, String sameIP) {
 
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
                 .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
-        // PROBLEM : NO NODES EXIST AND sameIP IS BIGGEST NODE -> FILE IS ORIGIN
+        // PROBLEM : NO NODES EXIST AND sameIP IS THE BIGGEST NODE -> FILE IS ORIGIN
         if (nodeKeys.isEmpty()) {
+
             // If no such nodes exist, return the node with the largest hash
-            return nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
+            int largestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
+
+            int smallestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).min()
+                    .orElseThrow(NoSuchElementException::new);
+
+            if (hash(sameIP) == largestNodeID){
+                return smallestNodeID;
+            } else {
+                return largestNodeID;
+            }
         } else {
             // Find the node with the smallest difference between its hash and the file hash
             return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
@@ -163,7 +179,7 @@ public class Server {
         int fileHash = hash(filename);
         try {
             // calculate node ID
-            int nodeID = nodeOfFile2(fileHash, IP);
+            int nodeID = nodeOfFile(fileHash, IP);
             // return hostname
 
             return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
@@ -295,7 +311,7 @@ public class Server {
         if (nodesMap.size() <= 1){
             return;
         }
-        int replicatedNodeID = nodeOfFile2(fileHash, nodeIP);
+        int replicatedNodeID = nodeOfFile(fileHash, nodeIP);
         InetAddress replicatedNodeIP = nodesMap.get(replicatedNodeID);
 
         String replicateMessage = "REPLICATE" + ":" +

@@ -1,9 +1,14 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -111,6 +116,29 @@ public class helpMethods {
             }
         } else {
             System.out.println("The specified directory does not exist or is not a directory.");
+        }
+    }
+
+    public static void displayLogContents(String filePath) {
+        try {
+            // Read content from JSON file
+            String content = new String(Files.readAllBytes(Paths.get(filePath)));
+
+            // Parse JSON content into JSONObject
+            JSONObject json = new JSONObject(content);
+
+            // Get an iterator over the keys
+            Iterator<String> keysIterator = json.keys();
+            while (keysIterator.hasNext()) {
+                String key = keysIterator.next();
+                Object value = json.get(key);
+                System.out.println("Key: " + key + ", Value: " + value);
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error parsing JSON: " + e.getMessage());
         }
     }
 

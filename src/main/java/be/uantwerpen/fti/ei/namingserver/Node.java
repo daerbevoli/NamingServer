@@ -16,7 +16,7 @@ import org.json.JSONObject;
  * This is the class that represents a node in the system. It has the property hostname, ip address,
  * previous, next and currentID and numOfNodes (needs to find a better way).
  * The node first sends a multicast message in the form of hostname:IP to the network,
- * It then listens for incoming multicast messages from other nodes and a unicast message from the name server
+ * It then listens for incoming multicast messages from other nodes and an unicast message from the name server
  * With these messages, the node arranges itself correctly in the system.
  */
 
@@ -27,8 +27,11 @@ public class Node {
     private int numOfNodes;
     private final ServerSocket serverSocket;
     private String serverIP;
-    private static final Logger logger = Logger.getLogger(Node.class.getName());
+    private final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
+
+    // ScheduledExecutor to run multiple methods on different threads
+    private final ScheduledExecutorService executor;
 
     public Node() {
         this.IP = helpMethods.findLocalIP();
@@ -46,31 +49,32 @@ public class Node {
             throw new RuntimeException(e);
         }
 
+        // Initialization of the executor with a pool of 8 threads
+        // NEEDS TO BE CHANGED TO FixedThreadPool
+        executor = Executors.newScheduledThreadPool(8);
         runFunctionsOnThreads();
 
     }
 
-    // Thread executor to run the functions on different threads
+    // Thread executor method to run the functions on different threads
     public void runFunctionsOnThreads() {
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(6);
 
         executor.submit(this::listenNodeMulticast);
-
         executor.submit(this::Bootstrap);
-
         executor.submit(this::receiveNumOfNodes);
 
+        // optimization for later
+        // This optimization is to use the general receive function and may be errorless
+        // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
 
-        executor.submit(() -> FileTransfer.receiveFile(8500, "/root/replicatedFiles"));
+        executor.submit(this::watchFolder);
 
-        executor.scheduleAtFixedRate(this::watchFolder, 0, 1, TimeUnit.MINUTES);
+        executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
-        // Shutdown the executor once tasks are completed
-        executor.shutdown();
     }
 
 
@@ -96,7 +100,6 @@ public class Node {
                 throw new RuntimeException(e);
             }
         }
-
     }
 
     /*
@@ -108,6 +111,9 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+
+        // Shutdown the executor when the node shuts down
+        executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -147,23 +153,43 @@ public class Node {
     }
 
     private void watchFolder() {
-        Path folderToWatch = Paths.get("/root/localFiles");
-
-        // Create a file system watcher
         try {
-            logger.log(Level.INFO, "Watching the folder");
-            WatchService watchService = FileSystems.getDefault().newWatchService();
-            folderToWatch.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+            // Specify the directory which supposed to be watched
+            Path directoryPath = Paths.get("/root/localFiles");
 
-            // Wait for events
-            WatchKey key = watchService.poll();
-            if (key != null) {
-                logger.log(Level.INFO, "A file was added to the localFiles dir");
-                String filename = String.valueOf(folderToWatch.getFileName());
-                reportFileHashToServer(hash(filename), filename);
+            // Create a WatchService
+            WatchService watchService = FileSystems.getDefault().newWatchService();
+
+            // Register the directory for specific events
+            directoryPath.register(watchService,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY);
+
+            logger.log(Level.INFO, "Watching directory: " + directoryPath);
+
+            // Infinite loop to continuously watch for events
+            while (true) {
+                WatchKey key = watchService.take();
+
+                // NOT SURE IF THE FOR LOOP IS NECESSARY, TRY A TEST WITHOUT 
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    // Handle the specific event
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                        logger.log(Level.INFO, "File created: " + event.context());
+                        reportFileHashToServer(hash(String.valueOf(event.context())), String.valueOf(event.context()));
+                    }
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                        logger.log(Level.INFO, "File deleted: " + event.context());
+                    }
+                }
+
+                // To receive further events, reset the key
+                key.reset();
             }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to watch folder ", e);
+
+        } catch (IOException | InterruptedException e) {
+            logger.log(Level.WARNING, "unable to watch folder", e);
         }
     }
 
@@ -196,6 +222,7 @@ public class Node {
     }
 
 
+    // General receive unicast function
     private void receiveUnicast(String purpose, int port) {
         try (DatagramSocket socket = new DatagramSocket(port)) {
             logger.log(Level.INFO, "Connected to unicast receive socket: " + purpose);
@@ -204,14 +231,14 @@ public class Node {
             byte[] buffer = new byte[512];
 
             // Receive file data and write to file
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
+            while (true) {  // Keep listening indefinitely
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
 
-            String message = new String(packet.getData(), 0, packet.getLength());
-
-            logger.log(Level.INFO, "Unicast message received successfully: " + message);
-
-            processReceivedMessage(message);
+                logger.log(Level.INFO, "Unicast message received successfully: " + message);
+                processReceivedMessage(message);
+            }
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server", e);
@@ -304,7 +331,6 @@ public class Node {
 
     }
 
-
     private void processReplicate(String message){
         logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
@@ -314,7 +340,7 @@ public class Node {
         if (IP.equals(nodeToReplicateTo)){
             logger.log(Level.INFO, "File is origin");
         } else {
-            FileTransfer.transferFile2(nodeToReplicateTo, filename, 8500);
+            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500);
         }
     }
 
@@ -472,6 +498,7 @@ public class Node {
                     break;
                 case "log":
                     helpMethods.getFiles("/root/logs");
+                    helpMethods.displayLogContents("/root/logs/fileLog.json");
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);
