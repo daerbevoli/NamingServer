@@ -112,7 +112,7 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
-        if(fileLog.exists())
+        if(fileLog.exists()&&numOfNodes>2)
         {
             helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
             receiveUnicast("Get Previous IPs", 9020);
