@@ -4,61 +4,21 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class FileTransfer {
+public class FileTransfer {1
 
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public static void transferFile(String path, String IP, int port, String potentialMessage)
-    {
-        try {
-            if (potentialMessage==null) {potentialMessage="";}
-            System.out.println("received IP:" + IP);
-            InetAddress address = InetAddress.getByName(IP);
-            Socket socket = new Socket(address, port);
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            File file = new File(path);
-            String name = file.getName();
-
-            // send over file name first
-            out.writeUTF(name);
-            out.flush();
-
-            // send the file length
-            out.writeLong(file.length());
-            out.flush();
-
-            // send the file data
-            FileInputStream fis = new FileInputStream(file);
-            byte[] buffer = new byte[(int) file.length() + 10];
-            int bytes = 0;
-            while ((bytes = fis.read(buffer)) != -1)
-            {
-                if(bytes != -1){
-                    out.write(buffer,0,bytes);
-                    out.flush();}
-            }
-            logger.log(Level.INFO, "File sent successfully: " + name);
-            fis.close();
-            out.close();
-            socket.close();
-
-            out.writeUTF(potentialMessage);
-            out.flush();
-
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to send file", e);
-        }
-    }
-
-
-    public static void transferFile2(String IP, String filename, int port) {
+    public static void transferFile(String IP, String filename, int port) {
         File fileToSend = new File("/root/localFiles/" + filename);
 
         if (!fileToSend.exists()) {
-            System.out.println("File not found: " + filename);
+            logger.log(Level.WARNING, "File not found: " + filename);
             return;
         }
 
@@ -66,7 +26,7 @@ public class FileTransfer {
              ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
              FileInputStream fileInputStream = new FileInputStream(fileToSend)) {
 
-            System.out.println("Sending file: " + filename);
+            logger.log(Level.INFO, "Sending file: " + filename);
 
             // Send the file name
             outputStream.writeUTF(filename);
@@ -88,52 +48,57 @@ public class FileTransfer {
             // Ensure all data is sent immediately
             outputStream.flush();
 
-            System.out.println("File sent successfully");
+            logger.log(Level.INFO, "File sent successfully");
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
         }
     }
 
-    public static String receiveFile(int port, String directory) {
-        String message = null;
-        try {
-            ServerSocket sSocket = new ServerSocket(port);
-            Socket cSocket = sSocket.accept();
-            ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream());
+    public static void receiveFiles(int port, String directory) {
+        try (ServerSocket sSocket = new ServerSocket(port)){
+            while (true) {
+                Socket cSocket = sSocket.accept();
+                executor.submit(() -> handleFileTransfer(cSocket, directory));
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "ERROR receiving file", e);
+        }
+    }
 
+    private static void handleFileTransfer(Socket cSocket, String directory) {
+        try (ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream())) {
             // Create directory if it does not exist
             File dir = new File(directory);
             if (!dir.exists()) {
                 dir.mkdirs();
             }
 
-            // read file name
+            // Read file name
             String fileName = in.readUTF();
             File file = new File(directory, fileName);
 
-            // read file length
+            // Read file length
             long length = in.readLong();
 
-            // read file data
+            // Read file data
             try (FileOutputStream fos = new FileOutputStream(file)) {
-                byte[] buf = new byte[(int) length + 10];
-                int bytes = 0;
+                byte[] buf = new byte[4096];
+                int bytes;
                 while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
                     fos.write(buf, 0, bytes);
                     length -= bytes;
                 }
                 logger.log(Level.INFO, "File received successfully: " + fileName);
-                fos.close();
-                in.close();
-                cSocket.close();
             }
-
-            message = in.readUTF();
-
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
+        } finally {
+            try {
+                cSocket.close();
+            } catch (IOException e) {
+                logger.log(Level.WARNING, "ERROR closing socket", e);
+            }
         }
-        return message;
     }
 }
