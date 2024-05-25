@@ -72,7 +72,9 @@ public class FileTransfer {
 
     public void receiveFiles(String directory) {
         listening=true;
-        try (ServerSocket sSocket = new ServerSocket(port)){
+
+        try {
+            sSocket=new ServerSocket(port);
             while (listening) {
                 Socket cSocket = sSocket.accept();
                 executor.submit(() -> handleFileTransfer(cSocket, directory));
