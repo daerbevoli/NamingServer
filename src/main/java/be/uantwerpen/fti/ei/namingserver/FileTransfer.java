@@ -27,13 +27,18 @@ public class FileTransfer {
     }
 
     public void transferFile(String IP, String filename, String potentialMessage) {
+        System.out.println("tf1");
         File fileToSend = new File("/root/localFiles/" + filename);
-
+        System.out.println("tf2");
         if(potentialMessage==null){potentialMessage="";} else{potentialMessage=potentialMessage+":"+IP;}
+        System.out.println("tf3");
         if (!fileToSend.exists()) {
             logger.log(Level.WARNING, "File not found: " + filename);
+            System.out.println("tf3.5");
             return;
         }
+
+        System.out.println("tf4");
 
         try (Socket clientSocket = new Socket(IP, port);
              ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
@@ -68,6 +73,7 @@ public class FileTransfer {
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
         }
+
     }
 
     public void receiveFiles(String directory) {
