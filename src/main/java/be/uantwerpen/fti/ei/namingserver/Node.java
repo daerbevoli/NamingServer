@@ -112,7 +112,6 @@ public class Node {
      */
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        helpMethods.sendMulticast("Shutdown", message, 3000);
         if(fileLog.exists()&&numOfNodes>2)
         {
             System.out.println("1:Condition met to transfer files for shutdown");
@@ -120,6 +119,8 @@ public class Node {
             System.out.println("2:sendingUnicast");
             receiveUnicast("Get Previous IPs", 9020);
         }
+        helpMethods.sendMulticast("Shutdown", message, 3000);
+
 
 
         // Shutdown the executor when the node shuts down
