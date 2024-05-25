@@ -349,7 +349,7 @@ public class Node {
         if (IP.equals(nodeToReplicateTo)){
             logger.log(Level.INFO, "File is origin");
         } else {
-            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500,"");
+            FileTransfer.transferFile(nodeToReplicateTo, filename, 8500,null);
         }
     }
 
