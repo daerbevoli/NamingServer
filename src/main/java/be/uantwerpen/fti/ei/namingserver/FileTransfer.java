@@ -88,7 +88,9 @@ public class FileTransfer {
             sSocket=new ServerSocket(port);
             while (listening) {
                 Socket cSocket = sSocket.accept();
-                executor.submit(() -> handleFileTransfer(cSocket, directory));
+                //executor.submit(() -> handleFileTransfer(cSocket, directory));
+                handleFileTransfer(cSocket, directory);
+
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
