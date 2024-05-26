@@ -126,7 +126,8 @@ public class FileTransfer {
             String msg=in.readUTF();
             if(!msg.isEmpty())
             {
-                updateLogFile(msg,fileName);
+                String[] parts = msg.split(":");
+                Node.updateLogFile(parts[0],parts[1], fileName);
             }
 
         } catch (IOException e) {
@@ -140,42 +141,7 @@ public class FileTransfer {
         }
     }
 
-    private void updateLogFile(String msg,  String filename) {
-        try {
 
-            String[] parts = msg.split(":");
-            String localOwnerIP=parts[0], IP=parts[1];
-            // Ensure the directory exists
-            File directory = fileLog.getParentFile();
-            if (directory != null && !directory.exists()) {
-                directory.mkdirs();
-            }
-
-            JSONObject root;
-            if (fileLog.exists()) {
-                String content = new String(Files.readAllBytes(fileLog.toPath()));
-                root = new JSONObject(content);
-            } else {
-                root = new JSONObject();
-            }
-
-            JSONObject fileInfo = new JSONObject();
-            fileInfo.put("localOwnerIP", localOwnerIP);
-            fileInfo.put("replicatedOwnerIP", IP);
-            root.put(filename, fileInfo);
-
-            try (FileWriter writer = new FileWriter(fileLog)) {
-                writer.write(root.toString());
-            }
-            logger.log(Level.INFO, "File log updated successfully");
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error updating file log", e);
-
-        } catch (JSONException e) {
-            logger.log(Level.WARNING, "Error creating JSON object", e);
-        }
-
-    }
 
     public  void stopListening()
     {

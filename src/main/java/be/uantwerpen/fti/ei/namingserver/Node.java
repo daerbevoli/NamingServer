@@ -32,8 +32,8 @@ public class Node {
     private final ServerSocket serverSocket;
     private String serverIP;
     private boolean finishSending;
-    private final Logger logger = Logger.getLogger(Node.class.getName());
-    private final File fileLog = new File("/root/logs/fileLog.json");
+    private static final Logger logger = Logger.getLogger(Node.class.getName());
+    private static final File fileLog = new File("/root/logs/fileLog.json");
 
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
@@ -365,11 +365,11 @@ public class Node {
         String localOwnerIP = parts[1];
         String filename = parts[2];
 
-        updateLogFile(localOwnerIP, filename);
+        updateLogFile(localOwnerIP,IP, filename);
     }
 
     // Create/Update a log file with file references when replicating a file
-    private void updateLogFile(String localOwnerIP, String filename) {
+    public static void updateLogFile(String localOwnerIP,String replicatedOwnerIP, String filename) {
         try {
             // Ensure the directory exists
             File directory = fileLog.getParentFile();
@@ -389,7 +389,7 @@ public class Node {
             // The second of the file log seems redundant
             JSONObject fileInfo = new JSONObject();
             fileInfo.put("localOwnerIP", localOwnerIP);
-            fileInfo.put("replicatedOwnerIP", IP);
+            fileInfo.put("replicatedOwnerIP", replicatedOwnerIP);
             root.put(filename, fileInfo);
 
             try (FileWriter writer = new FileWriter(fileLog)) {
@@ -514,9 +514,7 @@ public class Node {
 
             }
             finishSending=true;
-        } catch (IOException | JSONException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
+        } catch (IOException | JSONException | InterruptedException e) {
             throw new RuntimeException(e);
         }
         }
