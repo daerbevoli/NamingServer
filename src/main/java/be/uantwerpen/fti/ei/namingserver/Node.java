@@ -498,21 +498,24 @@ public class Node {
                 System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
                 if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
                 {
-                    System.out.println("this happens , right?");
+                    //System.out.println("this happens , right?");
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
+                    System.out.println("prev:"+parts[1]+"prevprev:"+parts[2]);
                     if (prevNodeOwner)
                     {
-                        System.out.println(parts[2]+";"+fileName +";"+jsonEntry.getString("localOwnerIP"));
-                        ft.transferFile( parts[2],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        System.out.println("send to:"+parts[1]+";file:"+fileName +";The local owner"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile( parts[1],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
                     } else
                     {
-                        System.out.println(parts[1]+";"+fileName+";"+jsonEntry.getString("localOwnerIP"));
-                        ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
-                    Thread.sleep(1000);
+                        System.out.println("send to:"+parts[2]+";file:"+fileName+";The local owner"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile(parts[2],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                    //Thread.sleep(1000);
                 }
             }
             finishSending=true;
-        } catch (IOException | JSONException | InterruptedException e) {
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
         }
