@@ -46,13 +46,14 @@ public class Server {
 
         clearMap(); // clear the map when server starts up
 
-        runFunctionsOnThreads(); // A possible way to use threads but needs to improve
+        // Executor to run tasks on different threads
+        executor = Executors.newFixedThreadPool(3);
+        runFunctionsOnThreads();
 
     }
 
     // Thread executor
     public void runFunctionsOnThreads() {
-        executor = Executors.newFixedThreadPool(3);
 
         // Listen to multicast messages from nodes
         executor.submit(this::listenForNodesMulticast);
@@ -104,7 +105,6 @@ public class Server {
                 .filter(key -> key < fileHash && key != hash(sameIP))
                 .toList();
 
-        // PROBLEM : NO NODES EXIST AND sameIP IS THE BIGGEST NODE -> FILE IS ORIGIN
         if (nodeKeys.isEmpty()) {
 
             // If no such nodes exist, return the node with the largest hash
@@ -120,6 +120,7 @@ public class Server {
                 return largestNodeID;
             }
         } else {
+
             // Find the node with the smallest difference between its hash and the file hash
             return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
                     .orElseThrow(NoSuchElementException::new);
@@ -299,9 +300,12 @@ public class Server {
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
-                int fileHash = Integer.parseInt(message.split(":")[2]);
-                String filename = message.split(":")[3];
+                int fileHash = Integer.parseInt(parts[2]);
+                String filename = parts[3];
                 processFileReport(nodeIP, fileHash, filename);
+                break;
+            case "AskIP":
+                sendIPOfPrevNodes(parts[1]);
                 break;
         }
     }
@@ -320,10 +324,10 @@ public class Server {
         String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
         helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
+
         // Log the ownership of the file
         logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
                 "now owns file with filename: " + filename + " and hash: " + fileHash);
-
 
         // Notify the replicated node that it should create a file log
         helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
@@ -355,18 +359,15 @@ public class Server {
             }
         }
 
-        public void sendIPOfNewReplicatedNode(int hashOfShutdownNode, boolean prevNodeOwner)
+        public void sendIPOfPrevNodes(String IP)
         {
+
             ArrayList<Integer> hashes =new ArrayList<>(nodesMap.keySet());
             Collections.sort(hashes);
-            int index= hashes.indexOf(hashOfShutdownNode);
-            String ipOfFileReceiver;
-            int indexShutdownReceiver;
-            indexShutdownReceiver = prevNodeOwner? Math.abs((index-2)%hashes.size()) : Math.abs((index-1)%hashes.size());
-            ipOfFileReceiver= nodesMap.get(hashes.get(indexShutdownReceiver)).getHostAddress();
-            helpMethods.sendUnicast("Send IP for new replicated owner after shutdown", nodesMap.get(hashOfShutdownNode).getHostAddress(), "ReceiverIpShutdown:"+ipOfFileReceiver, 9020 );
-
-
+            int index= hashes.indexOf(hash(IP));
+            int indexPrevNode= Math.abs((index-1)%hashes.size()), indexPrevPrevNode =Math.abs((index-2)%hashes.size());
+            String ipOfPrev= nodesMap.get(hashes.get(indexPrevNode)).getHostName() ,ipOfPrevPrev=nodesMap.get(hashes.get(indexPrevPrevNode)).getHostName();
+            helpMethods.sendUnicast("Send IP of previous node and its previous node", IP, "ReceivePreviousIPs:"+ipOfPrev+":"+ipOfPrevPrev, 9020 );
 
         }
     public static void main(String[] args){
