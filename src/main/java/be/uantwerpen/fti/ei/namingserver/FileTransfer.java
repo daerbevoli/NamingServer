@@ -52,11 +52,9 @@ public class FileTransfer {
 
             // Send the file name
             outputStream.writeUTF(filename);
-            outputStream.flush();
 
             // Send the file length
             outputStream.writeLong(fileToSend.length());
-            outputStream.flush();
 
             // Buffer to store chunks of file data
             byte[] buffer = new byte[1024];
@@ -67,10 +65,10 @@ public class FileTransfer {
                 outputStream.write(buffer, 0, bytesRead);
             }
 
-            // Ensure all data is sent immediately
-            outputStream.flush();
+
 
             outputStream.writeUTF(potentialMessage);
+            // Ensure all data is sent immediately
             outputStream.flush();
 
             logger.log(Level.INFO, "File sent successfully");
