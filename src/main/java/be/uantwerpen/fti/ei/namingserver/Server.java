@@ -364,11 +364,16 @@ public class Server {
 
             ArrayList<Integer> hashes =new ArrayList<>(nodesMap.keySet());
             Collections.sort(hashes);
+            System.out.println("printing hashes");
+            for(Integer I: hashes)
+            {
+                System.out.println(I);
+            }
             int index= hashes.indexOf(hash(IP));
 
             int indexPrevNode= Math.abs((index-1)%hashes.size());
             int indexPrevPrevNode =Math.abs((index-2)%hashes.size());
-            System.out.println("index prev:"+indexPrevNode+ ";index of prevprev:"+indexPrevPrevNode);
+            System.out.println("size of new map:"+hashes.size()+"index current:"+index+";index prev:"+indexPrevNode+ ";index of prevprev:"+indexPrevPrevNode);
             String ipOfPrev= nodesMap.get(hashes.get(indexPrevNode)).getHostName();
             String ipOfPrevPrev=nodesMap.get(hashes.get(indexPrevPrevNode)).getHostName();
             helpMethods.sendUnicast("Send IP of previous node and its previous node", IP, "ReceivePreviousIPs:"+ipOfPrev+":"+ipOfPrevPrev, 9020 );
