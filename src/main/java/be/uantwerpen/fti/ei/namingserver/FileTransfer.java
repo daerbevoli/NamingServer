@@ -184,7 +184,7 @@ public class FileTransfer {
         if (sSocket != null && !sSocket.isClosed()) {
             try {
                 sSocket.close();
-                System.out.println("Server stopped.");
+                System.out.println("listening stopped.");
             } catch (IOException e) {
                 e.printStackTrace();
             }

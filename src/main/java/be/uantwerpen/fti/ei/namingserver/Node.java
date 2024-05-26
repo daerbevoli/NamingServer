@@ -508,15 +508,18 @@ public class Node {
                     {
                         System.out.println(parts[1]+";"+fileName+";"+jsonEntry.getString("localOwnerIP"));
                         ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
-
+                    Thread.sleep(1000);
                 }
+
 
             }
             finishSending=true;
         } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-    }
+        }
     }
 
 
