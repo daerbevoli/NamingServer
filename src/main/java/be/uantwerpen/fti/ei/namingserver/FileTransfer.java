@@ -114,7 +114,7 @@ public class FileTransfer {
 
             // Read file data
             try (FileOutputStream fos = new FileOutputStream(file)) {
-                byte[] buf = new byte[4096];
+                byte[] buf = new byte[8192];
                 int bytes;
                 while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
                     fos.write(buf, 0, bytes);
