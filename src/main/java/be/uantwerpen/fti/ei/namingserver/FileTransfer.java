@@ -20,7 +20,7 @@ public class FileTransfer {
     private int port;
     private ServerSocket sSocket;
     private  boolean listening=true;
-    private static final File fileLog = new File("/root/logs/fileLog.json");
+    private final File fileLog = new File("/root/logs/fileLog.json");
 
     public FileTransfer(int port) throws IOException {
            this.port=port;
@@ -95,7 +95,7 @@ public class FileTransfer {
         }
     }
 
-    private static void handleFileTransfer(Socket cSocket, String directory) {
+    private void handleFileTransfer(Socket cSocket, String directory) {
         try (ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream())) {
             // Create directory if it does not exist
             File dir = new File(directory);
@@ -138,7 +138,7 @@ public class FileTransfer {
         }
     }
 
-    private static void updateLogFile(String msg,  String filename) {
+    private void updateLogFile(String msg,  String filename) {
         try {
 
             String[] parts = msg.split(":");
