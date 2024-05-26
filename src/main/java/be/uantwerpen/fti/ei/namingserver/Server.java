@@ -370,9 +370,8 @@ public class Server {
                 System.out.println(I);
             }
             int index= hashes.indexOf(hash(IP));
-
-            int indexPrevNode= Math.abs((index-1)%hashes.size());
-            int indexPrevPrevNode =Math.abs((index-2)%hashes.size());
+            int indexPrevNode= (index-1)>=0 ?(index-1):hashes.size()-(index-1);
+            int indexPrevPrevNode =(index-2)>=0 ?(index-2):hashes.size()-(index-2);
             System.out.println("size of new map:"+hashes.size()+"index current:"+index+";index prev:"+indexPrevNode+ ";index of prevprev:"+indexPrevPrevNode);
             String ipOfPrev= nodesMap.get(hashes.get(indexPrevNode)).getHostName();
             String ipOfPrevPrev=nodesMap.get(hashes.get(indexPrevPrevNode)).getHostName();
