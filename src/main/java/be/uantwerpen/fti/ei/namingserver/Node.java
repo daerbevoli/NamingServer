@@ -495,10 +495,10 @@ public class Node {
                 String fileName= keys.next();
                 JSONObject jsonEntry= jsonLog.getJSONObject(fileName);
                 boolean prevNodeOwner;
-                System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
+                //System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
                 if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
                 {
-                    System.out.println("this happens , right?");
+                    //System.out.println("this happens , right?");
                     prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
                     if (prevNodeOwner)
                     {
@@ -508,11 +508,13 @@ public class Node {
                     {
                         System.out.println(parts[1]+";"+fileName+";"+jsonEntry.getString("localOwnerIP"));
                         ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
-                    Thread.sleep(1000);
+                    //Thread.sleep(1000);
                 }
             }
             finishSending=true;
-        } catch (IOException | JSONException | InterruptedException e) {
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
         }

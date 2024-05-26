@@ -112,7 +112,7 @@ public class FileTransfer {
 
             // Read file data
             try (FileOutputStream fos = new FileOutputStream(file)) {
-                System.out.println("Starting to read file");
+                //System.out.println("Starting to read file");
                 byte[] buf = new byte[8192];
                 int bytes;
                 while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
@@ -134,7 +134,7 @@ public class FileTransfer {
         } finally {
             try {
                 cSocket.close();
-                System.out.println("closed csocket");
+               // System.out.println("closed csocket");
             } catch (IOException e) {
                 logger.log(Level.WARNING, "ERROR closing socket", e);
             }
