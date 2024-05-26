@@ -503,12 +503,12 @@ public class Node {
                     System.out.println("prev:"+parts[1]+"prevprev:"+parts[2]);
                     if (prevNodeOwner)
                     {
-                        System.out.println("send to:"+parts[1]+";file:"+fileName +";The local owner"+jsonEntry.getString("localOwnerIP"));
-                        ft.transferFile( parts[1],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                        System.out.println("send to:"+parts[2]+";file:"+fileName +";The local owner"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile( parts[2],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
                     } else
                     {
-                        System.out.println("send to:"+parts[2]+";file:"+fileName+";The local owner"+jsonEntry.getString("localOwnerIP"));
-                        ft.transferFile(parts[2],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                        System.out.println("send to:"+parts[1]+";file:"+fileName+";The local owner"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
                     //Thread.sleep(1000);
                 }
             }
