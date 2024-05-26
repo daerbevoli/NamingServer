@@ -35,8 +35,8 @@ public class Node {
     private final Logger logger = Logger.getLogger(Node.class.getName());
     private final File fileLog = new File("/root/logs/fileLog.json");
 
-    // ScheduledExecutor to run multiple methods on different threads
-    private final ScheduledExecutorService executor;
+    // ExecutorService to run multiple methods on different threads
+    private final ExecutorService executor;
 
     public Node() {
         this.IP = helpMethods.findLocalIP();
@@ -61,8 +61,7 @@ public class Node {
         }
 
         // Initialization of the executor with a pool of 8 threads
-        // NEEDS TO BE CHANGED TO FixedThreadPool
-        executor = Executors.newScheduledThreadPool(8);
+        executor = Executors.newFixedThreadPool(8);
         runFunctionsOnThreads();
 
     }
@@ -140,7 +139,7 @@ public class Node {
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
-    // Hash function provided by the teachers
+    // Hash function
     public int hash(String IP){
         double max = Integer.MAX_VALUE;
         double min = Integer.MIN_VALUE;
@@ -184,10 +183,7 @@ public class Node {
             WatchService watchService = FileSystems.getDefault().newWatchService();
 
             // Register the directory for specific events
-            directoryPath.register(watchService,
-                    StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE,
-                    StandardWatchEventKinds.ENTRY_MODIFY);
+            directoryPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
             logger.log(Level.INFO, "Watching directory: " + directoryPath);
 
@@ -195,18 +191,17 @@ public class Node {
             while (true) {
                 WatchKey key = watchService.take();
 
+                // Optimization for later
+                // NOT SURE IF THE FOR LOOP IS NECESSARY, TRY A TEST WITHOUT
                 for (WatchEvent<?> event : key.pollEvents()) {
-                    // Handle the specific event
+
+                    // Handle the addition event, report file
                     if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
                         logger.log(Level.INFO, "File created: " + event.context());
                         reportFileHashToServer(hash(String.valueOf(event.context())), String.valueOf(event.context()));
                     }
-                    if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                        logger.log(Level.INFO, "File deleted: " + event.context());
-                    }
                 }
-
-                // To receive further events, reset the key
+                // Reset the key to receive further events
                 key.reset();
             }
 
@@ -361,23 +356,15 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
-        logger.log(Level.INFO, "IP: " + IP + ", " + "replicate IP: " + nodeToReplicateTo);
-        if (IP.equals(nodeToReplicateTo)){
-            logger.log(Level.INFO, "File is origin");
-        } else {
+
             ft.transferFile(nodeToReplicateTo, filename,null);
-        }
     }
 
     private void processCreateLog(String message) {
         String[] parts = message.split(":");
         String localOwnerIP = parts[1];
         String filename = parts[2];
-        // TEMPORARY
-        // Do not create log if same ip (which should never be the case)
-        if (localOwnerIP.equals(IP)){
-            return;
-        }
+
         updateLogFile(localOwnerIP, filename);
     }
 
@@ -398,6 +385,8 @@ public class Node {
                 root = new JSONObject();
             }
 
+            // Optimization for later
+            // The second of the file log seems redundant
             JSONObject fileInfo = new JSONObject();
             fileInfo.put("localOwnerIP", localOwnerIP);
             fileInfo.put("replicatedOwnerIP", IP);
@@ -426,8 +415,6 @@ public class Node {
         logger.log(Level.INFO, "Post shutdown process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
 
-
-    // Receive the map size from the name server
 
     // Update the hash
     public void updateHash(int receivedHash, String IP) throws IOException {
@@ -530,8 +517,6 @@ public class Node {
         }
     }
     }
-
-
 
 
     public void run() {
