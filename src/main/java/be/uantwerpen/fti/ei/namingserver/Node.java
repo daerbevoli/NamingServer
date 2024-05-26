@@ -495,7 +495,7 @@ public class Node {
                 String fileName= keys.next();
                 JSONObject jsonEntry= jsonLog.getJSONObject(fileName);
                 boolean prevNodeOwner;
-                //System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
+                System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
                 if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
                 {
                     //System.out.println("this happens , right?");
