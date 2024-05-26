@@ -54,6 +54,7 @@ public class FileTransfer {
         }
     }
 
+    // NOT SURE IF THREAD NEEDED
     public static void receiveFiles(int port, String directory) {
         try (ServerSocket sSocket = new ServerSocket(port)){
             while (true) {

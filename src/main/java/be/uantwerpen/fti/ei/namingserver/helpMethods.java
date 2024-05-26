@@ -136,9 +136,10 @@ public class helpMethods {
             }
 
         } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
+            logger.log(Level.WARNING, "Error reading file", e);
         } catch (Exception e) {
-            System.out.println("Error parsing JSON: " + e.getMessage());
+            logger.log(Level.WARNING, "Error parsing JSON", e);
+
         }
     }
 
