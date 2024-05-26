@@ -510,8 +510,6 @@ public class Node {
                         ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
                     Thread.sleep(1000);
                 }
-
-
             }
             finishSending=true;
         } catch (IOException | JSONException | InterruptedException e) {

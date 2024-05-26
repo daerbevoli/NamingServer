@@ -20,7 +20,6 @@ public class FileTransfer {
     private int port;
     private ServerSocket sSocket;
     private  boolean listening=true;
-    private final File fileLog = new File("/root/logs/fileLog.json");
 
     public FileTransfer(int port) throws IOException {
            this.port=port;
@@ -86,6 +85,7 @@ public class FileTransfer {
             sSocket=new ServerSocket(port);
             while (listening) {
                 Socket cSocket = sSocket.accept();
+                System.out.println("accepted socket");
                 //executor.submit(() -> handleFileTransfer(cSocket, directory));
                 handleFileTransfer(cSocket, directory);
 
@@ -112,6 +112,7 @@ public class FileTransfer {
 
             // Read file data
             try (FileOutputStream fos = new FileOutputStream(file)) {
+                System.out.println("Starting to read file");
                 byte[] buf = new byte[8192];
                 int bytes;
                 while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
@@ -133,6 +134,7 @@ public class FileTransfer {
         } finally {
             try {
                 cSocket.close();
+                System.out.println("closed csocket");
             } catch (IOException e) {
                 logger.log(Level.WARNING, "ERROR closing socket", e);
             }
