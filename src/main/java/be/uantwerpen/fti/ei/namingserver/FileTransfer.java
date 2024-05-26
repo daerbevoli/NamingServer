@@ -71,6 +71,7 @@ public class FileTransfer {
             outputStream.flush();
 
             outputStream.writeUTF(potentialMessage);
+            outputStream.flush();
 
             logger.log(Level.INFO, "File sent successfully");
 
