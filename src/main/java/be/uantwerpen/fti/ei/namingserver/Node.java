@@ -3,6 +3,7 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.util.Iterator;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -25,10 +26,13 @@ public class Node {
     private final String IP;
     private int previousID, nextID, currentID;
     private int numOfNodes;
+
+    private FileTransfer ft;
     private final ServerSocket serverSocket;
     private String serverIP;
-    private final Logger logger = Logger.getLogger(Node.class.getName());
-    private final File fileLog = new File("/root/logs/fileLog.json");
+    private boolean finishSending;
+    private static final Logger logger = Logger.getLogger(Node.class.getName());
+    private static final File fileLog = new File("/root/logs/fileLog.json");
 
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
@@ -37,7 +41,13 @@ public class Node {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
 
+        try {
+            ft= new FileTransfer(8500);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         numOfNodes = 0;
+        finishSending=false;
 
         currentID = hash(IP);
         nextID = currentID;
@@ -70,7 +80,7 @@ public class Node {
 
         executor.submit(this::watchFolder);
 
-        executor.submit(() -> FileTransfer.receiveFiles(8500, "/root/replicatedFiles"));
+        executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -85,12 +95,12 @@ public class Node {
         helpMethods.sendMulticast("send bootstrap", message, 3000);
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        /*int i=0;
+        int i=0;
         while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
             i=(i+1)%300000;
             if(i==1){
                 System.out.println("Waiting for numofnodes > 0");}
-        }*/
+        }
         if (numOfNodes > 1) {
             logger.log(Level.INFO, "Condition met to start TCP connection");
             try {
@@ -109,7 +119,19 @@ public class Node {
      */
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
+        if(fileLog.exists()&&numOfNodes>2)
+        {
+            executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
+            System.out.println("1:Condition met to transfer files for shutdown");
+            helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
+            System.out.println("2:sendingUnicast");
+            while(!finishSending)
+            {
+            }
+        }
         helpMethods.sendMulticast("Shutdown", message, 3000);
+
+
 
         // Shutdown the executor when the node shuts down
         executor.shutdown();
@@ -169,7 +191,7 @@ public class Node {
                 WatchKey key = watchService.take();
 
                 // Optimization for later
-                // NOT SURE IF THE FOR LOOP IS NECESSARY, TRY A TEST WITHOUT 
+                // NOT SURE IF THE FOR LOOP IS NECESSARY, TRY A TEST WITHOUT
                 for (WatchEvent<?> event : key.pollEvents()) {
 
                     // Handle the addition event, report file
@@ -281,6 +303,9 @@ public class Node {
         else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
+        else if (message.startsWith("ReceivePreviousIPs")) {
+            sendReplicatedFilesShutdown(message);
+        }
     }
 
     // Process the message received from the multicast
@@ -331,8 +356,7 @@ public class Node {
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
 
-        FileTransfer.transferFile(nodeToReplicateTo, filename, 8500);
-
+            ft.transferFile(nodeToReplicateTo, filename,null);
     }
 
     private void processCreateLog(String message) {
@@ -340,11 +364,11 @@ public class Node {
         String localOwnerIP = parts[1];
         String filename = parts[2];
 
-        updateLogFile(localOwnerIP, filename);
+        updateLogFile(localOwnerIP,IP, filename);
     }
 
     // Create/Update a log file with file references when replicating a file
-    private void updateLogFile(String localOwnerIP, String filename) {
+    public static void updateLogFile(String localOwnerIP,String replicatedOwnerIP, String filename) {
         try {
             // Ensure the directory exists
             File directory = fileLog.getParentFile();
@@ -364,7 +388,7 @@ public class Node {
             // The second of the file log seems redundant
             JSONObject fileInfo = new JSONObject();
             fileInfo.put("localOwnerIP", localOwnerIP);
-            fileInfo.put("replicatedOwnerIP", IP);
+            fileInfo.put("replicatedOwnerIP", replicatedOwnerIP);
             root.put(filename, fileInfo);
 
             try (FileWriter writer = new FileWriter(fileLog)) {
@@ -453,9 +477,45 @@ public class Node {
         }
     }
 
-    private void askID()
+    private void sendReplicatedFilesShutdown(String msg)
     {
+        if(fileLog.exists() )
+        {
+            String[] parts = msg.split(":");
 
+        try {
+            ft.stopListening();
+            String fileString= new String(Files.readAllBytes(fileLog.toPath()));
+            JSONObject jsonLog = new JSONObject(fileString);
+            System.out.println("the log is this size:"+jsonLog.length());
+            Iterator<String> keys= jsonLog.keys();
+            while(keys.hasNext())
+            {
+                String fileName= keys.next();
+                JSONObject jsonEntry= jsonLog.getJSONObject(fileName);
+                boolean prevNodeOwner;
+                System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
+                if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
+                {
+                    //System.out.println("this happens , right?");
+                    prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
+                    System.out.println("prev:"+parts[1]+"prevprev:"+parts[2]);
+                    if (prevNodeOwner)
+                    {
+                        System.out.println("send to:"+parts[2]+";file:"+fileName +";The local owner"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile( parts[2],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
+                    } else
+                    {
+                        System.out.println("send to:"+parts[1]+";file:"+fileName+";The local owner"+jsonEntry.getString("localOwnerIP"));
+                        ft.transferFile(parts[1],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+                    //Thread.sleep(1000);
+                }
+            }
+            finishSending=true;
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        }
+        }
     }
 
 

@@ -304,6 +304,9 @@ public class Server {
                 String filename = parts[3];
                 processFileReport(nodeIP, fileHash, filename);
                 break;
+            case "AskIP":
+                sendIPOfPrevNodes(parts[1]);
+                break;
         }
     }
 
@@ -356,18 +359,23 @@ public class Server {
             }
         }
 
-        public void sendIPOfNewReplicatedNode(int hashOfShutdownNode, boolean prevNodeOwner)
+        public void sendIPOfPrevNodes(String IP)
         {
+
             ArrayList<Integer> hashes =new ArrayList<>(nodesMap.keySet());
             Collections.sort(hashes);
-            int index= hashes.indexOf(hashOfShutdownNode);
-            String ipOfFileReceiver;
-            int indexShutdownReceiver;
-            indexShutdownReceiver = prevNodeOwner? Math.abs((index-2)%hashes.size()) : Math.abs((index-1)%hashes.size());
-            ipOfFileReceiver= nodesMap.get(hashes.get(indexShutdownReceiver)).getHostAddress();
-            helpMethods.sendUnicast("Send IP for new replicated owner after shutdown", nodesMap.get(hashOfShutdownNode).getHostAddress(), "ReceiverIpShutdown:"+ipOfFileReceiver, 9020 );
-
-
+            System.out.println("printing hashes");
+            for(Integer I: hashes)
+            {
+                System.out.println(I);
+            }
+            int index= hashes.indexOf(hash(IP));
+            int indexPrevNode= (index-1)>=0 ?(index-1):hashes.size()+(index-1);
+            int indexPrevPrevNode =(index-2)>=0 ?(index-2):hashes.size()+(index-2);
+            System.out.println("size of new map:"+hashes.size()+"index current:"+index+";index prev:"+indexPrevNode+ ";index of prevprev:"+indexPrevPrevNode);
+            String ipOfPrev= nodesMap.get(hashes.get(indexPrevNode)).getHostName();
+            String ipOfPrevPrev=nodesMap.get(hashes.get(indexPrevPrevNode)).getHostName();
+            helpMethods.sendUnicast("Send IP of previous node and its previous node", IP, "ReceivePreviousIPs:"+ipOfPrev+":"+ipOfPrevPrev, 9020 );
 
         }
     public static void main(String[] args){
