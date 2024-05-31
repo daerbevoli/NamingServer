@@ -25,7 +25,7 @@ public class FileTransfer {
            this.port=port;
     }
 
-    public void transferFile(String IP, String filename, String potentialMessage) {
+    public static void transferFile(String IP, String filename, String potentialMessage) {
         File fileToSend;
         if(potentialMessage==null)
         {
@@ -78,7 +78,7 @@ public class FileTransfer {
 
     }
 
-    public void receiveFiles(String directory) {
+    public static void receiveFiles(String directory) {
         listening=true;
 
         try {
@@ -87,7 +87,6 @@ public class FileTransfer {
                 Socket cSocket = sSocket.accept();
                 System.out.println("accepted socket");
                 //executor.submit(() -> handleFileTransfer(cSocket, directory));
-                handleFileTransfer(cSocket, directory);
 
             }
         } catch (IOException e) {

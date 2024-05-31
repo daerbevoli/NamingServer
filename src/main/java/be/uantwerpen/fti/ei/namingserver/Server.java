@@ -300,8 +300,8 @@ public class Server {
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
-                int fileHash = Integer.parseInt(parts[2]);
-                String filename = parts[3];
+                int fileHash = Integer.parseInt(parts[3]);
+                String filename = parts[4];
                 processFileReport(nodeIP, fileHash, filename);
                 break;
             case "AskIP":
