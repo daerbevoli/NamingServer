@@ -1,12 +1,8 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -17,31 +13,13 @@ public class FileTransfer {
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
-    private int port;
-    private ServerSocket sSocket;
-    private  boolean listening=true;
-
-    public FileTransfer(int port) throws IOException {
-           this.port=port;
-    }
-
-    public static void transferFile(String IP, String filename, String potentialMessage) {
-        File fileToSend;
-        if(potentialMessage==null)
-        {
-            potentialMessage="";
-            fileToSend = new File("/root/localFiles/" + filename);
-        } else
-        {
-            potentialMessage=potentialMessage+":"+IP;
-            fileToSend = new File("/root/replicatedFiles/" + filename);
-        }
+    public static void transferFile(String IP, String filename, int port) {
+        File fileToSend = new File("/root/localFiles/" + filename);
 
         if (!fileToSend.exists()) {
             logger.log(Level.WARNING, "File not found: " + filename);
             return;
         }
-
 
         try (Socket clientSocket = new Socket(IP, port);
              ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
@@ -51,9 +29,11 @@ public class FileTransfer {
 
             // Send the file name
             outputStream.writeUTF(filename);
+            outputStream.flush();
 
             // Send the file length
             outputStream.writeLong(fileToSend.length());
+            outputStream.flush();
 
             // Buffer to store chunks of file data
             byte[] buffer = new byte[1024];
@@ -64,9 +44,6 @@ public class FileTransfer {
                 outputStream.write(buffer, 0, bytesRead);
             }
 
-
-
-            outputStream.writeUTF(potentialMessage);
             // Ensure all data is sent immediately
             outputStream.flush();
 
@@ -75,26 +52,21 @@ public class FileTransfer {
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
         }
-
     }
 
-    public static void receiveFiles(String directory) {
-        listening=true;
-
-        try {
-            sSocket=new ServerSocket(port);
-            while (listening) {
+    // NOT SURE IF THREAD NEEDED
+    public static void receiveFiles(int port, String directory) {
+        try (ServerSocket sSocket = new ServerSocket(port)){
+            while (true) {
                 Socket cSocket = sSocket.accept();
-                System.out.println("accepted socket");
-                //executor.submit(() -> handleFileTransfer(cSocket, directory));
-
+                executor.submit(() -> handleFileTransfer(cSocket, directory));
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
         }
     }
 
-    private void handleFileTransfer(Socket cSocket, String directory) {
+    private static void handleFileTransfer(Socket cSocket, String directory) {
         try (ObjectInputStream in = new ObjectInputStream(cSocket.getInputStream())) {
             // Create directory if it does not exist
             File dir = new File(directory);
@@ -111,8 +83,7 @@ public class FileTransfer {
 
             // Read file data
             try (FileOutputStream fos = new FileOutputStream(file)) {
-                //System.out.println("Starting to read file");
-                byte[] buf = new byte[8192];
+                byte[] buf = new byte[4096];
                 int bytes;
                 while (length > 0 && (bytes = in.read(buf, 0, (int) Math.min(buf.length, length))) != -1) {
                     fos.write(buf, 0, bytes);
@@ -120,42 +91,14 @@ public class FileTransfer {
                 }
                 logger.log(Level.INFO, "File received successfully: " + fileName);
             }
-
-            String msg=in.readUTF();
-            if(!msg.isEmpty())
-            {
-                String[] parts = msg.split(":");
-                Node.updateLogFile(parts[0],parts[1], fileName);
-            }
-
         } catch (IOException e) {
             logger.log(Level.WARNING, "ERROR receiving file", e);
         } finally {
             try {
                 cSocket.close();
-               // System.out.println("closed csocket");
             } catch (IOException e) {
                 logger.log(Level.WARNING, "ERROR closing socket", e);
             }
         }
     }
-
-
-
-    public  void stopListening()
-    {
-        listening=false;
-
-        if (sSocket != null && !sSocket.isClosed()) {
-            try {
-                sSocket.close();
-                System.out.println("listening stopped.");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
-
 }

@@ -67,6 +67,7 @@ public class Node {
         // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
         executor.submit(() -> receiveUnicast("Replication purpose", 8100));
         executor.submit(() -> receiveUnicast("Create log purpose", 8700));
+        executor.submit(() -> FileTransfer.receiveFiles(8600, "/root/replicatedFiles"));
 
         executor.submit(this::watchFolder);
 
@@ -83,12 +84,6 @@ public class Node {
         helpMethods.sendMulticast("send bootstrap", message, 3000);
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
-        int i=0;
-        while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
-            i=(i+1)%300000;
-            if(i==1){
-                System.out.println("Waiting for numofnodes > 0");}
-        }
         if (numOfNodes > 1) {
             logger.log(Level.INFO, "Condition met to start TCP connection");
             try {
@@ -330,7 +325,7 @@ public class Node {
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
 
-            FileTransfer.transferFile(nodeToReplicateTo, filename,null);
+            FileTransfer.transferFile(nodeToReplicateTo, filename, 8600);
     }
 
     private void processCreateLog(String message) {
@@ -338,7 +333,7 @@ public class Node {
         String localOwnerIP = parts[1];
         String filename = parts[2];
 
-        updateLogFile(localOwnerIP,IP, filename);
+        updateLogFile(localOwnerIP, IP, filename);
     }
 
     // Create/Update a log file with file references when replicating a file
