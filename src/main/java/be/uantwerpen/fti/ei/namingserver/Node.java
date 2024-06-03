@@ -103,6 +103,7 @@ public class Node {
     public void shutdown() {
         if (fileLog.exists()) {
             sendLog();
+            logger.log(Level.INFO, "file log sent");
         }
 
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
