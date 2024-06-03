@@ -143,6 +143,26 @@ public class helpMethods {
         }
     }
 
+    public static void clearFolder(String path){
+        File folder = new File(path);
+        if (!folder.exists()) {
+            logger.log(Level.WARNING, "The folder " + folder.getPath() + " does not exist.");
+            return;
+        }
+
+        if (!folder.isDirectory()) {
+            logger.log(Level.WARNING, "The provided path " + folder.getPath() + " is not a directory.");
+            return;
+        }
+
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                file.delete();
+                logger.log(Level.INFO, file.getName() + "Deleted");
+            }
+        }
+    }
 
 
     // ping method to check whether a connection with a node can be made

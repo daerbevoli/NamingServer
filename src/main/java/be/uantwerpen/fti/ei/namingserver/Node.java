@@ -103,7 +103,11 @@ public class Node {
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+
+        // Replication shutdown
         verifyAndReportFiles("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/logs");
 
         // Shutdown the executor when the node shuts down
         executor.shutdown();
