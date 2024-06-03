@@ -119,36 +119,37 @@ public class Node {
     // FAILURE can be handled with a "heartbeat" mechanism
 
     private void sendLog(){
-        try {
-            // Create a socket connection to the server
-            Socket socket = new Socket(serverIP, 12345);
+        try (Socket socket = new Socket(serverIP, 450)){
+            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+            try (FileInputStream fileInputStream = new FileInputStream(fileLog)) {
 
-            // Get the output stream of the socket
-            OutputStream outputStream = socket.getOutputStream();
+                logger.log(Level.INFO, "Sending file: " + fileLog.getName());
 
-            // Create an input stream to read the file
-            FileInputStream fileInputStream = new FileInputStream(fileLog);
+                // Send the file name
+                outputStream.writeUTF(fileLog.getName());
+                outputStream.flush();
 
-            // Create a buffer for reading data from the file
-            byte[] buffer = new byte[1024];
-            int bytesRead;
+                // Send the file length
+                outputStream.writeLong(fileLog.length());
+                outputStream.flush();
 
-            // Read data from the file and write it to the output stream
-            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+                // Buffer to store chunks of file data
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                // Read the file data and send it to the server
+                while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
             }
 
-            // Flush the output stream to ensure all data is sent
+            // Ensure all data is sent immediately
             outputStream.flush();
 
-            // Close the streams and socket
-            fileInputStream.close();
-            outputStream.close();
-            socket.close();
+            logger.log(Level.INFO, "File sent successfully");
 
-            System.out.println("File sent successfully");
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.log(Level.WARNING, "Unable to send file", e);
         }
     }
 
