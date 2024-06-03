@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -120,9 +121,14 @@ public class helpMethods {
     }
 
     public static void displayLogContents(String filePath) {
+        Path path = Paths.get(filePath);
+        if (!Files.exists(path)) {
+            logger.log(Level.WARNING, "File does not exist");
+            return;
+        }
         try {
             // Read content from JSON file
-            String content = new String(Files.readAllBytes(Paths.get(filePath)));
+            String content = new String(Files.readAllBytes(path));
 
             // Parse JSON content into JSONObject
             JSONObject json = new JSONObject(content);
