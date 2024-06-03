@@ -30,6 +30,8 @@ public class Node {
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private static final File fileLog = new File("/root/logs/fileLog.json");
 
+    private boolean received = false;
+
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
 
@@ -107,6 +109,17 @@ public class Node {
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
+        // Wait until the condition is met
+        while (!received) {
+            try {
+                Thread.sleep(100); // Adjust sleep time as needed
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                // Handle interruption
+            }
+        }
+
+
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
 
@@ -138,6 +151,7 @@ public class Node {
                     reportFileHashToServer(fileHash, filename);
                 }
             }
+            received = false;
         }
     }
 
@@ -340,6 +354,8 @@ public class Node {
         String filename = parts[2];
 
         updateLogFile(localOwnerIP, IP, filename);
+        received = true;
+
     }
 
     // Create/Update a log file with file references when replicating a file
