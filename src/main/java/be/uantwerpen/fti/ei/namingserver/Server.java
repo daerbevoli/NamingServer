@@ -314,7 +314,7 @@ public class Server {
     private void receiveFileLog(){
         try {
             // Create a server socket bound to the specified port
-            ServerSocket serverSocket = new ServerSocket(12345);
+            ServerSocket serverSocket = new ServerSocket(450);
 
             System.out.println("Server waiting for connections...");
 
