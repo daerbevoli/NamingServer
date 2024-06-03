@@ -30,8 +30,6 @@ public class Node {
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private static final File fileLog = new File("/root/logs/fileLog.json");
 
-    private boolean received = false;
-
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
 
@@ -103,19 +101,57 @@ public class Node {
      * The nodes receive this message and update their previous and next IDs
      */
     public void shutdown() {
-
-        // Replication shutdown
-        verifyAndReportLocalFiles("/root/replicatedFiles");
-        helpMethods.clearFolder("/root/replicatedFiles");
-        helpMethods.clearFolder("/root/logs");
+        if (fileLog.exists()) {
+            sendLog();
+        }
 
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+
+        // Replication shutdown
+        verifyAndReportLocalFiles("/root/replicatedFiles", "X");
+        helpMethods.clearFolder("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/logs");
 
         // Shutdown the executor when the node shuts down
         executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
+
+    private void sendLog(){
+        try {
+            // Create a socket connection to the server
+            Socket socket = new Socket(serverIP, 12345);
+
+            // Get the output stream of the socket
+            OutputStream outputStream = socket.getOutputStream();
+
+            // Create an input stream to read the file
+            FileInputStream fileInputStream = new FileInputStream(fileLog);
+
+            // Create a buffer for reading data from the file
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+
+            // Read data from the file and write it to the output stream
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            // Flush the output stream to ensure all data is sent
+            outputStream.flush();
+
+            // Close the streams and socket
+            fileInputStream.close();
+            outputStream.close();
+            socket.close();
+
+            System.out.println("File sent successfully");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     // Hash function
     public int hash(String IP){
@@ -127,7 +163,7 @@ public class Node {
     }
 
     // Node verifies local files and report to the naming server
-    private void verifyAndReportLocalFiles(String path) {
+    private void verifyAndReportLocalFiles(String path, String indication) {
         File directory = new File(path);
         File[] files = directory.listFiles();
         if (files != null) {
@@ -135,18 +171,18 @@ public class Node {
                 if (file.isFile()) {
                     String filename = file.getName();
                     int fileHash = hash(filename);
-                    reportFileHashToServer(fileHash, filename);
+                    reportFileHashToServer(fileHash, filename, indication);
                 }
             }
         }
     }
 
-    private void reportFileHashToServer(int fileHash, String filename) {
+    private void reportFileHashToServer(int fileHash, String filename, String indication) {
         if (serverIP == null) {
             logger.log(Level.INFO, "Server IP is not available, cannot report file hash");
             return;
         }
-        String message = "REPORT" + ":" + IP + ":" + fileHash + ":" + filename;
+        String message = "REPORT" + ":" + IP + ":" + fileHash + ":" + filename + ":" + indication;
         String purpose = "Reporting file hashes to server";
 
         helpMethods.sendUnicast(purpose, serverIP, message, 8000);
@@ -176,7 +212,7 @@ public class Node {
                     // Handle the addition event, report file
                     if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
                         logger.log(Level.INFO, "File created: " + event.context());
-                        reportFileHashToServer(hash(String.valueOf(event.context())), String.valueOf(event.context()));
+                        reportFileHashToServer(hash(String.valueOf(event.context())), String.valueOf(event.context()), "O");
                     }
                 }
                 // Reset the key to receive further events
@@ -311,7 +347,7 @@ public class Node {
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
-        verifyAndReportLocalFiles("/root/localFiles");
+        verifyAndReportLocalFiles("/root/localFiles", "O");
 
     }
 

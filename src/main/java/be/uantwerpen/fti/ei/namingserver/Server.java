@@ -3,8 +3,7 @@ package be.uantwerpen.fti.ei.namingserver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +37,7 @@ public class Server {
 
     private ExecutorService executor;
 
+    private Map<String, Map<String, Map<String, String>>> receivedFiles;
 
     // Constructor to read the starting data from the JSON file
     public Server(){
@@ -296,14 +296,69 @@ public class Server {
                 helpMethods.sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
+                receiveFileLog();
                 removeNode(nodeIP);
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
             case "REPORT":
                 int fileHash = Integer.parseInt(parts[2]);
                 String filename = parts[3];
+                if (parts[4].equals("X")){
+                    nodeIP = receivedFiles.get(filename).get("localOwnerIP").toString();
+                }
                 processFileReport(nodeIP, fileHash, filename);
                 break;
+        }
+    }
+
+    private void receiveFileLog(){
+        try {
+            // Create a server socket bound to the specified port
+            ServerSocket serverSocket = new ServerSocket(12345);
+
+            System.out.println("Server waiting for connections...");
+
+            // Accept incoming connections in a loop
+            while (true) {
+                // Accept the connection from the client
+                Socket socket = serverSocket.accept();
+
+                System.out.println("Connection established with " + socket.getInetAddress());
+
+                // Create an input stream to read data from the socket
+                InputStream inputStream = socket.getInputStream();
+
+                // Read the file name from the client
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                String fileName = reader.readLine();
+
+                // Read data from the socket and store it in a byte array
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    byteArrayOutputStream.write(buffer, 0, bytesRead);
+                }
+
+                // Convert received byte array to JSON string
+                String jsonContent = new String(byteArrayOutputStream.toByteArray());
+
+                // Parse JSON string using Jackson ObjectMapper
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Map<String, String>> fileData = mapper.readValue(jsonContent, Map.class);
+
+                // Store the received file data in the map
+                receivedFiles.put(fileName, fileData);
+
+                // Close the streams and socket
+                byteArrayOutputStream.close();
+                inputStream.close();
+                socket.close();
+
+                System.out.println("File received successfully");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
