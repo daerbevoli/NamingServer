@@ -101,13 +101,16 @@ public class Node {
      * The nodes receive this message and update their previous and next IDs
      */
     public void shutdown() {
-        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        helpMethods.sendMulticast("Shutdown", message, 3000);
 
         // Replication shutdown
         verifyAndReportFiles("/root/replicatedFiles");
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
+
+        String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
+        helpMethods.sendMulticast("Shutdown", message, 3000);
+
+
 
         // Shutdown the executor when the node shuts down
         executor.shutdown();
@@ -328,8 +331,7 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
-
-            FileTransfer.transferFile(nodeToReplicateTo, filename, 8600);
+        FileTransfer.transferFile(nodeToReplicateTo, filename, 8600);
     }
 
     private void processCreateLog(String message) {
