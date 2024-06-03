@@ -103,23 +103,6 @@ public class Node {
      * The nodes receive this message and update their previous and next IDs
      */
     public void shutdown() {
-
-        // Replication shutdown
-        verifyAndReportFiles("/root/replicatedFiles");
-        helpMethods.clearFolder("/root/replicatedFiles");
-        helpMethods.clearFolder("/root/logs");
-
-        // Wait until the condition is met
-        while (!received) {
-            try {
-                Thread.sleep(100); // Adjust sleep time as needed
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                // Handle interruption
-            }
-        }
-
-
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
 
@@ -140,8 +123,8 @@ public class Node {
     }
 
     // Node verifies local files and report to the naming server
-    private void verifyAndReportFiles(String path) {
-        File directory = new File(path);
+    private void verifyAndReportLocalFiles() {
+        File directory = new File("/root/localFiles");
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
@@ -151,7 +134,6 @@ public class Node {
                     reportFileHashToServer(fileHash, filename);
                 }
             }
-            received = false;
         }
     }
 
@@ -284,16 +266,16 @@ public class Node {
         if (message.startsWith("BOOTSTRAP")){
             processBootstrap(message);
         }
-        if (message.startsWith("SHUTDOWN")){
+        else if (message.startsWith("SHUTDOWN")){
             processShutdown(message);
         }
-        if (message.startsWith("NUMNODES")){
+        else if (message.startsWith("NUMNODES")){
             processNumNodes(message);
         }
-        if (message.startsWith("REPLICATE")){
+        else if (message.startsWith("REPLICATE")){
             processReplicate(message);
         }
-        if (message.startsWith("LOG")) {
+        else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
     }
@@ -325,7 +307,7 @@ public class Node {
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
-        verifyAndReportFiles("/root/localFiles");
+        verifyAndReportLocalFiles();
 
     }
 
@@ -345,7 +327,6 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
-        FileTransfer.transferFile(nodeToReplicateTo, filename, 8600);
     }
 
     private void processCreateLog(String message) {
@@ -353,9 +334,7 @@ public class Node {
         String localOwnerIP = parts[1];
         String filename = parts[2];
 
-        updateLogFile(localOwnerIP, IP, filename);
-        received = true;
-
+        updateLogFile(localOwnerIP,IP, filename);
     }
 
     // Create/Update a log file with file references when replicating a file
@@ -467,7 +446,6 @@ public class Node {
             }
         }
     }
-
 
     public void run() {
         Scanner scanner = new Scanner(System.in);
