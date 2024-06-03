@@ -331,6 +331,7 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
+        FileTransfer.transferFile(nodeToReplicateTo, filename, 8600);
     }
 
     private void processCreateLog(String message) {
@@ -338,7 +339,7 @@ public class Node {
         String localOwnerIP = parts[1];
         String filename = parts[2];
 
-        updateLogFile(localOwnerIP,IP, filename);
+        updateLogFile(localOwnerIP, IP, filename);
     }
 
     // Create/Update a log file with file references when replicating a file
