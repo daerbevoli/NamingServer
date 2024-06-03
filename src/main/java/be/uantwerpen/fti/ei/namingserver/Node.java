@@ -101,10 +101,6 @@ public class Node {
      * The nodes receive this message and update their previous and next IDs
      */
     public void shutdown() {
-        if (fileLog.exists()) {
-            sendLog();
-            logger.log(Level.INFO, "file log sent");
-        }
 
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
@@ -114,8 +110,11 @@ public class Node {
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
-        // Shutdown the executor when the node shuts down
-        executor.shutdown();
+        if (fileLog.exists()) {
+            sendLog();
+            logger.log(Level.INFO, "file log sent");
+        }
+
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -148,6 +147,9 @@ public class Node {
             outputStream.flush();
 
             logger.log(Level.INFO, "File sent successfully");
+
+            // Shutdown the executor when the node shuts down
+            executor.shutdown();
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
