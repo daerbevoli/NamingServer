@@ -103,10 +103,14 @@ public class Node {
      * The nodes receive this message and update their previous and next IDs
      */
     public void shutdown() {
+
+        // Replication shutdown
+        verifyAndReportLocalFiles("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/logs");
+
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
-
-
 
         // Shutdown the executor when the node shuts down
         executor.shutdown();
@@ -123,8 +127,8 @@ public class Node {
     }
 
     // Node verifies local files and report to the naming server
-    private void verifyAndReportLocalFiles() {
-        File directory = new File("/root/localFiles");
+    private void verifyAndReportLocalFiles(String path) {
+        File directory = new File(path);
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
@@ -307,7 +311,7 @@ public class Node {
         String[] parts = message.split(":");
         numOfNodes = Integer.parseInt(parts[1]);
         logger.log(Level.INFO, "Number of nodes: " + numOfNodes);
-        verifyAndReportLocalFiles();
+        verifyAndReportLocalFiles("/root/localFiles");
 
     }
 
