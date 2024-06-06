@@ -111,36 +111,43 @@ public class Node {
         helpMethods.clearFolder("/root/logs");
 
         if (fileLog.exists()) {
-            sendLog();
+            sendLog(8900);
             logger.log(Level.INFO, "file log sent");
         }
 
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
-    private void sendLog(){
-        try (Socket socket = new Socket(serverIP, 450)){
+    private void sendLog(int port){
+
+        File fileToSend = new File("/root/logs/fileLog.json");
+
+        if (!fileToSend.exists()) {
+            logger.log(Level.WARNING, "File not found: fileLog.json");
+            return;
+        }
+
+        try (Socket socket = new Socket(serverIP, port);
             ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
-            try (FileInputStream fileInputStream = new FileInputStream(fileLog)) {
+            FileInputStream fileInputStream = new FileInputStream(fileToSend)) {
 
-                logger.log(Level.INFO, "Sending file: " + fileLog.getName());
+            logger.log(Level.INFO, "Sending file: fileLog.json");
 
-                // Send the file name
-                outputStream.writeUTF(fileLog.getName());
-                outputStream.flush();
+            // Send the file name
+            outputStream.writeUTF("fileLog.json");
+            outputStream.flush();
 
-                // Send the file length
-                outputStream.writeLong(fileLog.length());
-                outputStream.flush();
+            // Send the file length
+            outputStream.writeLong(fileToSend.length());
+            outputStream.flush();
 
-                // Buffer to store chunks of file data
-                byte[] buffer = new byte[1024];
-                int bytesRead;
+            // Buffer to store chunks of file data
+            byte[] buffer = new byte[1024];
+            int bytesRead;
 
-                // Read the file data and send it to the server
-                while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
+            // Read the file data and send it to the server
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
             }
 
             // Ensure all data is sent immediately
@@ -155,6 +162,7 @@ public class Node {
             logger.log(Level.WARNING, "Unable to send file", e);
         }
     }
+
 
 
     // Hash function

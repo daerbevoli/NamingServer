@@ -296,7 +296,7 @@ public class Server {
                 helpMethods.sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
-                receiveFileLog();
+                receiveFileLog(8900);
                 removeNode(nodeIP);
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
@@ -311,10 +311,10 @@ public class Server {
         }
     }
 
-    private void receiveFileLog(){
+    private void receiveFileLog(int port){
         try {
             // Create a server socket bound to the specified port
-            ServerSocket serverSocket = new ServerSocket(450);
+            ServerSocket serverSocket = new ServerSocket(port);
 
             System.out.println("Server waiting for connections...");
 
