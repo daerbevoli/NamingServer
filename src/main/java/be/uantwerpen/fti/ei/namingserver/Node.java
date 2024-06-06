@@ -108,12 +108,12 @@ public class Node {
 
         // Replication shutdown
         verifyAndReportLocalFiles("/root/replicatedFiles", "X");
-        helpMethods.clearFolder("/root/replicatedFiles");
-        helpMethods.clearFolder("/root/logs");
 
         executor.submit(() -> FileTransfer.transferFile(serverIP, "/root/logs", "fileLog.json", 8900));
         logger.log(Level.INFO, "file log sent");
 
+        helpMethods.clearFolder("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/logs");
         // Shutdown the executor when the node shuts down
         executor.shutdown();
 
