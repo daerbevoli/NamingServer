@@ -113,6 +113,7 @@ public class Node {
         if (fileLog.exists()) {
             sendLog(8900);
             logger.log(Level.INFO, "file log sent");
+            helpMethods.addFile("FileLogSent.txt", "/root");
         }
 
     }
