@@ -37,6 +37,8 @@ public class Server {
 
     private Map<String, Map<String, String>> fileLogMap = new HashMap<>();
 
+    private boolean mapFinish = false;
+
     private ExecutorService executor;
 
     // Constructor to read the starting data from the JSON file
@@ -301,8 +303,12 @@ public class Server {
                 fileToMap(receivedFileLog);
                 removeNode(nodeIP);
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
+                mapFinish = true;
                 break;
             case "REPORT":
+                while(!mapFinish){
+
+                }
                 int fileHash = Integer.parseInt(parts[2]);
                 String filename = parts[3];
                 if (parts[4].equals("X")){
