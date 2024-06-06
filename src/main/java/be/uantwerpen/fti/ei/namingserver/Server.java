@@ -35,9 +35,9 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
-    private ExecutorService executor;
+    private Map<String, Map<String, String>> fileLogMap = new HashMap<>();
 
-    private final Map<String, Map<String, String>> receivedFiles = new HashMap<>();
+    private ExecutorService executor;
 
     // Constructor to read the starting data from the JSON file
     public Server(){
@@ -60,8 +60,6 @@ public class Server {
 
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
-
-        executor.submit(() -> receiveFileLog(8900));
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -298,6 +296,10 @@ public class Server {
                 helpMethods.sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
+                executor.submit(() -> FileTransfer.receiveFiles(8900, "/root"));
+                File receivedFileLog = new File("/root/fileLog.json");
+                fileToMap(receivedFileLog);
+
                 removeNode(nodeIP);
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
@@ -305,55 +307,19 @@ public class Server {
                 int fileHash = Integer.parseInt(parts[2]);
                 String filename = parts[3];
                 if (parts[4].equals("X")){
-                    nodeIP = receivedFiles.get(filename).get("localOwnerIP");
+                    nodeIP = fileLogMap.get(filename).get("localOwnerIP");
                 }
                 processFileReport(nodeIP, fileHash, filename);
                 break;
         }
     }
 
-    private void receiveFileLog(int port) {
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            while (true) {
-                // Accept the connection from the client
-                Socket socket = serverSocket.accept();
-
-                System.out.println("Connection established with " + socket.getInetAddress());
-
-                // Create an input stream to read data from the socket
-                InputStream inputStream = socket.getInputStream();
-
-                // Read the file name from the client
-                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                String fileName = reader.readLine();
-
-                // Read data from the socket and store it in a byte array
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    byteArrayOutputStream.write(buffer, 0, bytesRead);
-                }
-
-                // Convert received byte array to JSON string
-                String jsonContent = byteArrayOutputStream.toString();
-
-                // Parse JSON string using Jackson ObjectMapper
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Map<String, String>> fileData = mapper.readValue(jsonContent, Map.class);
-
-                // Store the received file data in the map
-                receivedFiles.putAll(fileData); // Assuming fileData is structured correctly
-
-                // Close the streams and socket
-                byteArrayOutputStream.close();
-                inputStream.close();
-                socket.close();
-
-                System.out.println("File received successfully");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void fileToMap(File file) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            fileLogMap = mapper.readValue(file, HashMap.class);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "An error occurred when reading from JSON file", e);
         }
     }
 
@@ -401,7 +367,7 @@ public class Server {
             } else if (command.startsWith("clearMap")) {
                 clearMap();
             } else if (command.startsWith("log")){
-                System.out.println(receivedFiles.values());
+                System.out.println(fileLogMap.values());
             } else {
                 System.out.println("Invalid command");
             }
