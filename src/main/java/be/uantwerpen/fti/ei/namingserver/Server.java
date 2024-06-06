@@ -312,51 +312,44 @@ public class Server {
     }
 
     private void receiveFileLog(int port){
-        try {
-            // Create a server socket bound to the specified port
-            ServerSocket serverSocket = new ServerSocket(port);
+        // Create a server socket bound to the specified port
+        try (ServerSocket serverSocket = new ServerSocket(port)){
 
-            System.out.println("Server waiting for connections...");
+            // Accept the connection from the client
+            Socket socket = serverSocket.accept();
 
-            // Accept incoming connections in a loop
-            while (true) {
-                // Accept the connection from the client
-                Socket socket = serverSocket.accept();
+            System.out.println("Connection established with " + socket.getInetAddress());
 
-                System.out.println("Connection established with " + socket.getInetAddress());
+            // Create an input stream to read data from the socket
+            InputStream inputStream = socket.getInputStream();
 
-                // Create an input stream to read data from the socket
-                InputStream inputStream = socket.getInputStream();
+            // Read the file name from the client
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String fileName = reader.readLine();
 
-                // Read the file name from the client
-                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                String fileName = reader.readLine();
-
-                // Read data from the socket and store it in a byte array
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    byteArrayOutputStream.write(buffer, 0, bytesRead);
-                }
-
-                // Convert received byte array to JSON string
-                String jsonContent = new String(byteArrayOutputStream.toByteArray());
-
-                // Parse JSON string using Jackson ObjectMapper
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Map<String, String>> fileData = mapper.readValue(jsonContent, Map.class);
-
-                // Store the received file data in the map
-                receivedFiles.put(fileName, fileData);
-
-                // Close the streams and socket
-                byteArrayOutputStream.close();
-                inputStream.close();
-                socket.close();
-
-                System.out.println("File received successfully");
+            // Read data from the socket and store it in a byte array
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
             }
+
+            // Convert received byte array to JSON string
+            String jsonContent = new String(byteArrayOutputStream.toByteArray());
+
+            // Parse JSON string using Jackson ObjectMapper
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Map<String, String>> fileData = mapper.readValue(jsonContent, Map.class);
+
+            // Store the received file data in the map
+            receivedFiles.put(fileName, fileData);
+
+            // Close the streams and socket
+            byteArrayOutputStream.close();
+            inputStream.close();
+
+            System.out.println("File received successfully");
         } catch (IOException e) {
             e.printStackTrace();
         }
