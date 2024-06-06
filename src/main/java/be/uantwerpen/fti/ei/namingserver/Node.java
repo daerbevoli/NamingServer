@@ -110,6 +110,7 @@ public class Node {
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
+        logger.log(Level.INFO, "The existence of the file log: " + fileLog.exists());
         if (fileLog.exists()) {
             sendLog(8900);
             logger.log(Level.INFO, "file log sent");
