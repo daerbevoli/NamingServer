@@ -312,10 +312,8 @@ public class Server {
         }
     }
 
-    private void receiveFileLog(int port){
-        // Create a server socket bound to the specified port
-        try (ServerSocket serverSocket = new ServerSocket(port)){
-
+    private void receiveFileLog(int port) {
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (true) {
                 // Accept the connection from the client
                 Socket socket = serverSocket.accept();
@@ -338,23 +336,22 @@ public class Server {
                 }
 
                 // Convert received byte array to JSON string
-                String jsonContent = new String(byteArrayOutputStream.toByteArray());
+                String jsonContent = byteArrayOutputStream.toString();
 
                 // Parse JSON string using Jackson ObjectMapper
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String, String> fileData = mapper.readValue(jsonContent, Map.class);
+                Map<String, Map<String, String>> fileData = mapper.readValue(jsonContent, Map.class);
 
                 // Store the received file data in the map
-                receivedFiles.put(fileName, fileData);
+                receivedFiles.putAll(fileData); // Assuming fileData is structured correctly
 
                 // Close the streams and socket
                 byteArrayOutputStream.close();
                 inputStream.close();
-                System.out.println("File received successfully");
                 socket.close();
 
+                System.out.println("File received successfully");
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
