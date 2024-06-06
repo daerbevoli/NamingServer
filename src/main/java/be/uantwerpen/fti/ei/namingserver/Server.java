@@ -37,7 +37,7 @@ public class Server {
 
     private Map<String, Map<String, String>> fileLogMap = new HashMap<>();
 
-    private boolean mapFinish = false;
+    private volatile boolean mapFinish = false;
 
     private ExecutorService executor;
 
@@ -306,12 +306,12 @@ public class Server {
                 mapFinish = true;
                 break;
             case "REPORT":
-                while(!mapFinish){
-
-                }
                 int fileHash = Integer.parseInt(parts[2]);
                 String filename = parts[3];
                 if (parts[4].equals("X")){
+                    while (!mapFinish) {
+                        Thread.onSpinWait();
+                    }
                     nodeIP = fileLogMap.get(filename).get("localOwnerIP");
                 }
                 processFileReport(nodeIP, fileHash, filename);
