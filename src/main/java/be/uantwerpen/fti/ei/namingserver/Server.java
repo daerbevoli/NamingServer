@@ -296,7 +296,7 @@ public class Server {
                 helpMethods.sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
                 break;
             case "SHUTDOWN":
-                receiveFileLog(8900);
+                new Thread(() -> receiveFileLog(8900)).start();
                 removeNode(nodeIP);
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
@@ -398,6 +398,8 @@ public class Server {
                 System.out.println(response.getBody()); // Print the response
             } else if (command.startsWith("clearMap")) {
                 clearMap();
+            } else if (command.startsWith("log")){
+                System.out.println(receivedFiles.values());
             } else {
                 System.out.println("Invalid command");
             }

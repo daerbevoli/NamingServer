@@ -111,7 +111,7 @@ public class Node {
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
-        FileTransfer.transferFile(serverIP, "/root/logs", "fileLog.json", 8900);
+        executor.submit(() -> FileTransfer.transferFile(serverIP, "/root/logs", "fileLog.json", 8900));
         logger.log(Level.INFO, "file log sent");
 
         // Shutdown the executor when the node shuts down
