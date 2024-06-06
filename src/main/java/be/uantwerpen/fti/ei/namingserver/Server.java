@@ -37,7 +37,7 @@ public class Server {
 
     private ExecutorService executor;
 
-    private final Map<String, Map<String, Map<String, String>>> receivedFiles = new HashMap<>();
+    private final Map<String, Map<String, String>> receivedFiles = new HashMap<>();
 
     // Constructor to read the starting data from the JSON file
     public Server(){
@@ -305,7 +305,7 @@ public class Server {
                 int fileHash = Integer.parseInt(parts[2]);
                 String filename = parts[3];
                 if (parts[4].equals("X")){
-                    nodeIP = receivedFiles.get(filename).get("localOwnerIP").toString();
+                    nodeIP = receivedFiles.get(filename).get("localOwnerIP");
                 }
                 processFileReport(nodeIP, fileHash, filename);
                 break;
@@ -342,7 +342,7 @@ public class Server {
 
                 // Parse JSON string using Jackson ObjectMapper
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String, Map<String, String>> fileData = mapper.readValue(jsonContent, Map.class);
+                Map<String, String> fileData = mapper.readValue(jsonContent, Map.class);
 
                 // Store the received file data in the map
                 receivedFiles.put(fileName, fileData);
