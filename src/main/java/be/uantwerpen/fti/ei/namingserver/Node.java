@@ -114,6 +114,9 @@ public class Node {
         FileTransfer.transferFile(serverIP, "/root/logs", "fileLog.json", 8900);
         logger.log(Level.INFO, "file log sent");
 
+        // Shutdown the executor when the node shuts down
+        executor.shutdown();
+
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -154,8 +157,7 @@ public class Node {
 
             logger.log(Level.INFO, "File sent successfully");
 
-            // Shutdown the executor when the node shuts down
-            executor.shutdown();
+
 
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to send file", e);
@@ -509,6 +511,7 @@ public class Node {
             switch (command) {
                 case "shutdown":
                     System.out.println("Shutting down");
+                    shutdown();
                     System.exit(0);
                     break;
                 case "num":
