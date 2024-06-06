@@ -111,11 +111,8 @@ public class Node {
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
-        if (fileLog.exists()) {
-            sendLog(8900);
-            logger.log(Level.INFO, "file log sent");
-            helpMethods.addFile("FileLogSent.txt", "/root");
-        }
+        FileTransfer.transferFile(serverIP, "/root/logs", "fileLog.json", 8900);
+        logger.log(Level.INFO, "file log sent");
 
     }
     // FAILURE can be handled with a "heartbeat" mechanism
@@ -381,7 +378,7 @@ public class Node {
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
-        FileTransfer.transferFile(nodeToReplicateTo, filename, 8600);
+        FileTransfer.transferFile(nodeToReplicateTo, "/root/localFiles", filename, 8600);
     }
 
     private void processCreateLog(String message) {

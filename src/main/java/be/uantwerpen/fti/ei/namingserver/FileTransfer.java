@@ -13,8 +13,8 @@ public class FileTransfer {
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public static void transferFile(String IP, String filename, int port) {
-        File fileToSend = new File("/root/localFiles/" + filename);
+    public static void transferFile(String IP, String path, String filename, int port) {
+        File fileToSend = new File(path + "/" + filename);
 
         if (!fileToSend.exists()) {
             logger.log(Level.WARNING, "File not found: " + filename);
