@@ -37,7 +37,7 @@ public class Server {
 
     private ExecutorService executor;
 
-    private Map<String, Map<String, Map<String, String>>> receivedFiles;
+    private final Map<String, Map<String, Map<String, String>>> receivedFiles = new HashMap<>();
 
     // Constructor to read the starting data from the JSON file
     public Server(){
