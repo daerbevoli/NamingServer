@@ -299,7 +299,6 @@ public class Server {
                 executor.submit(() -> FileTransfer.receiveFiles(8900, "/root"));
                 File receivedFileLog = new File("/root/fileLog.json");
                 fileToMap(receivedFileLog);
-
                 removeNode(nodeIP);
                 logger.log(Level.INFO, "Node with IP: " + nodeIP + " has shut down and been removed from the network");
                 break;
