@@ -104,13 +104,13 @@ public class Node {
 
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
         helpMethods.sendMulticast("Shutdown", message, 3000);
+        helpMethods.sendMulticast("because", "The existence of file log: " + fileLog.exists(), 4000);
 
         // Replication shutdown
         verifyAndReportLocalFiles("/root/replicatedFiles", "X");
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
-        logger.log(Level.INFO, "The existence of the file log: " + fileLog.exists());
         if (fileLog.exists()) {
             sendLog(8900);
             logger.log(Level.INFO, "file log sent");
