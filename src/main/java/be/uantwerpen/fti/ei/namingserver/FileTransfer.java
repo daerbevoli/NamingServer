@@ -1,12 +1,8 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -17,23 +13,21 @@ public class FileTransfer {
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
-    private int port;
+    private final int port;
     private ServerSocket sSocket;
     private  boolean listening=true;
 
     public FileTransfer(int port) throws IOException {
-           this.port=port;
+           this.port = port;
     }
 
     public void transferFile(String IP, String filename, String potentialMessage) {
         File fileToSend;
-        if(potentialMessage==null)
-        {
-            potentialMessage="";
+        if(potentialMessage == null) {
+            potentialMessage = "";
             fileToSend = new File("/root/localFiles/" + filename);
-        } else
-        {
-            potentialMessage=potentialMessage+":"+IP;
+        } else {
+            potentialMessage = potentialMessage+ ":" + IP;
             fileToSend = new File("/root/replicatedFiles/" + filename);
         }
 
@@ -79,10 +73,10 @@ public class FileTransfer {
     }
 
     public void receiveFiles(String directory) {
-        listening=true;
+        listening = true;
 
         try {
-            sSocket=new ServerSocket(port);
+            sSocket = new ServerSocket(port);
             while (listening) {
                 Socket cSocket = sSocket.accept();
                 System.out.println("accepted socket");
@@ -122,11 +116,11 @@ public class FileTransfer {
                 logger.log(Level.INFO, "File received successfully: " + fileName);
             }
 
-            String msg=in.readUTF();
+            String msg = in.readUTF();
             if(!msg.isEmpty())
             {
                 String[] parts = msg.split(":");
-                Node.updateLogFile(parts[0],parts[1], fileName);
+                Node.updateLogFile( parts[0], parts[1], fileName);
             }
 
         } catch (IOException e) {
@@ -145,7 +139,7 @@ public class FileTransfer {
 
     public  void stopListening()
     {
-        listening=false;
+        listening = false;
 
         if (sSocket != null && !sSocket.isClosed()) {
             try {
