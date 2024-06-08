@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -120,10 +121,14 @@ public class helpMethods {
     }
 
     public static void displayLogContents(String filePath) {
+        Path path = Paths.get(filePath);
+        if (!Files.exists(path)) {
+            logger.log(Level.WARNING, "File does not exist");
+            return;
+        }
         try {
             // Read content from JSON file
-            String content = new String(Files.readAllBytes(Paths.get(filePath)));
-
+            String content = new String(Files.readAllBytes(path));
             // Parse JSON content into JSONObject
             JSONObject json = new JSONObject(content);
 
@@ -140,6 +145,27 @@ public class helpMethods {
         } catch (Exception e) {
             logger.log(Level.WARNING, "Error parsing JSON", e);
 
+        }
+    }
+
+    public static void clearFolder(String path){
+        File folder = new File(path);
+        if (!folder.exists()) {
+            logger.log(Level.WARNING, "The folder " + folder.getPath() + " does not exist.");
+            return;
+        }
+
+        if (!folder.isDirectory()) {
+            logger.log(Level.WARNING, "The provided path " + folder.getPath() + " is not a directory.");
+            return;
+        }
+
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                file.delete();
+                logger.log(Level.INFO, file.getName() + "Deleted");
+            }
         }
     }
 
