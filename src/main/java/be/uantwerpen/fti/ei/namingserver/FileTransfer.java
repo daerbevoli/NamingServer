@@ -11,11 +11,12 @@ import java.util.logging.Logger;
 public class FileTransfer {
 
     private static final Logger logger = Logger.getLogger(FileTransfer.class.getName());
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     private final int port;
+
     private ServerSocket sSocket;
-    private  boolean listening=true;
+
+    private  boolean listening = true;
 
     public FileTransfer(int port) throws IOException {
            this.port = port;
@@ -80,7 +81,6 @@ public class FileTransfer {
             while (listening) {
                 Socket cSocket = sSocket.accept();
                 System.out.println("accepted socket");
-                //executor.submit(() -> handleFileTransfer(cSocket, directory));
                 handleFileTransfer(cSocket, directory);
 
             }
