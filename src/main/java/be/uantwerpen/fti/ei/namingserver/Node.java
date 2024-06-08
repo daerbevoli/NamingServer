@@ -38,6 +38,12 @@ public class Node {
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
 
+    // Sync agent to sync the files
+    private SyncAgent agent;
+
+    // file list with the filename and whether there is a lock on it -> use?
+    private FileList fileList;
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -111,6 +117,10 @@ public class Node {
                 throw new RuntimeException(e);
             }
         }
+
+        // Sync agent created during system launch/bootstrap and then run
+        agent = new SyncAgent();
+        agent.run();
     }
 
     /*
