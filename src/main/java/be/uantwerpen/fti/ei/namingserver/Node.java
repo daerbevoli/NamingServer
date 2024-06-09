@@ -3,7 +3,6 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
-import java.sql.SQLOutput;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.concurrent.*;
@@ -25,10 +24,11 @@ import org.json.JSONObject;
 public class Node {
 
     private final String IP;
-    private int previousID, nextID, currentID;
+    private int previousID, nextID;
+    private final int currentID;
     private int numOfNodes;
 
-    private FileTransfer ft;
+    private final FileTransfer ft;
     private final ServerSocket serverSocket;
     private String serverIP;
     private boolean finishSending;
@@ -38,17 +38,24 @@ public class Node {
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
 
+    // Sync agent to sync the files
+    private SyncAgent agent;
+
+    // file list with the filename and whether there is a lock on it -> use?
+    private FileList fileList;
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
 
         try {
-            ft= new FileTransfer(8500);
+            ft = new FileTransfer(Ports.ftPort);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
         numOfNodes = 0;
-        finishSending=false;
+        finishSending = false;
 
         currentID = hash(IP);
         nextID = currentID;
@@ -76,8 +83,8 @@ public class Node {
         // optimization for later
         // This optimization is to use the general receive function and may be errorless
         // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
-        executor.submit(() -> receiveUnicast("Replication purpose", 8100));
-        executor.submit(() -> receiveUnicast("Create log purpose", 8700));
+        executor.submit(() -> receiveUnicast("Replication purpose", Ports.replPort));
+        executor.submit(() -> receiveUnicast("Create log purpose", Ports.logPort));
 
         executor.submit(this::watchFolder);
 
@@ -110,6 +117,10 @@ public class Node {
                 throw new RuntimeException(e);
             }
         }
+
+        // Sync agent created during system launch/bootstrap and then run
+        agent = new SyncAgent();
+        agent.run();
     }
 
     /*
@@ -120,17 +131,17 @@ public class Node {
      */
     public void shutdown() {
         String message = "SHUTDOWN" + ":" + IP + ":" + previousID + ":" + nextID;
-        if(fileLog.exists()&&numOfNodes>2)
+        if(fileLog.exists() && numOfNodes > 2)
         {
             executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
-            System.out.println("1:Condition met to transfer files for shutdown");
-            helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:"+IP, 8000);
-            System.out.println("2:sendingUnicast");
+            helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:" + IP, Ports.unicastPort);
             while(!finishSending)
             {
             }
         }
         helpMethods.sendMulticast("Shutdown", message, 3000);
+        helpMethods.clearFolder("/root/replicatedFiles");
+        helpMethods.clearFolder("/root/logs");
 
 
 
@@ -171,7 +182,7 @@ public class Node {
         String message = "REPORT" + ":" + IP + ":" + fileHash + ":" + filename;
         String purpose = "Reporting file hashes to server";
 
-        helpMethods.sendUnicast(purpose, serverIP, message, 8000);
+        helpMethods.sendUnicast(purpose, serverIP, message, Ports.unicastPort);
     }
 
     private void watchFolder() {
@@ -185,8 +196,6 @@ public class Node {
             // Register the directory for specific events
             directoryPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
-            logger.log(Level.INFO, "Watching directory: " + directoryPath);
-
             // Infinite loop to continuously watch for events
             while (true) {
                 WatchKey key = watchService.take();
@@ -197,7 +206,7 @@ public class Node {
 
                     // Handle the addition event, report file
                     if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                        logger.log(Level.INFO, "File created: " + event.context());
+                        logger.log(Level.INFO, "File added: " + event.context());
                         reportFileHashToServer(hash(String.valueOf(event.context())), String.valueOf(event.context()));
                     }
                 }
@@ -206,7 +215,7 @@ public class Node {
             }
 
         } catch (IOException | InterruptedException e) {
-            logger.log(Level.WARNING, "unable to watch folder", e);
+            logger.log(Level.WARNING, "Unable to watch folder", e);
         }
     }
 
@@ -263,7 +272,7 @@ public class Node {
     }
 
     private void receiveNumOfNodes() {
-        try (DatagramSocket socket = new DatagramSocket(8300)) {
+        try (DatagramSocket socket = new DatagramSocket(Ports.nnPort)) {
             logger. log(Level.INFO, "Connected to unicast socket: receive number of nodes");
 
             // Create buffer for incoming data
@@ -327,7 +336,8 @@ public class Node {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
+            logger.log(Level.INFO, "Post bootstrap process: " + IP + "previousID:" + previousID +
+                    "nextID:" + nextID + "numOfNodes:" + numOfNodes);
         }
 
     }
@@ -352,12 +362,11 @@ public class Node {
     }
 
     private void processReplicate(String message){
-        logger.log(Level.INFO, "In the processReplication method");
         String[] parts = message.split(":");
         String nodeToReplicateTo = parts[1];
         String filename = parts[2];
 
-            ft.transferFile(nodeToReplicateTo, filename,null);
+        ft.transferFile(nodeToReplicateTo, filename,null);
     }
 
     private void processCreateLog(String message) {
@@ -365,11 +374,11 @@ public class Node {
         String localOwnerIP = parts[1];
         String filename = parts[2];
 
-        updateLogFile(localOwnerIP,IP, filename);
+        updateLogFile(localOwnerIP, IP, filename);
     }
 
     // Create/Update a log file with file references when replicating a file
-    public static void updateLogFile(String localOwnerIP,String replicatedOwnerIP, String filename) {
+    public static void updateLogFile(String localOwnerIP, String replicatedOwnerIP, String filename) {
         try {
             // Ensure the directory exists
             File directory = fileLog.getParentFile();
@@ -409,10 +418,9 @@ public class Node {
         if (currentID == prevID) {
             nextID = nxtID;
         }
-        if (currentID == nxtID) {
+        if (currentID == nxtID){
             previousID = prevID;
         }
-        logger.log(Level.INFO, "Post shutdown process: " + IP + "previousID:" + previousID + "nextID:" + nextID + "numOfNodes:" + numOfNodes);
     }
 
 
@@ -425,7 +433,6 @@ public class Node {
         */
 
         if (receivedHash == nextID) {
-            System.out.println("Received own bootstrap, my ID: "+currentID);
             return;
         }
 
@@ -433,7 +440,7 @@ public class Node {
             int oldNext= nextID;
             nextID = receivedHash;
             sendNodeResponse(true, IP, oldNext);
-            logger.log(Level.INFO, "Next ID updated to: "+nextID);
+            logger.log(Level.INFO, "Next ID updated to: " + nextID);
         }
 
         /*
@@ -445,7 +452,7 @@ public class Node {
             int oldPrevious =previousID;
             previousID = receivedHash;
             sendNodeResponse(false, IP, oldPrevious);
-            logger.log(Level.INFO, "Previous ID updated to: "+previousID);
+            logger.log(Level.INFO, "Previous ID updated to: " + previousID);
         }
     }
 
@@ -456,7 +463,6 @@ public class Node {
              String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
              out.writeUTF(msg);
              out.flush();
-             logger.log(Level.INFO, "Sending package");
         }
     }
 
@@ -469,55 +475,55 @@ public class Node {
             if (parts[0].equalsIgnoreCase("next")) {
                 nextID = Integer.parseInt(parts[1]);
                 previousID = Integer.parseInt(parts[2]);
-                logger.log(Level.INFO, "Next and previous ID updated, previousID: "+ previousID + "Next: " + nextID);
+                logger.log(Level.INFO, "Next and previous ID updated, previousID: "+ previousID + " Next: " + nextID);
             } else if (parts[0].equalsIgnoreCase("prev")) {
                 nextID = Integer.parseInt(parts[2]);
                 previousID = Integer.parseInt(parts[1]);
-                logger.log(Level.INFO, "Next and previous ID updated, previousID: "+ previousID + "Next: " + nextID);
+                logger.log(Level.INFO, "Next and previous ID updated, previousID: "+ previousID + " Next: " + nextID);
             }
         }
     }
 
-    private void sendReplicatedFilesShutdown(String msg)
-    {
-        if(fileLog.exists() )
-        {
-            String[] parts = msg.split(":");
+    private void sendReplicatedFilesShutdown(String msg) {
+        String[] parts = msg.split(":");
+        String prevHost = parts[1];
+        String prev2Host = parts[2];
 
         try {
             ft.stopListening();
-            String fileString= new String(Files.readAllBytes(fileLog.toPath()));
+
+            String fileString = new String(Files.readAllBytes(fileLog.toPath()));
             JSONObject jsonLog = new JSONObject(fileString);
-            System.out.println("the log is this size:"+jsonLog.length());
-            Iterator<String> keys= jsonLog.keys();
-            while(keys.hasNext())
-            {
-                String fileName= keys.next();
-                JSONObject jsonEntry= jsonLog.getJSONObject(fileName);
+
+            Iterator<String> keys = jsonLog.keys();
+            while(keys.hasNext()) {
+                String fileName = keys.next();
+                JSONObject jsonEntry = jsonLog.getJSONObject(fileName);
                 boolean prevNodeOwner;
-                System.out.println("replicatedOwnerIP:"+jsonEntry.getString("replicatedOwnerIP")+" ?= "+IP);
-                if(jsonEntry.getString("replicatedOwnerIP").equals(IP))
-                {
-                    //System.out.println("this happens , right?");
-                    prevNodeOwner= (hash(jsonEntry.getString("localOwnerIP"))==previousID);
-                    System.out.println("prev:"+parts[1]+"prevprev:"+parts[2]);
-                    if (prevNodeOwner)
-                    {
-                        System.out.println("send to:"+parts[1]+";file:"+fileName +";The local owner"+jsonEntry.getString("localOwnerIP"));
-                        ft.transferFile( parts[1],fileName,jsonEntry.getString("localOwnerIP"));  //send to previous node of previous node
-                    } else
-                    {
-                        System.out.println("send to:"+parts[2]+";file:"+fileName+";The local owner"+jsonEntry.getString("localOwnerIP"));
-                        ft.transferFile(parts[2],fileName,jsonEntry.getString("localOwnerIP"));} //send to previous node , if previous is not the owner
+
+                if(jsonEntry.getString("replicatedOwnerIP").equals(IP)) {
+                    prevNodeOwner = (hash(jsonEntry.getString("localOwnerIP")) == previousID);
+
+                    if (prevNodeOwner) {
+                        logger.log(Level.INFO, "send to: "+ prev2Host +" ; file: " + fileName + " ; The local owner: "
+                                +jsonEntry.getString("localOwnerIP"));
+                        //send to previous node of previous node
+                        ft.transferFile(prev2Host, fileName, jsonEntry.getString("localOwnerIP"));
+
+                    } else {
+                        logger.log(Level.INFO, "send to: "+ prevHost +" ; file: " + fileName +" ; The local owner: "
+                                + jsonEntry.getString("localOwnerIP"));
+                        //send to previous node , if previous is not the owner
+                        ft.transferFile(prevHost, fileName, jsonEntry.getString("localOwnerIP"));
+                    }
                     //Thread.sleep(1000);
                 }
             }
-            finishSending=true;
-        } catch (JSONException e) {
+
+            finishSending = true;
+
+        } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         }
     }
 
@@ -532,6 +538,7 @@ public class Node {
             switch (command) {
                 case "shutdown":
                     System.out.println("Shutting down");
+                    shutdown();
                     System.exit(0);
                     break;
                 case "num":

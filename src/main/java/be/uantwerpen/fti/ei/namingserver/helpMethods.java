@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -105,6 +106,16 @@ public class helpMethods {
         }
     }
 
+    public static int hash(String IP){
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
+
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
+
+    }
+
+
     public static void getFiles(String path){
         File dir = new File(path);
 
@@ -112,7 +123,7 @@ public class helpMethods {
 
         if (filesList != null) {
             for (File file : filesList) {
-                System.out.println("File: " + file.getName());
+                System.out.println("File: " + file.getName() + " : " + hash(file.getName()));
             }
         } else {
             System.out.println("The specified directory does not exist or is not a directory.");
@@ -120,10 +131,14 @@ public class helpMethods {
     }
 
     public static void displayLogContents(String filePath) {
+        Path path = Paths.get(filePath);
+        if (!Files.exists(path)) {
+            logger.log(Level.WARNING, "File does not exist");
+            return;
+        }
         try {
             // Read content from JSON file
-            String content = new String(Files.readAllBytes(Paths.get(filePath)));
-
+            String content = new String(Files.readAllBytes(path));
             // Parse JSON content into JSONObject
             JSONObject json = new JSONObject(content);
 
@@ -136,9 +151,31 @@ public class helpMethods {
             }
 
         } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
+            logger.log(Level.WARNING, "Error reading file", e);
         } catch (Exception e) {
-            System.out.println("Error parsing JSON: " + e.getMessage());
+            logger.log(Level.WARNING, "Error parsing JSON", e);
+
+        }
+    }
+
+    public static void clearFolder(String path){
+        File folder = new File(path);
+        if (!folder.exists()) {
+            logger.log(Level.WARNING, "The folder " + folder.getPath() + " does not exist.");
+            return;
+        }
+
+        if (!folder.isDirectory()) {
+            logger.log(Level.WARNING, "The provided path " + folder.getPath() + " is not a directory.");
+            return;
+        }
+
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                file.delete();
+                logger.log(Level.INFO, file.getName() + "Deleted");
+            }
         }
     }
 

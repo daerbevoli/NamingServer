@@ -36,7 +36,7 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
-    private ExecutorService executor;
+    private final ExecutorService executor;
 
 
     // Constructor to read the starting data from the JSON file
@@ -111,11 +111,11 @@ public class Server {
             int largestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
 
-            int smallestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).min()
-                    .orElseThrow(NoSuchElementException::new);
+            int previousNodeID = getPreviousID(nodesMap.get(largestNodeID).getHostName());
 
+            // If host is target, return previous id
             if (hash(sameIP) == largestNodeID){
-                return smallestNodeID;
+                return previousNodeID;
             } else {
                 return largestNodeID;
             }
@@ -266,7 +266,7 @@ public class Server {
     // Receive unicast message from a node
     // It then processes the message
     public void receiveUnicast() {
-        try (DatagramSocket socket = new DatagramSocket(8000)) {
+        try (DatagramSocket socket = new DatagramSocket(Ports.unicastPort)) {
             logger.log(Level.INFO, "Connected to unicast receive socket");
 
             byte[] buffer = new byte[512];
@@ -293,7 +293,8 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                helpMethods.sendUnicast("send number of nodes", nodeIP, "NUMNODES" +":"+ nodesMap.size(), 8300);
+                helpMethods.sendUnicast("send number of nodes", nodeIP,
+                        "NUMNODES" + ":" + nodesMap.size(), Ports.nnPort);
                 break;
             case "SHUTDOWN":
                 removeNode(nodeIP);
@@ -323,62 +324,96 @@ public class Server {
 
         String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
-        helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, 8100);
+        helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, Ports.replPort);
 
         // Log the ownership of the file
         logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
                 "now owns file with filename: " + filename + " and hash: " + fileHash);
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, 8700);
+        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, Ports.logPort);
+    }
+
+    private int getPreviousID(String IP){
+        ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
+        Collections.sort(hashes);
+
+        int index = hashes.indexOf(hash(IP));
+        int indexPrevNode= (index-1) >= 0 ? (index-1) : hashes.size() + (index-1);
+
+        return hashes.get(indexPrevNode);
+    }
+
+    public void sendIPOfPrevNodes(String IP) {
+
+        String ipOfPrev = nodesMap.get(getPreviousID(IP)).getHostName();
+        String ipOf2Prev = nodesMap.get(getPreviousID(ipOfPrev)).getHostName();
+        helpMethods.sendUnicast("Send IP of previous node and its previous node", IP,
+                "ReceivePreviousIPs:" + ipOfPrev+ ":" + ipOf2Prev, 9020);
+
     }
 
 
-    // Run the server
+    // Run the server and handle user commands
     public void run() {
         Scanner scanner = new Scanner(System.in);
+
         while (true) {
             System.out.println("Enter command: ");
             String command = scanner.nextLine();
             String[] parts = command.split(" ");
-            if (command.startsWith("removeNode")) {
-                String ipRemove = parts[1];
-                removeNode(ipRemove);
-            } else if (command.startsWith("addNode")) {
-                String ipAdd = parts[1];
-                addNode(ipAdd);
-            } else if (command.startsWith("getFile")) {
-                String filename = parts[1];
-                ResponseEntity<String> response = getHostname(filename);
-                System.out.println(response.getBody()); // Print the response
-            } else if (command.startsWith("clearMap")) {
-                clearMap();
-            } else {
+
+            // Check if the command is empty
+            if (parts.length == 0) {
                 System.out.println("Invalid command");
+                continue;
             }
+
+            // Process the command based on the first word
+            String action = parts[0];
+
+            switch (action) {
+                case "removeNode":
+                    if (parts.length < 2) {
+                        System.out.println("Usage: removeNode <IP>");
+                        break;
+                    }
+                    String ipToRemove = parts[1];
+                    removeNode(ipToRemove);
+                    break;
+
+                case "addNode":
+                    if (parts.length < 2) {
+                        System.out.println("Usage: addNode <IP>");
+                        break;
+                    }
+                    String ipToAdd = parts[1];
+                    addNode(ipToAdd);
+                    break;
+
+                case "getFile":
+                    if (parts.length < 2) {
+                        System.out.println("Usage: getFile <filename>");
+                        break;
+                    }
+                    String filename = parts[1];
+                    ResponseEntity<String> response = getHostname(filename);
+                    System.out.println(response.getBody()); // Print the response
+                    break;
+
+                case "clearMap":
+                    clearMap();
+                    break;
+
+                default:
+                    System.out.println("Invalid command");
+                    break;
             }
         }
+    }
 
-        public void sendIPOfPrevNodes(String IP)
-        {
 
-            ArrayList<Integer> hashes =new ArrayList<>(nodesMap.keySet());
-            Collections.sort(hashes);
-            System.out.println("printing hashes");
-            for(Integer I: hashes)
-            {
-                System.out.println(I);
-            }
-            int index= hashes.indexOf(hash(IP));
 
-            int indexPrevNode= Math.abs((index-1)%hashes.size());
-            int indexPrevPrevNode =Math.abs((index-2)%hashes.size());
-            System.out.println("size of new map:"+hashes.size()+"index current:"+index+";index prev:"+indexPrevNode+ ";index of prevprev:"+indexPrevPrevNode);
-            String ipOfPrev= nodesMap.get(hashes.get(indexPrevNode)).getHostName();
-            String ipOfPrevPrev=nodesMap.get(hashes.get(indexPrevPrevNode)).getHostName();
-            helpMethods.sendUnicast("Send IP of previous node and its previous node", IP, "ReceivePreviousIPs:"+ipOfPrev+":"+ipOfPrevPrev, 9020 );
-
-        }
     public static void main(String[] args){
         Server server = new Server();
         server.run();
