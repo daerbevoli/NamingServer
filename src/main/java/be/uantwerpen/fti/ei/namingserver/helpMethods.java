@@ -106,6 +106,16 @@ public class helpMethods {
         }
     }
 
+    public static int hash(String IP){
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
+
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
+
+    }
+
+
     public static void getFiles(String path){
         File dir = new File(path);
 
@@ -113,7 +123,7 @@ public class helpMethods {
 
         if (filesList != null) {
             for (File file : filesList) {
-                System.out.println("File: " + file.getName());
+                System.out.println("File: " + file.getName() + " : " + hash(file.getName()));
             }
         } else {
             System.out.println("The specified directory does not exist or is not a directory.");
