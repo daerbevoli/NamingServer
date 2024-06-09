@@ -111,11 +111,11 @@ public class Server {
             int largestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
 
-            int smallestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).min()
-                    .orElseThrow(NoSuchElementException::new);
+            int previousNodeID = getPreviousID(nodesMap.get(largestNodeID).getHostName());
 
+            // If host is target, return previous id
             if (hash(sameIP) == largestNodeID){
-                return smallestNodeID;
+                return previousNodeID;
             } else {
                 return largestNodeID;
             }
@@ -334,27 +334,22 @@ public class Server {
         helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, Ports.logPort);
     }
 
-    public void sendIPOfPrevNodes(String IP) {
-
+    private int getPreviousID(String IP){
         ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
         Collections.sort(hashes);
-        System.out.println("printing hashes");
-        for(Integer I: hashes)
-        {
-            System.out.println(I);
-        }
 
         int index = hashes.indexOf(hash(IP));
         int indexPrevNode= (index-1) >= 0 ? (index-1) : hashes.size() + (index-1);
-        int indexPrevPrevNode =(index-2) >=0 ? (index-2) : hashes.size() + (index-2);
 
-        System.out.println("size of new map: " + hashes.size()+ " index current: "+ index +
-                " ;index prev: " + indexPrevNode + "; index of prevprev: " + indexPrevPrevNode);
+        return hashes.get(indexPrevNode);
+    }
 
-        String ipOfPrev = nodesMap.get(hashes.get(indexPrevNode)).getHostName();
-        String ipOfPrevPrev = nodesMap.get(hashes.get(indexPrevPrevNode)).getHostName();
+    public void sendIPOfPrevNodes(String IP) {
 
-        helpMethods.sendUnicast("Send IP of previous node and its previous node", IP, "ReceivePreviousIPs:"+ipOfPrev+":"+ipOfPrevPrev, 9020 );
+        String ipOfPrev = nodesMap.get(getPreviousID(IP)).getHostName();
+        String ipOf2Prev = nodesMap.get(getPreviousID(ipOfPrev)).getHostName();
+        helpMethods.sendUnicast("Send IP of previous node and its previous node", IP,
+                "ReceivePreviousIPs:" + ipOfPrev+ ":" + ipOf2Prev, 9020);
 
     }
 
