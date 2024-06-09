@@ -3,7 +3,9 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -42,7 +44,7 @@ public class Node {
     private SyncAgent agent;
 
     // file list with the filename and whether there is a lock on it -> use?
-    private FileList fileList;
+    private Map<String, Integer> filesMap = new HashMap<>();
 
     public Node() {
         this.IP = helpMethods.findLocalIP();

@@ -102,28 +102,28 @@ public class Server {
 
         // Find all nodes with a hash smaller than or equal to the file hash but make sure it's not your own hash
         List<Integer> nodeKeys = nodesMap.keySet().stream()
-                .filter(key -> key < fileHash && key != hash(sameIP))
+                .filter(key -> key < fileHash)
                 .toList();
 
+        int replNodeId;
         if (nodeKeys.isEmpty()) {
 
             // If no such nodes exist, return the node with the largest hash
-            int largestNodeID = nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
+            replNodeId = nodesMap.keySet().stream().mapToInt(Integer::intValue).max()
                     .orElseThrow(NoSuchElementException::new);
 
-            int previousNodeID = getPreviousID(nodesMap.get(largestNodeID).getHostName());
-
-            // If host is target, return previous id
-            if (hash(sameIP) == largestNodeID){
-                return previousNodeID;
-            } else {
-                return largestNodeID;
-            }
         } else {
 
             // Find the node with the smallest difference between its hash and the file hash
-            return nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
+            replNodeId =  nodeKeys.stream().min(Comparator.comparingInt(key -> Math.abs(key - fileHash)))
                     .orElseThrow(NoSuchElementException::new);
+        }
+
+        // If host is target, return previous id
+        if (hash(sameIP) == replNodeId){
+            return getPreviousID(nodesMap.get(replNodeId).getHostName());
+        } else {
+            return replNodeId;
         }
     }
 

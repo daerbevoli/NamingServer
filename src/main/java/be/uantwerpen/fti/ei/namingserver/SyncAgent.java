@@ -1,7 +1,8 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import java.io.File;
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -10,55 +11,47 @@ import java.util.Map;
  * hold the filenames and locked status.
  */
 public class SyncAgent implements Runnable, Serializable {
+    /**
+     * The 'Synchronize' keyword is used to create a method that can be accessed by only one thread at a time.
+     * In the context of the class, the methods are synchronized to prevent multiple threads executing them
+     * concurrently, f.e. when a thread tries locking and another thread tries unlocking at the same time which
+     * could cause race conditions.
+     */
 
-    private FileList fileList;
+    // Map to store filename and lock status
+    private final Map<String, Boolean> filesMap;
 
-    public SyncAgent(){
-        this.fileList = new FileList();
-        File dir = new File("/root/replicatedFiles");
-
-        File[] filesList = dir.listFiles();
-        for (File file : filesList){
-            fileList.addFile(file.getName());
-        }
-
+    public SyncAgent() {
+        filesMap = Collections.synchronizedMap(new HashMap<>());
     }
 
-    // Method to add a file to the list of files owned by the node
-    public synchronized void addOwnedFile(String filename) {
-        fileList.addFile(filename);
+    public synchronized void addFile(String filename) {
+        filesMap.put(filename, false);
     }
 
-    // Method to update the list based on the agent’s list
-    private synchronized void updateFileList(FileList agentFileList) {
-
+    public synchronized void removeFile(String filename) {
+        filesMap.remove(filename);
     }
 
-    // Method to handle lock request
-    public synchronized void handleLockRequest(String filename) {
-        if (!fileList.isLocked(filename)) {
-            fileList.lockFile(filename);
-
-        }
+    public synchronized void lockFile(String filename) {
+        filesMap.put(filename, true);
     }
 
-    // Method to handle unlocking
-    public synchronized void handleUnlockRequest(String filename) {
-        fileList.unlockFile(filename);
-        // Perform necessary actions for unlocking
+    public synchronized void unlockFile(String filename) {
+        filesMap.put(filename, false);
     }
 
-
-    public Map<String, Boolean> getFileList(){
-        return fileList.getFilesMap();
+    public synchronized boolean isLocked(String filename) {
+        return filesMap.getOrDefault(filename, false);
     }
+
+    public synchronized Map<String, Boolean> getFilesMap(){
+        return filesMap;
+    }
+
 
     @Override
     public void run() {
-        // Implement run method to list files owned by the node,
-        // update file list, handle lock requests, etc.
+
     }
-
-
-
 }
