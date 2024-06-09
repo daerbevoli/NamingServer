@@ -417,7 +417,8 @@ public class Node {
     private void updateHashShutdown(int prevID, int nxtID) {
         if (currentID == prevID) {
             nextID = nxtID;
-        } else {
+        }
+        if (currentID == nxtID){
             previousID = prevID;
         }
     }
