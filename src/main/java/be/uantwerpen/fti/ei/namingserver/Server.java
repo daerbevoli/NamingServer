@@ -21,13 +21,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * The NS utilizes a hash-based algorithm to determine the node responsible for storing a file based on its hashcode.
  * Additionally, it employs a JSON file to persist node information for consistency across sessions.
  */
-@RestController
-@RequestMapping("/NS") // NS = Naming Server
+
 public class Server {
 
+    // Server IP
     private final String IP;
 
-    // Logger to log details in a try block for the file modification methods
+    // Logger to log details in a try block
     private final Logger logger = Logger.getLogger(Server.class.getName());
 
     // Map to save the hash corresponding to the node's ip
@@ -36,15 +36,15 @@ public class Server {
     // File to write to and read from
     private final File jsonFile = new File("src/main/java/be/uantwerpen/fti/ei/namingserver/nodes.json");
 
+    // Executor to execute tasks on separate threads
     private final ExecutorService executor;
-
 
     // Constructor to read the starting data from the JSON file
     public Server(){
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "Server IP: " + IP);
 
-        clearMap(); // clear the map when server starts up
+        nodesMap.clear(); // clear the map when server starts up
 
         // Executor to run tasks on different threads
         executor = Executors.newFixedThreadPool(3);
@@ -65,31 +65,9 @@ public class Server {
 
     }
 
-    private void clearMap() {
-        nodesMap.clear();
-        saveMapToJSON();
-        logger.log(Level.INFO, "Map cleared");
-    }
-
     private void shutdown(){
-        clearMap();
+        nodesMap.clear();
         executor.shutdown();
-    }
-
-    @PostMapping("/clearMap")
-    public ResponseEntity<String> clearMapREST() {
-        clearMap();
-        return ResponseEntity.ok("Map cleared successfully");
-    }
-
-    // Hash function provided by the teachers
-    public int hash(String IP){
-        double max = Integer.MAX_VALUE;
-        double min = Integer.MIN_VALUE;
-
-        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
-        return (int) hashValue;
-
     }
 
     /* Implementation of following algorithm :
@@ -120,7 +98,7 @@ public class Server {
         }
 
         // If host is target, return previous id
-        if (hash(sameIP) == replNodeId){
+        if (helpMethods.hash(sameIP) == replNodeId){
             return getPreviousID(nodesMap.get(replNodeId).getHostName());
         } else {
             return replNodeId;
@@ -130,65 +108,56 @@ public class Server {
     // Add a node by giving the ip as parameter
     // First read from the JSON file to get the map
     // Modify the map and save it to the JSON file
-    @PostMapping("/add/{ip}")
-    public ResponseEntity<String> addNode(@PathVariable String ip){
+    public boolean addNode(String ip){
+        boolean nodeAdded = false;
         logger.log(Level.INFO, "Attempting to add node with IP: " + ip);
         readJSONIntoMap();
-        int id = hash(ip);
+        int id = helpMethods.hash(ip);
         if (nodesMap.containsKey(id)) {
             logger.log(Level.INFO, ip + "already in the network");
-            return ResponseEntity.ok(ip + " already in the network\n");
         } else {
             try {
                 nodesMap.put(id, InetAddress.getByName(ip));
                 saveMapToJSON();  // Save every time a new node is added
                 logger.log(Level.INFO, ip + " successfully added to the network");
-                return ResponseEntity.ok(ip + " successfully added to the network\n");
+                nodeAdded = true;
             } catch (UnknownHostException e) {
                 logger.log(Level.WARNING, "Error occurred while adding entry", e);
-                return ResponseEntity.ok("Error occurred while adding entry: " + e.getMessage());
             }
         }
+        return nodeAdded;
     }
 
 
     // Delete a node from the map
-    @DeleteMapping("/remove/{ip}")
-    public ResponseEntity<String> removeNode(@PathVariable String ip){
+    public boolean removeNode(String ip){
+        boolean nodeRemoved  = false;
         readJSONIntoMap();
-        try {
-            int id = hash(ip);
-            // For some reason hostnames between certain intervals have the same hashcode
-            if (nodesMap.containsKey(id)){
-                nodesMap.remove(id);
-                return ResponseEntity.ok(ip + " successfully removed from the network\n");
-            } else {
-                return ResponseEntity.ok(ip + " not in the network\n" + id);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.ok("Error occurred while removing entry: " + e.getMessage());
-        } finally {
-            saveMapToJSON();
+        int id = helpMethods.hash(ip);
+        if (nodesMap.containsKey(id)) {
+            nodesMap.remove(id);
+            nodeRemoved = true;
         }
+        saveMapToJSON();
+        return nodeRemoved;
     }
 
     // Get the hostname of the node that hosts the file
-    @GetMapping("/get/{filename}")
-    public ResponseEntity<String> getHostname(@PathVariable String filename){
-
+    public String getFileHost(@PathVariable String filename){
+        String host = "";
         // get the hash of the filename
-        int fileHash = hash(filename);
+        int fileHash = helpMethods.hash(filename);
         try {
             // calculate node ID
             int nodeID = nodeOfFile(fileHash, IP);
             // return hostname
 
-            return ResponseEntity.ok("The hashcode of the file is " + fileHash + "\nThe nodeID is " + nodeID +
-                    "\nThe hostname is " + nodesMap.get(nodeID).getHostName());
+            host = nodesMap.get(nodeID).getHostName();
 
         } catch (NoSuchElementException e) {
-            return ResponseEntity.ok("Could not find a suitable node for the file: " + filename);
+            logger.log(Level.WARNING, "Unable to find host for file");
         }
+        return host;
     }
 
     /*
@@ -338,7 +307,7 @@ public class Server {
         ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
         Collections.sort(hashes);
 
-        int index = hashes.indexOf(hash(IP));
+        int index = hashes.indexOf(helpMethods.hash(IP));
         int indexPrevNode= (index-1) >= 0 ? (index-1) : hashes.size() + (index-1);
 
         return hashes.get(indexPrevNode);
@@ -397,12 +366,11 @@ public class Server {
                         break;
                     }
                     String filename = parts[1];
-                    ResponseEntity<String> response = getHostname(filename);
-                    System.out.println(response.getBody()); // Print the response
+                    System.out.println(getFileHost(filename)); // Print the response
                     break;
 
-                case "clearMap":
-                    clearMap();
+                case "clear":
+                    nodesMap.clear();
                     break;
 
                 default:
@@ -411,7 +379,6 @@ public class Server {
             }
         }
     }
-
 
 
     public static void main(String[] args){

@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.namingserver;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,9 +50,65 @@ public class SyncAgent implements Runnable, Serializable {
         return filesMap;
     }
 
+    private void listFiles(Map<String, Boolean> fileMap){
+        for(String filename : fileMap.keySet()){
+            System.out.println("File: " + filename);
+        }
+    }
+
+    private synchronized void addFiles() {
+        File dir = new File("/root/replicatedFiles");
+
+        File[] filesList = dir.listFiles();
+
+        if (filesList != null) {
+            for (File file : filesList) {
+                if (!filesMap.containsKey(file.getName())) {
+                    filesMap.put(file.getName(), false);
+
+                }
+            }
+        }
+    }
+
+    private void synchronizeWithNextNode(SyncAgent nextAgent) {
+        Map<String, Boolean> nextAgentFiles = nextAgent.getFilesMap();
+
+        synchronized (nextAgentFiles) {
+            for (Map.Entry<String, Boolean> entry : nextAgentFiles.entrySet()) {
+                filesMap.putIfAbsent(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+
 
     @Override
     public void run() {
+        // list all the files that the node owns
+        listFiles(Node.getFileMap());
 
+        // update list with local files
+        addFiles();
+
+        // Assume there's a way to get the next node's SyncAgent (e.g., through the network or a shared service)
+        //SyncAgent nextAgent = getNextNodeAgent(); // Pseudocode
+        //synchronizeWithNextNode(nextAgent); // Uncomment and implement this in a real scenario
+
+        // Update the node's list based on the agent's list
+        Node.getFileMap().putAll(filesMap);
+
+        /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
+        String fileToLock = "example.txt"; // Example file name, replace with actual logic
+        if (Node.hasLockRequest(fileToLock) && !isLocked(fileToLock)) {
+            lockFile(fileToLock);
+            Node.lockFile(fileToLock);
+        }
+
+        // Example of removing a lock (this should be integrated with actual lock handling logic)
+        if (!Node.hasLockRequest(fileToLock) && isLocked(fileToLock)) {
+            unlockFile(fileToLock);
+            Node.unlockFile(fileToLock);
+        }*/
     }
 }

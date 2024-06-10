@@ -41,10 +41,10 @@ public class Node {
     private final ExecutorService executor;
 
     // Sync agent to sync the files
-    private SyncAgent agent;
+    private static final SyncAgent agent = new SyncAgent();
 
     // file list with the filename and whether there is a lock on it -> use?
-    private Map<String, Integer> filesMap = new HashMap<>();
+    private static final Map<String, Boolean> filesMap = new HashMap<>();
 
     public Node() {
         this.IP = helpMethods.findLocalIP();
@@ -96,6 +96,14 @@ public class Node {
 
     }
 
+    public static SyncAgent getAgent(){
+        return agent;
+    }
+
+    public static Map<String, Boolean> getFileMap(){
+        return filesMap;
+    }
+
 
     // Send a multicast message during bootstrap with name and IP address
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
@@ -121,7 +129,6 @@ public class Node {
         }
 
         // Sync agent created during system launch/bootstrap and then run
-        agent = new SyncAgent();
         agent.run();
     }
 

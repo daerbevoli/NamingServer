@@ -17,6 +17,16 @@ public class helpMethods {
 
     private static final Logger logger = Logger.getLogger(helpMethods.class.getName());
 
+    // Hash function provided by the teachers
+    public static int hash(String IP){
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
+
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
+
+    }
+
 
     // Find the local ip of the remote node
     // Find the local hostname of the remote node
@@ -105,16 +115,6 @@ public class helpMethods {
             logger.log(Level.INFO, "Error creating the file: " + e.getMessage());
         }
     }
-
-    public static int hash(String IP){
-        double max = Integer.MAX_VALUE;
-        double min = Integer.MIN_VALUE;
-
-        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
-        return (int) hashValue;
-
-    }
-
 
     public static void getFiles(String path){
         File dir = new File(path);
