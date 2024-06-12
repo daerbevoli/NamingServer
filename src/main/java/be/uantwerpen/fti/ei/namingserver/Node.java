@@ -3,10 +3,7 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,10 +38,12 @@ public class Node {
     private final ExecutorService executor;
 
     // Sync agent to sync the files
-    private static final SyncAgent agent = new SyncAgent();
+    private final SyncAgent agent;
 
     // file list with the filename and whether there is a lock on it -> use?
-    private static final Map<String, Boolean> filesMap = new HashMap<>();
+    private final Map<String, Boolean> filesMap = new HashMap<>();
+
+    private Map<String, Boolean> nextFileMap = new HashMap<>();
 
     public Node() {
         this.IP = helpMethods.findLocalIP();
@@ -68,6 +67,8 @@ public class Node {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        agent = new SyncAgent(filesMap);
 
         // Initialization of the executor with a pool of 8 threads
         executor = Executors.newFixedThreadPool(8);
@@ -96,11 +97,26 @@ public class Node {
 
     }
 
-    public static SyncAgent getAgent(){
+    /*
+    These three methods could be used to get the agent and its fileMap in the SyncAgent class.
+    This requires however for the methods and properties to be static and this is not proper way
+    to work.
+     */
+    public void sendAgent(){
+        helpMethods.sendUnicast("retrieve next host", serverIP, "AIP:" + IP + ":A", Ports.unicastPort);
+        executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
+    }
+
+    public SyncAgent getAgent(){
         return agent;
     }
 
-    public static Map<String, Boolean> getFileMap(){
+    public Map<String, Boolean> getNextFileMap(){
+
+        return nextFileMap;
+    }
+
+    public Map<String, Boolean> getFileMap(){
         return filesMap;
     }
 
@@ -114,7 +130,7 @@ public class Node {
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
         int i=0;
-        while (numOfNodes == 0) {                                       //delay until receiving numofnodes from the server
+        while (numOfNodes == 0) {                                       // delay until receiving numofnodes from the server
             i=(i+1)%300000;
             if(i==1){
                 System.out.println("Waiting for numofnodes > 0");}
@@ -143,8 +159,8 @@ public class Node {
         if(fileLog.exists() && numOfNodes > 2)
         {
             executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
-            helpMethods.sendUnicast("acquiring IP of copied node", serverIP, "AskIP:" + IP, Ports.unicastPort);
-            while(!finishSending)
+            helpMethods.sendUnicast("Acquiring IP of copied node", serverIP, "AIP:" + IP + ":X", Ports.unicastPort);
+            while (!finishSending)
             {
             }
         }
@@ -322,9 +338,41 @@ public class Node {
         else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
-        else if (message.startsWith("ReceivePreviousIPs")) {
+        else if (message.startsWith("RIP")) {
+            String[] parts = message.split(":");
+            if (parts[2].equals("A")){
+                processAgent(message);
+            }
             sendReplicatedFilesShutdown(message);
         }
+    }
+
+    /**
+     * Possible way to receive previous agents fileMap. When the indication is 'A', the method is called and
+     * the previous hostname is extracted. We serialize the agent, send it as serialized data to the previous node,
+     * the previous node receives this and deserializes it and gets its fileMap.
+     * Unable to test but doubt that it works.
+     * @param message Message with the two previous hosts.
+     * @throws IOException
+     */
+    private void processAgent(String message) throws IOException {
+        SyncAgent receivedAgent;
+        String previousIP = message.split(":")[1];
+        try {
+            // Serialize object to byte array
+            byte[] serializedData = helpMethods.serializeObject(agent);
+
+            // Here you can send 'serializedData' over the network or save it to a file
+            helpMethods.sendUnicast("Send agent", previousIP, Arrays.toString(serializedData), 8600);
+            executor.submit(() -> receiveUnicast("receive agent", 8700));
+
+            // Deserialize byte array back to object
+            byte[] receivedData = message.getBytes();
+            receivedAgent = (SyncAgent) helpMethods.deserializeObject(receivedData);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        nextFileMap =  receivedAgent.getFilesMap();
     }
 
     // Process the message received from the multicast

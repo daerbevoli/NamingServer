@@ -274,8 +274,9 @@ public class Server {
                 String filename = parts[3];
                 processFileReport(nodeIP, fileHash, filename);
                 break;
-            case "AskIP":
-                sendIPOfPrevNodes(parts[1]);
+            case "AIP":
+                String indication = parts[2];
+                sendIPOfPrevNodes(nodeIP, indication);
                 break;
         }
     }
@@ -313,15 +314,13 @@ public class Server {
         return hashes.get(indexPrevNode);
     }
 
-    public void sendIPOfPrevNodes(String IP) {
-
-        String ipOfPrev = nodesMap.get(getPreviousID(IP)).getHostName();
+    public void sendIPOfPrevNodes(String ip, String indication) {
+        String ipOfPrev = nodesMap.get(getPreviousID(ip)).getHostName();
         String ipOf2Prev = nodesMap.get(getPreviousID(ipOfPrev)).getHostName();
-        helpMethods.sendUnicast("Send IP of previous node and its previous node", IP,
-                "ReceivePreviousIPs:" + ipOfPrev+ ":" + ipOf2Prev, 9020);
+        helpMethods.sendUnicast("Send IP of previous node and its previous node", ip,
+                "RIP:" + ipOfPrev + ":" + ipOf2Prev + ":" + indication, 9020);
 
     }
-
 
     // Run the server and handle user commands
     public void run() {

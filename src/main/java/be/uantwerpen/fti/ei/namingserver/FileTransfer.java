@@ -118,7 +118,7 @@ public class FileTransfer {
             if(!msg.isEmpty())
             {
                 String[] parts = msg.split(":");
-                Node.updateLogFile( parts[0], parts[1], fileName);
+                Node.updateLogFile(parts[0], parts[1], fileName);
             }
 
         } catch (IOException e) {
