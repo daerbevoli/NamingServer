@@ -2,8 +2,7 @@ package be.uantwerpen.fti.ei.namingserver;
 
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +15,16 @@ import java.util.logging.Logger;
 public class helpMethods {
 
     private static final Logger logger = Logger.getLogger(helpMethods.class.getName());
+
+    // Hash function provided by the teachers
+    public static int hash(String IP){
+        double max = Integer.MAX_VALUE;
+        double min = Integer.MIN_VALUE;
+
+        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
+        return (int) hashValue;
+
+    }
 
 
     // Find the local ip of the remote node
@@ -106,16 +115,6 @@ public class helpMethods {
         }
     }
 
-    public static int hash(String IP){
-        double max = Integer.MAX_VALUE;
-        double min = Integer.MIN_VALUE;
-
-        double hashValue = (IP.hashCode() + max) * (32768/(max + Math.abs(min)));
-        return (int) hashValue;
-
-    }
-
-
     public static void getFiles(String path){
         File dir = new File(path);
 
@@ -190,6 +189,25 @@ public class helpMethods {
         } catch (IOException e){
             logger.log(Level.SEVERE, "Failed to connect to node", e);
         }
+    }
+
+
+    // Serialize object to byte array
+    public static byte[] serializeObject(Object obj) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+        objectOutputStream.writeObject(obj);
+        objectOutputStream.close();
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    // Deserialize byte array back to object
+    public static Object deserializeObject(byte[] data) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+        Object obj = objectInputStream.readObject();
+        objectInputStream.close();
+        return obj;
     }
 
 

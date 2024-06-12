@@ -2,6 +2,8 @@ package be.uantwerpen.fti.ei.namingserver;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -11,54 +13,103 @@ import java.util.Map;
  */
 public class SyncAgent implements Runnable, Serializable {
 
-    private FileList fileList;
+    /**
+     * The 'Synchronize' keyword is used to create a method that can be accessed by only one thread at a time.
+     * In the context of the class, the methods are synchronized to prevent multiple threads executing them
+     * concurrently, f.e. when a thread tries locking and another thread tries unlocking at the same time which
+     * could cause race conditions.
+     */
 
-    public SyncAgent(){
-        this.fileList = new FileList();
-        File dir = new File("/root/replicatedFiles");
+    // Map to store filename and lock status
+    private final Map<String, Boolean> filesMap;
 
-        File[] filesList = dir.listFiles();
-        for (File file : filesList){
-            fileList.addFile(file.getName());
+    private final Map<String, Boolean> nodeFileMap;
+
+    public SyncAgent(Map<String, Boolean> nodeFileMap) {
+        this.nodeFileMap = nodeFileMap;
+        filesMap = Collections.synchronizedMap(new HashMap<>());
+    }
+
+    public synchronized void addFile(String filename) {
+        filesMap.put(filename, false);
+    }
+
+    public synchronized void removeFile(String filename) {
+        filesMap.remove(filename);
+    }
+
+    public synchronized void lockFile(String filename) {
+        filesMap.put(filename, true);
+    }
+
+    public synchronized void unlockFile(String filename) {
+        filesMap.put(filename, false);
+    }
+
+    public synchronized boolean isLocked(String filename) {
+        return filesMap.getOrDefault(filename, false);
+    }
+
+    public synchronized Map<String, Boolean> getFilesMap(){
+        return filesMap;
+    }
+
+    private synchronized void listFiles(Map<String, Boolean> fileMap){
+        for(String filename : fileMap.keySet()){
+            System.out.println("File: " + filename);
         }
-
     }
 
-    // Method to add a file to the list of files owned by the node
-    public synchronized void addOwnedFile(String filename) {
-        fileList.addFile(filename);
-    }
 
-    // Method to update the list based on the agent’s list
-    private synchronized void updateFileList(FileList agentFileList) {
+    private void synchronizeWithNextNode(SyncAgent nextAgent) {
+        Map<String, Boolean> nextAgentFiles = nextAgent.getFilesMap();
 
-    }
-
-    // Method to handle lock request
-    public synchronized void handleLockRequest(String filename) {
-        if (!fileList.isLocked(filename)) {
-            fileList.lockFile(filename);
-
+        synchronized (nextAgentFiles) {
+            for (Map.Entry<String, Boolean> entry : nextAgentFiles.entrySet()) {
+                filesMap.putIfAbsent(entry.getKey(), entry.getValue());
+            }
         }
     }
 
-    // Method to handle unlocking
-    public synchronized void handleUnlockRequest(String filename) {
-        fileList.unlockFile(filename);
-        // Perform necessary actions for unlocking
+    private Map<String, Boolean> getNodeFileMap(){
+        return nodeFileMap;
     }
 
-
-    public Map<String, Boolean> getFileList(){
-        return fileList.getFilesMap();
+    @Override
+    public String toString() {
+        return "SyncAgent{" +
+                "filesMap=" + filesMap +
+                '}';
     }
 
     @Override
     public void run() {
-        // Implement run method to list files owned by the node,
-        // update file list, handle lock requests, etc.
+        // list all the files that the node owns
+        listFiles(nodeFileMap);
+
+        // update list with local files
+        for (Map.Entry<String, Boolean> file : getNodeFileMap().entrySet()){
+            this.addFile(file.getKey());
+        }
+
+        // Assume there's a way to get the next node's SyncAgent (e.g., through the network or a shared service)
+        //SyncAgent nextAgent = getNextNodeAgent(); // Pseudocode
+        //synchronizeWithNextNode(nextAgent); // Uncomment and implement this in a real scenario
+
+        // Update the node's list based on the agent's list
+        getNodeFileMap().putAll(filesMap);
+
+        /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
+        String fileToLock = "example.txt"; // Example file name, replace with actual logic
+        if (Node.hasLockRequest(fileToLock) && !isLocked(fileToLock)) {
+            lockFile(fileToLock);
+            Node.lockFile(fileToLock);
+        }
+
+        // Example of removing a lock (this should be integrated with actual lock handling logic)
+        if (!Node.hasLockRequest(fileToLock) && isLocked(fileToLock)) {
+            unlockFile(fileToLock);
+            Node.unlockFile(fileToLock);
+        }*/
     }
-
-
-
 }

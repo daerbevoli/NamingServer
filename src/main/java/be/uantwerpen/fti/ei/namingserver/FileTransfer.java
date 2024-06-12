@@ -3,8 +3,6 @@ package be.uantwerpen.fti.ei.namingserver;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -120,7 +118,7 @@ public class FileTransfer {
             if(!msg.isEmpty())
             {
                 String[] parts = msg.split(":");
-                Node.updateLogFile( parts[0], parts[1], fileName);
+                Node.updateLogFile(parts[0], parts[1], fileName);
             }
 
         } catch (IOException e) {
