@@ -9,6 +9,7 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.tomcat.jni.FileInfo;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -95,6 +96,7 @@ public class Node {
     }
 
 
+
     // Send a multicast message during bootstrap with name and IP address
     // Send a multicast message during bootstrap to the multicast address of 224.0.0.1 to port 3000
     private void Bootstrap() {
@@ -143,6 +145,8 @@ public class Node {
         helpMethods.clearFolder("/root/replicatedFiles");
         helpMethods.clearFolder("/root/logs");
 
+        // handle Failure and start Failure agent
+        handleFailure(this);
 
 
         // Shutdown the executor when the node shuts down
@@ -523,8 +527,25 @@ public class Node {
             finishSending = true;
 
         } catch (IOException | JSONException e) {
+            // Handle failure and start Failure agent
+            handleFailure(this);
             throw new RuntimeException(e);
         }
+    }
+
+    public void receiveFailureAgent(Runnable agent) {
+        Thread agentThread = new Thread(agent);
+        agentThread.start();
+        try {
+            agentThread.join();
+        } catch (InterruptedException e) {
+            logger.log(Level.WARNING, "Error receiving failure agent", e);
+        }
+    }
+    private void handleFailure(Node failedNode) {
+        System.out.println("Handling failure of node " + failedNode.currentID);
+        FailureAgent agent = new FailureAgent(failedNode, currentID, currentID);
+        //receiveAgent(agent);
     }
 
 
