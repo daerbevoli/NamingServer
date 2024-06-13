@@ -100,9 +100,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(() -> receiveUnicast("File Map purpose", Ports.fmPort));
         executor.submit(this::receiveFileMap);
-
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -383,9 +381,6 @@ public class Node {
         else if (message.startsWith("SYNC_REQUEST")) {
             processSyncRequest();
         }
-        else if (message.startsWith("FILE_MAP_RESPONSE")) { // Handle file map responses
-        processFileMapMessage(message);
-    }
     }
 
     /**
@@ -432,44 +427,22 @@ public class Node {
     }
 
     private void receiveFileMap() {
-        try (DatagramSocket socket = new DatagramSocket(Ports.fmPort)) {
-            logger.log(Level.INFO, "Connected to unicast receive socket: File Map purpose");
+        try (ServerSocket serverSocket = new ServerSocket(Ports.fmPort)) {
+            while (true) {
+                Socket socket = serverSocket.accept();
+                ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
+                String receivedString = inputStream.readUTF();
+                byte[] receivedData = receivedString.getBytes();
+                @SuppressWarnings("unchecked")
+                Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
+                nextFileMap = receivedFileMap;
+                logger.log(Level.INFO, "File map received from 'next node'");
 
-            // Create buffer for incoming data
-            byte[] buffer = new byte[4096];
-
-            // Receive file data and write to file
-            while (true) {  // Keep listening indefinitely
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-
-                logger.log(Level.INFO, "File map received successfully: " + message);
-                processFileMapMessage(message);
             }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to connect to server for file map", e);
+        } catch (IOException | ClassNotFoundException e) {
+            logger.log(Level.WARNING, "Error receiving file map from 'next node'", e);
         }
     }
-
-    private void processFileMapMessage(String message) {
-        if (message.startsWith("FILE_MAP_RESPONSE")) {
-            String[] parts = message.split(":");
-            if (parts.length > 1) {
-                String fileMapString = parts[1];
-                byte[] receivedData = fileMapString.getBytes();
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
-                    nextFileMap = receivedFileMap;
-                    logger.log(Level.INFO, "File map processed from 'next node'");
-                } catch (ClassNotFoundException | IOException e) {
-                    logger.log(Level.WARNING, "Error deserializing file map", e);
-                }
-            }
-        }
-    }
-
 
     private void processSyncRequest() {
         syncAgent.run();

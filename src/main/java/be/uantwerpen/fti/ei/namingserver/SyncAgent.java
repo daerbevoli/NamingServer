@@ -106,8 +106,16 @@ public class SyncAgent implements Runnable, Serializable {
         String purpose = "Requesting File Map";
         helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP", port);
 
-        return node.getNextFileMap();
-
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            Socket socket = serverSocket.accept();
+            ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
+            @SuppressWarnings("unchecked")
+            Map<String, Boolean> nextNodeFileMap = (Map<String, Boolean>) inputStream.readObject();
+            return nextNodeFileMap;
+        } catch (IOException | ClassNotFoundException e) {
+            logger.log(Level.SEVERE, "Error retrieving file map from next node", e);
+            return null;
+        }
     }
 
     // Method to notify the next node to synchronize
