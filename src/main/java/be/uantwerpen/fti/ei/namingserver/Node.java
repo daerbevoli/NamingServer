@@ -63,9 +63,8 @@ public class Node {
         nextID = currentID;
         previousID = currentID;
 
-        int port = 5231;
         try {
-            this.serverSocket = new ServerSocket(port);
+            this.serverSocket = new ServerSocket(5231);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -84,7 +83,6 @@ public class Node {
         syncAgentThread.start();
 
     }
-
 
     // Thread executor method to run the functions on different threads
     public void runFunctionsOnThreads() {
