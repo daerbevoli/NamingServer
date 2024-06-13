@@ -8,7 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -115,7 +117,7 @@ public class helpMethods {
         }
     }
 
-    public static void getFiles(String path){
+        public static void getFiles(String path){
         File dir = new File(path);
 
         File[] filesList = dir.listFiles();
@@ -127,6 +129,20 @@ public class helpMethods {
         } else {
             System.out.println("The specified directory does not exist or is not a directory.");
         }
+    }
+    public static Map<String,Boolean> getFilesWithLockStatus(String path) {
+        Map<String, Boolean> filesMap = new HashMap<>();
+        File dir = new File(path);
+        File[] filesList = dir.listFiles();
+
+        if (filesList != null) {
+            for (File file : filesList) {
+                filesMap.put(file.getName(), false); // initially all files are unlocked
+            }
+        } else {
+            System.out.println("The specified directory does not exist or is not a directory.");
+        }
+        return filesMap;
     }
 
     public static void displayLogContents(String filePath) {

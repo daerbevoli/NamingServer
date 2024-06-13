@@ -1,10 +1,17 @@
 package be.uantwerpen.fti.ei.namingserver;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 
 /**
@@ -12,7 +19,6 @@ import java.util.Map;
  * hold the filenames and locked status.
  */
 public class SyncAgent implements Runnable, Serializable {
-
     /**
      * The 'Synchronize' keyword is used to create a method that can be accessed by only one thread at a time.
      * In the context of the class, the methods are synchronized to prevent multiple threads executing them
@@ -20,14 +26,17 @@ public class SyncAgent implements Runnable, Serializable {
      * could cause race conditions.
      */
 
-    // Map to store filename and lock status
-    private final Map<String, Boolean> filesMap;
+    private static final Logger logger = Logger.getLogger(SyncAgent.class.getName());
 
+    private final Map<String, Boolean> filesMap; // Map to store filename and lock status
     private final Map<String, Boolean> nodeFileMap;
+    private final Node node;
 
-    public SyncAgent(Map<String, Boolean> nodeFileMap) {
-        this.nodeFileMap = nodeFileMap;
+
+    public SyncAgent(Node node) {
+        this.nodeFileMap = helpMethods.getFilesWithLockStatus("/root/replicatedFiles");
         filesMap = Collections.synchronizedMap(new HashMap<>());
+        this.node = node;
     }
 
     public synchronized void addFile(String filename) {
@@ -61,18 +70,60 @@ public class SyncAgent implements Runnable, Serializable {
     }
 
 
-    private void synchronizeWithNextNode(SyncAgent nextAgent) {
-        Map<String, Boolean> nextAgentFiles = nextAgent.getFilesMap();
+    public void synchronizeWithNextNode(Map<String, Boolean> nextNodeFileMap) {
+        if (nextNodeFileMap == null) {
+            return;
+        }
+        synchronized (nextNodeFileMap) {
+            for (Map.Entry<String, Boolean> entry : nextNodeFileMap.entrySet()) {
+                String filename = entry.getKey();
+                boolean isLocked = entry.getValue();
 
-        synchronized (nextAgentFiles) {
-            for (Map.Entry<String, Boolean> entry : nextAgentFiles.entrySet()) {
-                filesMap.putIfAbsent(entry.getKey(), entry.getValue());
+                if (!filesMap.containsKey(filename)) {
+                    filesMap.put(filename, isLocked);
+                } else if (isLocked) {
+                    filesMap.put(filename, true); // If the file is locked in the next node, lock it here as well
+                }
             }
         }
     }
 
     private Map<String, Boolean> getNodeFileMap(){
         return nodeFileMap;
+    }
+
+    /*
+    Method to communicate with the next node and retrieve it's fileMap
+     */
+    private Map<String, Boolean> getNextNodeFileMap() {
+        String nextNodeIP = node.getNextNodeIP();
+        if (nextNodeIP == null) {
+            logger.log(Level.WARNING, "Next node IP is null");
+            return null;
+        }
+
+        int port = Ports.unicastPort;
+        String purpose = "Requesting File Map";
+        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP", port);
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            Socket socket = serverSocket.accept();
+            ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
+            @SuppressWarnings("unchecked")
+            Map<String, Boolean> nextNodeFileMap = (Map<String, Boolean>) inputStream.readObject();
+            return nextNodeFileMap;
+        } catch (IOException | ClassNotFoundException e) {
+            logger.log(Level.SEVERE, "Error retrieving file map from next node", e);
+            return null;
+        }
+    }
+
+    // Method to notify the next node to synchronize
+    public void notifyNextNode() {
+        String nextNodeIP = node.getNextNodeIP();
+        if (nextNodeIP != null) {
+            helpMethods.sendUnicast("Notify next node to synchronize", nextNodeIP, "SYNC_REQUEST", Ports.unicastPort);
+        }
     }
 
     @Override
@@ -87,17 +138,22 @@ public class SyncAgent implements Runnable, Serializable {
         // list all the files that the node owns
         listFiles(nodeFileMap);
 
-        // update list with local files
-        for (Map.Entry<String, Boolean> file : getNodeFileMap().entrySet()){
+        // update list (filesMap) with local files from the node (nodeFileMap)
+        for (Map.Entry<String, Boolean> file : nodeFileMap.entrySet()) {
             this.addFile(file.getKey());
         }
 
-        // Assume there's a way to get the next node's SyncAgent (e.g., through the network or a shared service)
-        //SyncAgent nextAgent = getNextNodeAgent(); // Pseudocode
-        //synchronizeWithNextNode(nextAgent); // Uncomment and implement this in a real scenario
+        // Retrieve the next node's file map
+        Map<String, Boolean> nextNodeFileMap = getNextNodeFileMap();
 
-        // Update the node's list based on the agent's list
-        getNodeFileMap().putAll(filesMap);
+        // Sync the files with the next node's file map
+        synchronizeWithNextNode(nextNodeFileMap);
+
+        // Update the node's file list based on the agent's list
+        nodeFileMap.putAll(filesMap);
+
+        // Notify the next node to synchronize
+        notifyNextNode();
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
         String fileToLock = "example.txt"; // Example file name, replace with actual logic
@@ -111,5 +167,12 @@ public class SyncAgent implements Runnable, Serializable {
             unlockFile(fileToLock);
             Node.unlockFile(fileToLock);
         }*/
+
+        // Sleep before next synchronization
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

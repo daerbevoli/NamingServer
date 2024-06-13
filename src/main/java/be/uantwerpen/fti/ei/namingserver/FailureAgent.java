@@ -11,12 +11,12 @@ public class FailureAgent extends Agent implements Runnable, Serializable {
     private static final Logger logger = Logger.getLogger(FailureAgent.class.getName());
 
     private final Node currentNode;
-    private final int failingNodeId;
+    private final Node failedNode;
     private final int startingNodeId;
 
-    public FailureAgent(Node currentNode, int failingNodeId, int startingNodeId) {
+    public FailureAgent(Node currentNode, Node failedNode, int startingNodeId) {
         this.currentNode = currentNode;
-        this.failingNodeId = failingNodeId;
+        this.failedNode = failedNode;
         this.startingNodeId = startingNodeId;
     }
 
