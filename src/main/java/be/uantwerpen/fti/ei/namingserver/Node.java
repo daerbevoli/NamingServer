@@ -63,7 +63,7 @@ public class Node {
         nextID = currentID;
         previousID = currentID;
 
-        int port = 5432;
+        int port = 5231;
         try {
             this.serverSocket = new ServerSocket(port);
         } catch (IOException e) {
