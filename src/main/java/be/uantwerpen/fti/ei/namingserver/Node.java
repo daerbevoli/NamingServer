@@ -64,7 +64,7 @@ public class Node {
         previousID = currentID;
 
         try {
-            this.serverSocket = new ServerSocket(5231);
+            this.serverSocket = new ServerSocket(5432);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -518,7 +518,7 @@ public class Node {
     }
 
     public void sendNodeResponse(Boolean replacedNext, String nodeIP, int replacedHash) throws IOException {
-        int port = 5231;
+        int port = 5432;
         try (Socket cSocket = new Socket(nodeIP, port);
              DataOutputStream out = new DataOutputStream(cSocket.getOutputStream())) {
              String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
