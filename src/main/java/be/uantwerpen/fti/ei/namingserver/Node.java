@@ -39,7 +39,7 @@ public class Node {
     private final ExecutorService executor;
 
     // Sync agent to sync the files
-    private final SyncAgent syncAgent;
+    private final SyncAgent agent;
 
     // file list with the filename and whether there is a lock on it -> use?
     private final Map<String, Boolean> filesMap = new HashMap<>();
@@ -69,18 +69,11 @@ public class Node {
             throw new RuntimeException(e);
         }
 
-        // Initialize the files map with the files in the replicated folder
-        //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
-
-        syncAgent = new SyncAgent(this);
+        agent = new SyncAgent(filesMap);
 
         // Initialization of the executor with a pool of 8 threads
         executor = Executors.newFixedThreadPool(8);
         runFunctionsOnThreads();
-
-        // Start SyncAgent in a separate thread
-        Thread syncAgentThread = new Thread(syncAgent);
-        syncAgentThread.start();
 
     }
 
@@ -90,14 +83,16 @@ public class Node {
         executor.submit(this::listenNodeMulticast);
         executor.submit(this::Bootstrap);
         executor.submit(this::receiveNumOfNodes);
+
         // optimization for later
         // This optimization is to use the general receive function and may be errorless
         // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
         executor.submit(() -> receiveUnicast("Replication purpose", Ports.replPort));
         executor.submit(() -> receiveUnicast("Create log purpose", Ports.logPort));
+
         executor.submit(this::watchFolder);
+
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(this::receiveFileMap);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -114,33 +109,16 @@ public class Node {
     }
 
     public SyncAgent getAgent(){
-        return syncAgent;
+        return agent;
     }
 
     public Map<String, Boolean> getNextFileMap(){
+
         return nextFileMap;
     }
 
     public Map<String, Boolean> getFileMap(){
         return filesMap;
-    }
-
-    // Method to get the replicated (owned) files of this node
-    public void getOwnedFiles() {
-        helpMethods.getFiles("/root/replicatedFiles");
-    }
-
-    /*
-    Method to get the next node's IP
-     */
-    public String getNextNodeIP() {
-        try {
-            InetAddress nextNodeAddress = InetAddress.getByName(String.valueOf(nextID));
-            return nextNodeAddress.getHostName();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
 
@@ -169,9 +147,8 @@ public class Node {
         }
 
         // Sync agent created during system launch/bootstrap and then run
-        syncAgent.run();
+        agent.run();
     }
-
 
     /*
      * The shutdown method is used when closing a node. It is also used in exception for failure.
@@ -372,12 +349,6 @@ public class Node {
             }
             sendReplicatedFilesShutdown(message);
         }
-        else if (message.startsWith("REQUEST_FILE_MAP")) {
-            processRequestFileMap(message);
-        }
-        else if (message.startsWith("SYNC_REQUEST")) {
-            processSyncRequest();
-        }
     }
 
     /**
@@ -393,7 +364,7 @@ public class Node {
         String previousIP = message.split(":")[1];
         try {
             // Serialize object to byte array
-            byte[] serializedData = helpMethods.serializeObject(syncAgent);
+            byte[] serializedData = helpMethods.serializeObject(agent);
 
             // Here you can send 'serializedData' over the network or save it to a file
             helpMethods.sendUnicast("Send agent", previousIP, Arrays.toString(serializedData), 8600);
@@ -406,41 +377,6 @@ public class Node {
             throw new RuntimeException(e);
         }
         nextFileMap =  receivedAgent.getFilesMap();
-    }
-
-    private void processRequestFileMap(String message) {
-        String requesterIP = message.split(":")[1];
-        Map<String, Boolean> fileMap = syncAgent.getFilesMap();
-        try {
-            // Serialize the file map o a byte array
-            byte[] serializedData = helpMethods.serializeObject(fileMap);
-            // Send the serialized file map using unicast
-            helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), 8600);
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error sending file map to requester", e);
-        }
-    }
-
-    private void receiveFileMap() {
-        try (ServerSocket serverSocket = new ServerSocket(Ports.unicastPort)) {
-            while (true) {
-                Socket socket = serverSocket.accept();
-                ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
-                String receivedString = inputStream.readUTF();
-                byte[] receivedData = receivedString.getBytes();
-                @SuppressWarnings("unchecked")
-                Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
-                nextFileMap = receivedFileMap;
-                logger.log(Level.INFO, "File map received from 'next node'");
-
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            logger.log(Level.WARNING, "Error receiving file map from 'next node'", e);
-        }
-    }
-
-    private void processSyncRequest() {
-        syncAgent.run();
     }
 
     // Process the message received from the multicast
@@ -665,8 +601,8 @@ public class Node {
     }
     private void handleFailure(Node failedNode) {
         System.out.println("Handling failure of node " + failedNode.currentID);
-        FailureAgent agent = new FailureAgent(failedNode, this, failedNode.currentID);
-        receiveFailureAgent(agent);
+        FailureAgent agent = new FailureAgent(failedNode, currentID, currentID);
+        //receiveAgent(agent);
     }
 
 
