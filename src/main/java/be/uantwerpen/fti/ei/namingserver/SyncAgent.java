@@ -102,7 +102,7 @@ public class SyncAgent implements Runnable, Serializable {
             return null;
         }
 
-        int port = Ports.fmPort;
+        int port = Ports.unicastPort;
         String purpose = "Requesting File Map";
         helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP", port);
 
@@ -122,7 +122,7 @@ public class SyncAgent implements Runnable, Serializable {
     public void notifyNextNode() {
         String nextNodeIP = node.getNextNodeIP();
         if (nextNodeIP != null) {
-            helpMethods.sendUnicast("Notify next node to synchronize", nextNodeIP, "SYNC_REQUEST", Ports.syncPort);
+            helpMethods.sendUnicast("Notify next node to synchronize", nextNodeIP, "SYNC_REQUEST", Ports.unicastPort);
         }
     }
 

@@ -95,7 +95,6 @@ public class Node {
         // executor.submit(() -> receiveUnicast("Receiving number of nodes", 8300));
         executor.submit(() -> receiveUnicast("Replication purpose", Ports.replPort));
         executor.submit(() -> receiveUnicast("Create log purpose", Ports.logPort));
-        executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
         executor.submit(this::receiveFileMap);
@@ -389,7 +388,6 @@ public class Node {
      * @param message Message with the two previous hosts.
      * @throws IOException
      */
-
     private void processAgent(String message) throws IOException {
         SyncAgent receivedAgent;
         String previousIP = message.split(":")[1];
@@ -410,7 +408,6 @@ public class Node {
         nextFileMap =  receivedAgent.getFilesMap();
     }
 
-
     private void processRequestFileMap(String message) {
         String requesterIP = message.split(":")[1];
         Map<String, Boolean> fileMap = syncAgent.getFilesMap();
@@ -418,14 +415,14 @@ public class Node {
             // Serialize the file map o a byte array
             byte[] serializedData = helpMethods.serializeObject(fileMap);
             // Send the serialized file map using unicast
-            helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), Ports.fmPort);
+            helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), 8600);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error sending file map to requester", e);
         }
     }
 
     private void receiveFileMap() {
-        try (ServerSocket serverSocket = new ServerSocket(Ports.fmPort)) {
+        try (ServerSocket serverSocket = new ServerSocket(Ports.unicastPort)) {
             while (true) {
                 Socket socket = serverSocket.accept();
                 ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());

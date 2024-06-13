@@ -11,8 +11,4 @@ public interface Ports {
     int logPort = 8300;
 
     int nnPort = 8400;
-
-    int fmPort = 8500;
-
-    int syncPort = 8600;
 }
