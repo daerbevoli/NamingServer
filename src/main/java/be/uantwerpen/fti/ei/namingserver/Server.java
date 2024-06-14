@@ -67,6 +67,7 @@ public class Server {
 
     private void shutdown(){
         nodesMap.clear();
+        saveMapToJSON();
         executor.shutdown();
     }
 
@@ -371,6 +372,7 @@ public class Server {
 
                 case "clear":
                     nodesMap.clear();
+                    saveMapToJSON();
                     break;
 
                 default:
