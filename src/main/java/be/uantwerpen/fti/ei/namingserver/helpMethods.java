@@ -226,6 +226,21 @@ public class helpMethods {
         return obj;
     }
 
+    public static void sendFileMap(String purpose, String targetIP, byte[] data, int port) {
+        try (DatagramSocket socket = new DatagramSocket(null)) {
+            logger.log(Level.INFO, "Connected to file map data send socket: " + purpose);
 
+            InetAddress targetIp = InetAddress.getByName(targetIP);
+
+            DatagramPacket packet = new DatagramPacket(data, data.length, targetIp, port);
+
+            socket.send(packet);
+
+            logger.log(Level.INFO, "File map data: " + purpose + ", sent successfully");
+
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to open file map data send socket: " + purpose, e);
+        }
+    }
 
 }

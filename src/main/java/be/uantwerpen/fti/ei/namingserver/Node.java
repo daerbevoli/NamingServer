@@ -63,9 +63,8 @@ public class Node {
         nextID = currentID;
         previousID = currentID;
 
-        int port = 5432;
         try {
-            this.serverSocket = new ServerSocket(port);
+            this.serverSocket = new ServerSocket(5432);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -377,15 +376,12 @@ public class Node {
             }
             sendReplicatedFilesShutdown(message);
         }
-        else if (message.startsWith("REQUEST_FILE_MAP")) {
+        else if (message.startsWith("REQUEST_FILE_MAP")) { // File map of the next node being requested
             processRequestFileMap(message);
         }
         else if (message.startsWith("SYNC_REQUEST")) {
             processSyncRequest();
         }
-        else if (message.startsWith("FILE_MAP_RESPONSE")) { // Handle file map responses
-        processFileMapMessage(message);
-    }
     }
 
     /**
@@ -425,7 +421,8 @@ public class Node {
             // Serialize the file map o a byte array
             byte[] serializedData = helpMethods.serializeObject(fileMap);
             // Send the serialized file map using unicast
-            helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), Ports.fmPort);
+            //helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), Ports.fmPort);
+            helpMethods.sendFileMap("Sending filemap from 'next node's SA' to requester SA", requesterIP, serializedData, Ports.fmPort);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error sending file map to requester", e);
         }
@@ -442,36 +439,30 @@ public class Node {
             while (true) {  // Keep listening indefinitely
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
+                byte[] receivedData = Arrays.copyOf(packet.getData(), packet.getLength());
 
-                logger.log(Level.INFO, "File map received successfully: " + message);
-                processFileMapMessage(message);
+                logger.log(Level.INFO, "File map received successfully");
+                processFileMapMessage(receivedData);
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Unable to connect to server for file map", e);
         }
     }
 
-    private void processFileMapMessage(String message) {
-        if (message.startsWith("FILE_MAP_RESPONSE")) {
-            String[] parts = message.split(":");
-            if (parts.length > 1) {
-                String fileMapString = parts[1];
-                byte[] receivedData = fileMapString.getBytes();
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
-                    nextFileMap = receivedFileMap;
-                    logger.log(Level.INFO, "File map processed from 'next node'");
-                } catch (ClassNotFoundException | IOException e) {
-                    logger.log(Level.WARNING, "Error deserializing file map", e);
-                }
-            }
+    private void processFileMapMessage(byte[] receivedData) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
+            syncAgent.synchronizeWithNextNode(receivedFileMap);
+            logger.log(Level.INFO, "File map processed from 'next node'");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
-
-    private void processSyncRequest() {
+        private void processSyncRequest() {
         syncAgent.run();
     }
 

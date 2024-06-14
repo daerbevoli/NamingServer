@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -95,19 +96,33 @@ public class SyncAgent implements Runnable, Serializable {
     /*
     Method to communicate with the next node and retrieve it's fileMap
      */
-    private Map<String, Boolean> getNextNodeFileMap() {
+    private void getNextNodeFileMap() {
         String nextNodeIP = node.getNextNodeIP();
         if (nextNodeIP == null) {
             logger.log(Level.WARNING, "Next node IP is null");
-            return null;
+            return;
         }
 
         int port = Ports.fmPort;
         String purpose = "Requesting File Map";
         helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP", port);
+    }
 
-        return node.getNextFileMap();
+    // Method to process the received file map response
+    public void processFileMapResponse(Map<String, Boolean> fileMap) {
+        synchronizeWithNextNode(fileMap);
+    }
 
+    // Method to send the file map to the requesting node
+    public void sendFileMap(String requesterIP) {
+        int port = Ports.fmPort;
+        String purpose = "Sending File Map";
+        try {
+            byte[] serializedData = helpMethods.serializeObject(filesMap);
+            helpMethods.sendUnicast(purpose, requesterIP, "FILE_MAP_RESPONSE:" + Arrays.toString(serializedData), port);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error sending file map to requester", e);
+        }
     }
 
     // Method to notify the next node to synchronize
@@ -136,10 +151,8 @@ public class SyncAgent implements Runnable, Serializable {
         }
 
         // Retrieve the next node's file map
-        Map<String, Boolean> nextNodeFileMap = getNextNodeFileMap();
-
-        // Sync the files with the next node's file map
-        synchronizeWithNextNode(nextNodeFileMap);
+        // the synchronizeWithNextNode method is called in the Node class when the file map is received
+        getNextNodeFileMap();
 
         // Update the node's file list based on the agent's list
         nodeFileMap.putAll(filesMap);
