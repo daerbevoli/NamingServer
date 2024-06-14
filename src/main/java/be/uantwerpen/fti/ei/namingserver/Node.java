@@ -730,6 +730,9 @@ public class Node {
                 case "log":
                     helpMethods.getFiles("/root/logs");
                     helpMethods.displayLogContents("/root/logs/fileLog.json");
+                case "sa":
+                    syncAgent.listFiles(syncAgent.getFilesMap());
+                    break;
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);

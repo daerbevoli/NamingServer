@@ -63,7 +63,7 @@ public class SyncAgent implements Runnable, Serializable {
         return filesMap;
     }
 
-    private synchronized void listFiles(Map<String, Boolean> fileMap){
+    public synchronized void listFiles(Map<String, Boolean> fileMap){
         for(String filename : fileMap.keySet()){
             System.out.println("File: " + filename);
         }
