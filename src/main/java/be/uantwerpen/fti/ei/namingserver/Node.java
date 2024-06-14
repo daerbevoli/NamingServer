@@ -8,10 +8,8 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.tomcat.jni.FileInfo;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 
 /**
  * This is the class that represents a node in the system. It has the property hostname, ip address,

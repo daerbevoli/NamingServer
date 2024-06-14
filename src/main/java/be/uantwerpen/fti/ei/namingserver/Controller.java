@@ -27,6 +27,11 @@ public class Controller {
         }
     }
 
+    @GetMapping("/get/{filename}")
+    public ResponseEntity<String> getHost(@PathVariable String filename){
+        return ResponseEntity.ok(server.getFileHost(filename));
+    }
+
 
 
 

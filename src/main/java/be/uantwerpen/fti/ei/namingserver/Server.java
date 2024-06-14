@@ -1,8 +1,5 @@
 package be.uantwerpen.fti.ei.namingserver;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
@@ -45,6 +42,7 @@ public class Server {
         logger.log(Level.INFO, "Server IP: " + IP);
 
         nodesMap.clear(); // clear the map when server starts up
+        saveMapToJSON();
 
         // Executor to run tasks on different threads
         executor = Executors.newFixedThreadPool(3);
@@ -67,6 +65,7 @@ public class Server {
 
     private void shutdown(){
         nodesMap.clear();
+        saveMapToJSON();
         executor.shutdown();
     }
 
@@ -143,7 +142,7 @@ public class Server {
     }
 
     // Get the hostname of the node that hosts the file
-    public String getFileHost(@PathVariable String filename){
+    public String getFileHost(String filename){
         String host = "";
         // get the hash of the filename
         int fileHash = helpMethods.hash(filename);
@@ -370,6 +369,7 @@ public class Server {
 
                 case "clear":
                     nodesMap.clear();
+                    saveMapToJSON();
                     break;
 
                 default:
