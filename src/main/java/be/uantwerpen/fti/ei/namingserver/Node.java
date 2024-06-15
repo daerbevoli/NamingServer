@@ -231,16 +231,6 @@ public class Node {
         // handle Failure and start Failure agent
         handleFailure(this);
 
-
-        // Ensure all sockets are closed properly and the executor is shut down
-        try {
-            if (serverSocket != null && !serverSocket.isClosed()) {
-                serverSocket.close();
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error closing server socket", e);
-        }
-
         executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
