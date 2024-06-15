@@ -131,8 +131,14 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        // list all the files that the node owns
-        listFiles(nodeFileMap);
+        // list all the files that the node owns if it's empty print that the node has no files
+        if(nodeFileMap.isEmpty()){
+            System.out.println("Node owns no files");
+        } else {
+            System.out.println("Node files:");
+            listFiles(nodeFileMap);
+        }
+
 
         // update list (filesMap) with local files from the node (nodeFileMap)
         for (Map.Entry<String, Boolean> file : nodeFileMap.entrySet()) {

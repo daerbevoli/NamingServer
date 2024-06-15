@@ -187,6 +187,7 @@ public class Node {
 
         // Sync agent created during system launch/bootstrap and then run
         syncAgent.run();
+        logger.log(Level.INFO, "Sync agent started");
     }
 
 
