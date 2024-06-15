@@ -110,7 +110,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(() -> receiveUnicast("File Map request purpose", 8900));
+        executor.submit(() -> receiveUnicast("File Map request purpose", 9000));
         executor.submit(this::receiveFileMap);
 
 
