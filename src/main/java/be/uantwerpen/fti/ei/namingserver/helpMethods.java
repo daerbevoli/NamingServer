@@ -227,7 +227,7 @@ public class helpMethods {
     }
 
     public static void sendFileMap(String purpose, String targetIP, byte[] data, int port) {
-        try (DatagramSocket socket = new DatagramSocket(null)) {
+        try (DatagramSocket socket = new DatagramSocket(port)) {
             logger.log(Level.INFO, "Connected to file map data send socket: " + purpose);
 
             InetAddress targetIp = InetAddress.getByName(targetIP);
