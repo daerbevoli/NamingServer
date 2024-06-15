@@ -103,7 +103,7 @@ public class SyncAgent implements Runnable, Serializable {
             return;
         }
 
-        int port = Ports.unicastPort;
+        int port = 8900;
         String purpose = "Requesting File Map";
         helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP", port);
     }
