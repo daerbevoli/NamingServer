@@ -735,7 +735,7 @@ public class Node {
                     helpMethods.getFiles("/root/logs");
                     helpMethods.displayLogContents("/root/logs/fileLog.json");
                 case "sa":
-                    syncAgent.listFiles(syncAgent.getFilesMap());
+                    System.out.println("Files in sync agent: " + syncAgent.getFilesMap());
                     break;
                 default:
                     if (command.startsWith("addFile ")) {
