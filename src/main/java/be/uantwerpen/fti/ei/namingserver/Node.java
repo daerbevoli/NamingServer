@@ -89,7 +89,7 @@ public class Node {
             } catch (IOException e) {
                 logger.log(Level.WARNING, "Port " + port + " is in use. Trying next port.", e);
                 port++;
-                if (port > 65535) {
+                if (port > 7777) {
                     throw new RuntimeException("No available ports.");
                 }
             }
