@@ -32,6 +32,7 @@ public class SyncAgent implements Runnable, Serializable {
     private final Map<String, Boolean> filesMap; // Map to store filename and lock status
     private final Map<String, Boolean> nodeFileMap;
     private final Node node;
+    private volatile boolean running = true;
 
 
     public SyncAgent(Node node) {
@@ -74,6 +75,9 @@ public class SyncAgent implements Runnable, Serializable {
         return helpMethods.getFilesWithLockStatus("/root/replicatedFiles");
     }
 
+    public void stop() {
+        running = false;
+    }
 
     public void synchronizeWithNextNode(Map<String, Boolean> nextNodeFileMap) {
         if (nextNodeFileMap == null) {
@@ -90,6 +94,7 @@ public class SyncAgent implements Runnable, Serializable {
                     filesMap.put(filename, true); // If the file is locked in the next node, lock it here as well
                 }
             }
+            logger.log(Level.INFO, "Synchronized with next node");
         }
     }
 
@@ -124,7 +129,6 @@ public class SyncAgent implements Runnable, Serializable {
         if (nextNodeIP != null) {
             helpMethods.sendUnicast("Notify next node to synchronize", nextNodeIP, "SYNC_REQUEST", Ports.syncPort);
         }
-        logger.log(Level.INFO, "Notified next node:" + nextNodeIP + " to synchronize");
     }
 
     @Override
@@ -136,7 +140,7 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        while (true) {
+        while (running) {
             // list all the files that the node owns if it's empty print that the node has no files
             if (nodeFileMap.isEmpty()) {
                 System.out.println("Node owns no files");
@@ -151,18 +155,10 @@ public class SyncAgent implements Runnable, Serializable {
             // the synchronizeWithNextNode method is called in the Node class when the file map is received
             getNextNodeFileMap();
 
-            // Sleep to allow for the next node to send its file map
-            try {
-                Thread.sleep(10000); // Adjust this sleep duration as needed
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.log(Level.WARNING, "Sync agent interrupted", e);
-            }
-
             // Update the node's file list based on the agent's list
             nodeFileMap.putAll(filesMap);
 
-            notifyNextNode(); // Notify the next node to synchronize after the original one is done
+
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
         String fileToLock = "example.txt"; // Example file name, replace with actual logic

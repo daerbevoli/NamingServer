@@ -215,6 +215,8 @@ public class Node {
 
         // handle Failure and start Failure agent
         handleFailure(this);
+        // stop the syncagent
+        syncAgent.stop();
 
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
@@ -479,6 +481,7 @@ public class Node {
             Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
             syncAgent.synchronizeWithNextNode(receivedFileMap);
             logger.log(Level.INFO, "File map processed from 'next node'");
+            syncAgent.notifyNextNode(); // Notify the next node to synchronize
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
