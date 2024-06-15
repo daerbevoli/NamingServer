@@ -483,6 +483,7 @@ public class Node {
             Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
             syncAgent.synchronizeWithNextNode(receivedFileMap);
             logger.log(Level.INFO, "File map processed from 'next node'");
+            syncAgent.notifyNextNode(); // Notify the next node to synchronize after the original one is done
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {

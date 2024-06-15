@@ -135,26 +135,26 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        // list all the files that the node owns if it's empty print that the node has no files
-        if(nodeFileMap.isEmpty()){
-            System.out.println("Node owns no files");
-        } else {
-            System.out.println("Node files:");
-            listFiles(nodeFileMap);
-        }
+        while (true) {
 
-        // update list (filesMap) with local files from the node (nodeFileMap)
-        filesMap.putAll(getNodeOwnedFiles());
+            // list all the files that the node owns if it's empty print that the node has no files
+            if (nodeFileMap.isEmpty()) {
+                System.out.println("Node owns no files");
+            } else {
+                System.out.println("Node files:");
+                listFiles(nodeFileMap);
+            }
 
-        // Retrieve the next node's file map
-        // the synchronizeWithNextNode method is called in the Node class when the file map is received
-        getNextNodeFileMap();
+            // update list (filesMap) with local files from the node (nodeFileMap)
+            filesMap.putAll(getNodeOwnedFiles());
 
-        // Update the node's file list based on the agent's list
-        nodeFileMap.putAll(filesMap);
+            // Retrieve the next node's file map
+            // the synchronizeWithNextNode method is called in the Node class when the file map is received
+            getNextNodeFileMap();
 
-        // Notify the next node to synchronize
-        notifyNextNode();
+            // Update the node's file list based on the agent's list
+            nodeFileMap.putAll(filesMap);
+
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
         String fileToLock = "example.txt"; // Example file name, replace with actual logic
@@ -169,11 +169,16 @@ public class SyncAgent implements Runnable, Serializable {
             Node.unlockFile(fileToLock);
         }*/
 
-        // Sleep before next synchronization
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            // Notify the next node to synchronize
+            //notifyNextNode();
+
+            // Sleep before next synchronization
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.log(Level.WARNING, "Sync agent interrupted", e);
+            }
         }
     }
 }
