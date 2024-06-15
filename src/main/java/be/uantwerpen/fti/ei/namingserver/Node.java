@@ -63,11 +63,9 @@ public class Node {
         nextID = currentID;
         previousID = currentID;
 
-        try {
-            this.serverSocket = new ServerSocket(5321);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        this.serverSocket = bindServerSocket();
+
+
 
         // Initialize the files map with the files in the replicated folder
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
@@ -84,6 +82,21 @@ public class Node {
 
     }
 
+    // Added this method to loop until an available port is found, because I kept getting a bind error
+    private ServerSocket bindServerSocket() {
+        int port = 5321;
+        while (true) {
+            try {
+                return new ServerSocket(port);
+            } catch (IOException e) {
+                logger.log(Level.WARNING, "Port " + port + " is in use. Trying next port.", e);
+                port++;
+                if (port > 65535) {
+                    throw new RuntimeException("No available ports.");
+                }
+            }
+        }
+    }
 
     // Thread executor method to run the functions on different threads
     public void runFunctionsOnThreads() {
