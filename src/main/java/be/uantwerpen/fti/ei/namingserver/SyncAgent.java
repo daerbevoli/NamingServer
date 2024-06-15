@@ -71,7 +71,7 @@ public class SyncAgent implements Runnable, Serializable {
     }
 
     public synchronized Map<String, Boolean> getNodeOwnedFiles() {
-        return helpMethods.getFilesWithLockStatus("/root/localFiles");
+        return helpMethods.getFilesWithLockStatus("/root/replicatedFiles");
     }
 
 

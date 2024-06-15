@@ -74,8 +74,8 @@ public class Node {
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
 
 
-        // Initialization of the executor with a pool of 8 threads
-        executor = Executors.newFixedThreadPool(8);
+        // Initialization of the executor with a pool of 12 threads
+        executor = Executors.newFixedThreadPool(12);
         runFunctionsOnThreads();
 
     }
@@ -141,7 +141,7 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        syncAgent.run();
+        new Thread(syncAgent::run).start();
     }
 
     // Method to get the replicated (owned) files of this node
@@ -238,13 +238,6 @@ public class Node {
         }
 
         executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-        }
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
