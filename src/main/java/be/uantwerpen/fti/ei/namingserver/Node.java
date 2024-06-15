@@ -64,7 +64,7 @@ public class Node {
         previousID = currentID;
 
         try {
-            this.serverSocket = new ServerSocket(5432);
+            this.serverSocket = new ServerSocket(5321);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
