@@ -73,7 +73,7 @@ public class Node {
 
         // Initialize the sync agent
         syncAgent = new SyncAgent(this);
-        new Thread (syncAgent).start();
+        new Thread(syncAgent).start();
 
         // Initialize the files map with the files in the replicated folder
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
@@ -83,22 +83,6 @@ public class Node {
         executor = Executors.newFixedThreadPool(10);
         runFunctionsOnThreads();
 
-    }
-
-    // Added this method to loop until an available port is found, because I kept getting a bind error
-    private ServerSocket bindServerSocket() {
-        int port = 5321;
-        while (true) {
-            try {
-                return new ServerSocket(port);
-            } catch (IOException e) {
-                logger.log(Level.WARNING, "Port " + port + " is in use. Trying next port.", e);
-                port++;
-                if (port > 7777) {
-                    throw new RuntimeException("No available ports.");
-                }
-            }
-        }
     }
 
     // Thread executor method to run the functions on different threads
@@ -232,7 +216,16 @@ public class Node {
         // handle Failure and start Failure agent
         handleFailure(this);
 
-        executor.shutdown();
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+            ft.stopListening();
+            executor.shutdownNow();
+            logger.log(Level.INFO, "Node shutdown complete.");
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error during shutdown", e);
+        }
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -446,6 +439,7 @@ public class Node {
 
     private void processRequestFileMap(String message) {
         String requesterIP = message.split(":")[1];
+        logger.log(Level.INFO, "Request for file map received from: " + requesterIP);
         Map<String, Boolean> fileMap = syncAgent.getFilesMap();
         try {
             // Serialize the file map o a byte array
@@ -485,7 +479,6 @@ public class Node {
             Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
             syncAgent.synchronizeWithNextNode(receivedFileMap);
             logger.log(Level.INFO, "File map processed from 'next node'");
-            syncAgent.notifyNextNode(); // Notify the next node to synchronize after the original one is done
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
