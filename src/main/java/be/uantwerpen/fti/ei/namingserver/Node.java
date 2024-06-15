@@ -110,7 +110,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(() -> receiveUnicast("File Map request purpose", 9000));
+        executor.submit(() -> receiveUnicast("File Map request purpose", 8900));
         executor.submit(this::receiveFileMap);
 
 
@@ -156,7 +156,7 @@ public class Node {
     public String getNextNodeIP() {
         try {
             InetAddress nextNodeAddress = InetAddress.getByName(String.valueOf(nextID));
-            return nextNodeAddress.getHostName();
+            return nextNodeAddress.getHostAddress();
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -492,7 +492,7 @@ public class Node {
     }
 
         private void processSyncRequest() {
-        syncAgent.run();
+        new Thread(syncAgent::run).start();
     }
 
     // Process the message received from the multicast
@@ -771,5 +771,9 @@ public class Node {
 
         Node node = new Node();
         node.run();
+    }
+
+    public String getIP() {
+        return IP;
     }
 }

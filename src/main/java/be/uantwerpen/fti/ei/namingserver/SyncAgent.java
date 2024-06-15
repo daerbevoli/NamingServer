@@ -107,9 +107,9 @@ public class SyncAgent implements Runnable, Serializable {
             return;
         }
 
-        int port = 8900;
+        int port = Ports.fmPort;
         String purpose = "Requesting File Map";
-        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP", port);
+        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP" + node.getIP(), 8900);
     }
 
     // Method to process the received file map response
@@ -135,8 +135,7 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        while (true) {
-
+        while (true) { // SyncAgent should run infinitely
             // list all the files that the node owns if it's empty print that the node has no files
             if (nodeFileMap.isEmpty()) {
                 System.out.println("Node owns no files");
