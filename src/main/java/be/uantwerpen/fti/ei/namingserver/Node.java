@@ -141,8 +141,7 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        Thread syncAgentThread = new Thread(syncAgent::run);
-        syncAgentThread.start();
+        syncAgent.run();
     }
 
     // Method to get the replicated (owned) files of this node
