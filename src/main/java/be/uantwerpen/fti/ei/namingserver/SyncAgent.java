@@ -35,7 +35,7 @@ public class SyncAgent implements Runnable, Serializable {
 
 
     public SyncAgent(Node node) {
-        this.nodeFileMap = helpMethods.getFilesWithLockStatus("/root/replicatedFiles");
+        this.nodeFileMap = getNodeOwnedFiles();
         filesMap = Collections.synchronizedMap(new HashMap<>());
         this.node = node;
     }
@@ -68,6 +68,10 @@ public class SyncAgent implements Runnable, Serializable {
         for(String filename : fileMap.keySet()){
             System.out.println("File: " + filename);
         }
+    }
+
+    public synchronized Map<String, Boolean> getNodeOwnedFiles() {
+        return helpMethods.getFilesWithLockStatus("/root/localFiles");
     }
 
 
@@ -139,11 +143,8 @@ public class SyncAgent implements Runnable, Serializable {
             listFiles(nodeFileMap);
         }
 
-
         // update list (filesMap) with local files from the node (nodeFileMap)
-        for (Map.Entry<String, Boolean> file : nodeFileMap.entrySet()) {
-            this.addFile(file.getKey());
-        }
+        filesMap.putAll(getNodeOwnedFiles());
 
         // Retrieve the next node's file map
         // the synchronizeWithNextNode method is called in the Node class when the file map is received
