@@ -46,6 +46,8 @@ public class Node {
 
     private Map<String, Boolean> nextFileMap = new HashMap<>();
 
+    private static volatile boolean replicationComplete = false;
+
     public Node() {
         this.IP = helpMethods.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
@@ -65,20 +67,16 @@ public class Node {
 
         this.serverSocket = bindServerSocket();
 
-
+        // Initialize the sync agent
+        syncAgent = new SyncAgent(this);
 
         // Initialize the files map with the files in the replicated folder
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
 
-        syncAgent = new SyncAgent(this);
 
         // Initialization of the executor with a pool of 8 threads
         executor = Executors.newFixedThreadPool(8);
         runFunctionsOnThreads();
-
-        // Start SyncAgent in a separate thread
-        Thread syncAgentThread = new Thread(syncAgent);
-        syncAgentThread.start();
 
     }
 
@@ -124,13 +122,13 @@ public class Node {
     These three methods could be used to get the agent and its fileMap in the SyncAgent class.
     This requires however for the methods and properties to be static and this is not proper way
     to work.
-     */
+
     public void sendAgent(){
         helpMethods.sendUnicast("retrieve next host", serverIP, "AIP:" + IP + ":A", Ports.unicastPort);
         executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
     }
-
-    public SyncAgent getAgent(){
+*/
+    public SyncAgent getSyncAgent(){
         return syncAgent;
     }
 
@@ -140,6 +138,11 @@ public class Node {
 
     public Map<String, Boolean> getFileMap(){
         return filesMap;
+    }
+
+    public void runSyncAgent(SyncAgent syncAgent) {
+        Thread syncAgentThread = new Thread(syncAgent::run);
+        syncAgentThread.start();
     }
 
     // Method to get the replicated (owned) files of this node
@@ -185,11 +188,22 @@ public class Node {
             }
         }
 
+        // Ensure that replication has been completed before starting the syncagent
+        waitForReplicationComplete();
         // Sync agent created during system launch/bootstrap and then run
-        syncAgent.run();
+        runSyncAgent(syncAgent);
         logger.log(Level.INFO, "Sync agent started");
     }
 
+    private void waitForReplicationComplete() {
+        while (!replicationComplete) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                logger.log(Level.WARNING, "Error waiting for replication to complete", e);
+            }
+        }
+    }
 
     /*
      * The shutdown method is used when closing a node. It is also used in exception for failure.
@@ -574,6 +588,7 @@ public class Node {
             logger.log(Level.WARNING, "Error creating JSON object", e);
         }
 
+       replicationComplete = true;
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
