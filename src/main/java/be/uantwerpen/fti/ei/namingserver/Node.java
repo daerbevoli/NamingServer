@@ -78,8 +78,8 @@ public class Node {
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
 
 
-        // Initialization of the executor with a pool of 12 threads
-        executor = Executors.newFixedThreadPool(12);
+        // Initialization of the executor with a pool of 10 threads
+        executor = Executors.newFixedThreadPool(10);
         runFunctionsOnThreads();
 
     }
@@ -103,8 +103,8 @@ public class Node {
     // Thread executor method to run the functions on different threads
     public void runFunctionsOnThreads() {
 
-        executor.submit(this::listenNodeMulticast);
         executor.submit(this::Bootstrap);
+        executor.submit(this::listenNodeMulticast);
         executor.submit(this::receiveNumOfNodes);
         // optimization for later
         // This optimization is to use the general receive function and may be errorless
@@ -114,7 +114,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(() -> receiveUnicast("File Map request purpose", 9000));
+        executor.submit(() -> receiveUnicast("File Map request purpose", 8800));
         executor.submit(this::receiveFileMap);
 
 
@@ -769,7 +769,6 @@ public class Node {
     }
 
     public static void main(String[] args) {
-
         Node node = new Node();
         node.run();
     }
