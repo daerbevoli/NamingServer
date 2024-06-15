@@ -228,8 +228,23 @@ public class Node {
         handleFailure(this);
 
 
-        // Shutdown the executor when the node shuts down
+        // Ensure all sockets are closed properly and the executor is shut down
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error closing server socket", e);
+        }
+
         executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
