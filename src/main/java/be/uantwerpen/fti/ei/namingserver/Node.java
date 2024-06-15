@@ -65,7 +65,11 @@ public class Node {
         nextID = currentID;
         previousID = currentID;
 
-        this.serverSocket = bindServerSocket();
+        try {
+            serverSocket = new ServerSocket(5231);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         // Initialize the sync agent
         syncAgent = new SyncAgent(this);
