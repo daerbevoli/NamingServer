@@ -99,7 +99,7 @@ public class Node {
         executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(() -> receiveUnicast("File Map request purpose", 8800));
+        executor.submit(() -> receiveUnicast("File Map request purpose", Ports.fmPort));
         executor.submit(this::receiveFileMap);
 
 
@@ -144,6 +144,7 @@ public class Node {
     public String getNextNodeIP() {
         try {
             InetAddress nextNodeAddress = InetAddress.getByName(String.valueOf(nextID));
+            logger.log(Level.INFO, "Next node IP: " + nextNodeAddress.getHostAddress());
             return nextNodeAddress.getHostAddress();
         } catch (Exception e) {
             e.printStackTrace();

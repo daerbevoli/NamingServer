@@ -114,7 +114,7 @@ public class SyncAgent implements Runnable, Serializable {
 
         int port = Ports.fmPort;
         String purpose = "Requesting File Map";
-        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP:" + node.getIP(), 8800);
+        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP:" + node.getIP(), Ports.fmPort);
     }
 
     // Method to process the received file map response
