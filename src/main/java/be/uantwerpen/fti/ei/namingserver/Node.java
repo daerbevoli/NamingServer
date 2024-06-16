@@ -153,22 +153,6 @@ public class Node {
     }
 
 
-    public void updateNextNodeIP() {
-        if (serverIP != null && nextID != currentID) {
-            try {
-                String nextNodeIP = getNextIPFromID();
-                if (nextNodeIP != null) {
-                    this.nextNodeIP = nextNodeIP;
-                    logger.log(Level.INFO, "Next node IP updated to: " + nextNodeIP);
-                } else {
-                    logger.log(Level.WARNING, "Next node IP is null");
-                }
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Failed to update next node IP", e);
-            }
-        }
-    }
-
     private String getNextIPFromID() {
         try {
             helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID" + ":" + IP , Ports.nextNodeIPPort);
@@ -433,7 +417,6 @@ public class Node {
     private void processNextNodeIPResponse(String message) {
         String[] parts = message.split(":");
         this.nextNodeIP = parts[1];
-        updateNextNodeIP();
     }
 
     /**
@@ -641,7 +624,6 @@ public class Node {
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
-            updateNextNodeIP(); // Update the next node's IP
             sendNodeResponse(true, IP, oldNext);
             logger.log(Level.INFO, "Next ID updated to: " + nextID + "And next IP updated to: " + nextNodeIP);
         }
