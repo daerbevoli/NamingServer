@@ -146,18 +146,12 @@ public class Node {
         String nextNodeIP = null;
         try {
             // Send a request to the server to get the next node IP
-            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + currentID, Ports.unicastPort);
+            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST" + ":" + currentID, Ports.unicastPort);
 
-            // Create a socket to listen for the server's response
-            try (DatagramSocket socket = new DatagramSocket(Ports.nextNodeIPPort)) {
-                byte[] buffer = new byte[512];
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                nextNodeIP = new String(packet.getData(), 0, packet.getLength());
-                logger.log(Level.INFO, "Next node IP: " + nextNodeIP);
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Unable to get next node IP from the server", e);
+            // use the receivunicast method and execute it in executor to listen for the respone
+            executor.submit(() -> receiveUnicast("Get Next Node IP", Ports.nextNodeIPPort));
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "unable to get next node IP", e);
         }
         return nextNodeIP;
     }
@@ -402,7 +396,7 @@ public class Node {
             }
             sendReplicatedFilesShutdown(message);
         }
-        else if (message.startsWith("REQUEST_FILE_MAP:")) { // File map of the next node being requested
+        else if (message.startsWith("REQUEST_FILE_MAP")) { // File map of the next node being requested
             processRequestFileMap(message);
         }
         else if (message.startsWith("SYNC_REQUEST")) {
@@ -447,8 +441,7 @@ public class Node {
         try {
             // Serialize the file map o a byte array
             byte[] serializedData = helpMethods.serializeObject(fileMap);
-            // Send the serialized file map using unicast
-            //helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), Ports.fmPort);
+            // Send the serialized file map
             helpMethods.sendFileMap("Sending filemap from 'next node's SA' to requester SA", requesterIP, serializedData, Ports.fmPort);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error sending file map to requester", e);
