@@ -329,6 +329,10 @@ public class Server {
 
     }
 
+    public String getIPFromID(int id) {
+        InetAddress address = nodesMap.get(id);
+        return address != null ? address.getHostAddress() : null;
+    }
 
     // Method to get the IP of the next node
     public String getNextNodeIP(int currentID) {

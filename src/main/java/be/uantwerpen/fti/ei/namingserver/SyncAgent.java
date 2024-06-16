@@ -106,7 +106,7 @@ public class SyncAgent implements Runnable, Serializable {
     Method to communicate with the next node and retrieve it's fileMap
      */
     private void getNextNodeFileMap() {
-        node.requestNextNodeIP();
+        node.updateNextNodeIP();
         String nextNodeIP = node.getNextNodeIP();
         if (nextNodeIP == null) {
             logger.log(Level.WARNING, "Next node IP is null");

@@ -144,19 +144,32 @@ public class Node {
     Method to get the next node's IP
      */
     // Method to get the next node's IP address from the network
+
+    // Method to get the next node's IP address from the network
     public String getNextNodeIP() {
         return nextNodeIP;
     }
 
-    public synchronized void requestNextNodeIP() {
-        nextNodeIP = null; // Reset before requesting
-        try {
-            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + nextID, Ports.unicastPort);
-            wait(5000); // Wait for the response with a timeout
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to get next node IP", e);
+    public void updateNextNodeIP() {
+        String nextNodeIP = getNextNodeIPFromServer();
+        if (nextNodeIP != null) {
+            this.nextNodeIP = nextNodeIP;
+        } else {
+            logger.log(Level.WARNING, "Failed to get next node IP from server");
         }
     }
+
+    private String getNextNodeIPFromServer() {
+        String nextNodeIP = this.nextNodeIP;
+        try {
+            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + nextID, Ports.unicastPort);
+            Thread.sleep(500); // Wait for a response (adjust as necessary)
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Unable to get next node IP from server", e);
+        }
+        return nextNodeIP;
+    }
+
 
 
 
@@ -411,9 +424,7 @@ public class Node {
 
     private void processNextNodeIPResponse(String message) {
         String[] parts = message.split(":");
-        nextNodeIP = parts[1];
-        logger.log(Level.INFO, "Next node IP set to: " + nextNodeIP);
-        notifyAll(); // Notify any waiting threads
+        this.nextNodeIP = parts[1];
     }
 
     /**
@@ -621,6 +632,7 @@ public class Node {
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
+            updateNextNodeIP();
             sendNodeResponse(true, IP, oldNext);
             logger.log(Level.INFO, "Next ID updated to: " + nextID);
         }
