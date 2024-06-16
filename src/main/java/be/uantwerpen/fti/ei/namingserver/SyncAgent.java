@@ -140,6 +140,7 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
+        while (running) {
             // list all the files that the node owns if it's empty print that the node has no files
             if (nodeFileMap.isEmpty()) {
                 System.out.println("Node owns no files");
@@ -183,5 +184,5 @@ public class SyncAgent implements Runnable, Serializable {
                 logger.log(Level.WARNING, "Sync agent interrupted", e);
             }
         }
-
+    }
 }
