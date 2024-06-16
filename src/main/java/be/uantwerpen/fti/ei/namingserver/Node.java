@@ -143,15 +143,16 @@ public class Node {
      */
     public String getNextNodeIP() {
         try {
-            InetAddress nextNodeAddress = InetAddress.getByName(String.valueOf(nextID));
-            logger.log(Level.INFO, "Next node IP: " + nextNodeAddress.getHostName());
-            return nextNodeAddress.getHostName();
-        } catch (Exception e) {
-            e.printStackTrace();
+            String nextNodeHost = InetAddress.getByName(serverIP).getHostName();
+            InetAddress nextNodeAddress = InetAddress.getByName(nextNodeHost);
+            String nextNodeIP = nextNodeAddress.getHostAddress();
+            logger.log(Level.INFO, "Next node IP: " + nextNodeIP);
+            return nextNodeIP;
+        } catch (UnknownHostException e) {
+            logger.log(Level.WARNING, "Unable to resolve next node IP for ID: " + nextID, e);
             return null;
         }
     }
-
 
 
     // Send a multicast message during bootstrap with name and IP address
