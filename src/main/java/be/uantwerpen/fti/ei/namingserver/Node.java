@@ -169,9 +169,8 @@ public class Node {
 
     private String getIPFromID(int id) {
         try {
-            helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID:" + id, Ports.unicastPort);
-            Thread.sleep(500); // Wait for a response (adjust as necessary)
-            return this.nextNodeIP; // Assuming nextNodeIP gets updated by the processReceivedMessage method
+            helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID:" + id, Ports.nextNodeIPPort);
+            return this.nextNodeIP;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Unable to get IP from ID", e);
             return null;
