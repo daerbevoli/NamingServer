@@ -151,16 +151,33 @@ public class Node {
     }
 
 
-    private String getNextNodeIPFromServer() {
-        String nextNodeIP = this.nextNodeIP;
-        try {
-            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + nextID, Ports.unicastPort);
-            Thread.sleep(500); // Wait for a response (adjust as necessary)
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Unable to get next node IP from server", e);
+    public void updateNextNodeIP() {
+        if (serverIP != null && nextID != currentID) {
+            try {
+                String nextNodeIP = getIPFromID(nextID);
+                if (nextNodeIP != null) {
+                    this.nextNodeIP = nextNodeIP;
+                    logger.log(Level.INFO, "Next node IP updated to: " + nextNodeIP);
+                } else {
+                    logger.log(Level.WARNING, "Next node IP is null");
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Failed to update next node IP", e);
+            }
         }
-        return nextNodeIP;
     }
+
+    private String getIPFromID(int id) {
+        try {
+            helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID:" + id, Ports.unicastPort);
+            Thread.sleep(500); // Wait for a response (adjust as necessary)
+            return this.nextNodeIP; // Assuming nextNodeIP gets updated by the processReceivedMessage method
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Unable to get IP from ID", e);
+            return null;
+        }
+    }
+
 
 
     // Send a multicast message during bootstrap with name and IP address
@@ -407,7 +424,7 @@ public class Node {
         }
         else if (message.startsWith("SYNC_REQUEST")) {
             processSyncRequest();
-        } else if (message.startsWith("NEXT_NODE_IP")) {
+        } else if (message.startsWith("IP_FROM_ID")) {
             processNextNodeIPResponse(message);
         }
     }
@@ -415,6 +432,7 @@ public class Node {
     private void processNextNodeIPResponse(String message) {
         String[] parts = message.split(":");
         this.nextNodeIP = parts[1];
+        updateNextNodeIP();
     }
 
     /**
@@ -622,8 +640,9 @@ public class Node {
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
+            updateNextNodeIP(); // Update the next node's IP
             sendNodeResponse(true, IP, oldNext);
-            logger.log(Level.INFO, "Next ID updated to: " + nextID);
+            logger.log(Level.INFO, "Next ID updated to: " + nextID + "And next IP updated to: " + nextNodeIP);
         }
 
         /*

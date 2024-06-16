@@ -279,10 +279,10 @@ public class Server {
                 String indication = parts[2];
                 sendIPOfPrevNodes(nodeIP, indication);
                 break;
-            case "NEXT_NODE_IP_REQUEST":
-                int requestingNodeID = Integer.parseInt(parts[2]);
-                String nextNodeIP = getNextNodeIP(requestingNodeID);
-                helpMethods.sendUnicast("NEXT_NODE_IP", nodeIP, "NEXT_NODE_IP:" + nextNodeIP, Ports.nextNodeIPPort);
+            case "GET_IP_FROM_ID":
+                int nextID = Integer.parseInt(parts[2]);
+                String nextIP = getIPFromID(nextID);
+                helpMethods.sendUnicast("IP_FROM_ID", nodeIP, "IP_FROM_ID" + ":" + nextIP, Ports.unicastPort);
                 break;
         }
     }
