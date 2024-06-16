@@ -35,6 +35,8 @@ public class Node {
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private static final File fileLog = new File("/root/logs/fileLog.json");
 
+    private volatile String nextNodeIP;
+
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
 
@@ -99,8 +101,8 @@ public class Node {
         executor.submit(() -> receiveUnicast("Sync purpose", Ports.syncPort));
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
-        executor.submit(() -> receiveUnicast("File Map request purpose", Ports.fmPort));
-        executor.submit(this::receiveFileMap);
+        executor.submit(() -> receiveUnicast("File Map request purpose", Ports.reqPort));
+        executor.submit(() -> receiveFileMap());
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
@@ -141,17 +143,24 @@ public class Node {
     /*
     Method to get the next node's IP
      */
+    // Method to get the next node's IP address from the network
+
+    // Method to get the next node's IP address from the network
     public String getNextNodeIP() {
-        try {
-            InetAddress nextNodeAddress = InetAddress.getByName(String.valueOf(nextID));
-            logger.log(Level.INFO, "Next node IP: " + nextNodeAddress.getHostName());
-            return nextNodeAddress.getHostName();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        return nextNodeIP;
     }
 
+
+    private String getNextNodeIPFromServer() {
+        String nextNodeIP = this.nextNodeIP;
+        try {
+            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + nextID, Ports.unicastPort);
+            Thread.sleep(500); // Wait for a response (adjust as necessary)
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Unable to get next node IP from server", e);
+        }
+        return nextNodeIP;
+    }
 
 
     // Send a multicast message during bootstrap with name and IP address
@@ -393,12 +402,19 @@ public class Node {
             }
             sendReplicatedFilesShutdown(message);
         }
-        else if (message.startsWith("REQUEST_FILE_MAP:")) { // File map of the next node being requested
+        else if (message.startsWith("REQUEST_FILE_MAP")) { // File map of the next node being requested
             processRequestFileMap(message);
         }
         else if (message.startsWith("SYNC_REQUEST")) {
             processSyncRequest();
+        } else if (message.startsWith("NEXT_NODE_IP")) {
+            processNextNodeIPResponse(message);
         }
+    }
+
+    private void processNextNodeIPResponse(String message) {
+        String[] parts = message.split(":");
+        this.nextNodeIP = parts[1];
     }
 
     /**
@@ -438,8 +454,7 @@ public class Node {
         try {
             // Serialize the file map o a byte array
             byte[] serializedData = helpMethods.serializeObject(fileMap);
-            // Send the serialized file map using unicast
-            //helpMethods.sendUnicast("Sending file map from 'next node' to requester", requesterIP, Arrays.toString(serializedData), Ports.fmPort);
+            // Send the serialized file map
             helpMethods.sendFileMap("Sending filemap from 'next node's SA' to requester SA", requesterIP, serializedData, Ports.fmPort);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error sending file map to requester", e);

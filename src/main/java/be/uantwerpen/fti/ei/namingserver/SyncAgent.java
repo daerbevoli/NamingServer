@@ -106,15 +106,16 @@ public class SyncAgent implements Runnable, Serializable {
     Method to communicate with the next node and retrieve it's fileMap
      */
     private void getNextNodeFileMap() {
+        node.updateNextNodeIP();
         String nextNodeIP = node.getNextNodeIP();
         if (nextNodeIP == null) {
             logger.log(Level.WARNING, "Next node IP is null");
             return;
         }
 
-        int port = Ports.fmPort;
         String purpose = "Requesting File Map";
-        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP:" + node.getIP(), Ports.fmPort);
+        logger.log(Level.INFO, "Requesting file map from next node with IP: " + nextNodeIP);
+        helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP" + ":" + node.getIP(), Ports.reqPort);
     }
 
     // Method to process the received file map response
@@ -178,7 +179,7 @@ public class SyncAgent implements Runnable, Serializable {
 
             // Sleep before next synchronization
             try {
-                Thread.sleep(5000);
+                Thread.sleep(10000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 logger.log(Level.WARNING, "Sync agent interrupted", e);
