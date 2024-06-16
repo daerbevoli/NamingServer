@@ -219,16 +219,7 @@ public class Node {
         // stop the syncagent
         syncAgent.stop();
 
-        try {
-            if (serverSocket != null && !serverSocket.isClosed()) {
-                serverSocket.close();
-            }
-            ft.stopListening();
-            executor.shutdownNow();
-            logger.log(Level.INFO, "Node shutdown complete.");
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error during shutdown", e);
-        }
+        executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
 
@@ -402,7 +393,7 @@ public class Node {
             }
             sendReplicatedFilesShutdown(message);
         }
-        else if (message.startsWith("REQUEST_FILE_MAP")) { // File map of the next node being requested
+        else if (message.startsWith("REQUEST_FILE_MAP:")) { // File map of the next node being requested
             processRequestFileMap(message);
         }
         else if (message.startsWith("SYNC_REQUEST")) {
