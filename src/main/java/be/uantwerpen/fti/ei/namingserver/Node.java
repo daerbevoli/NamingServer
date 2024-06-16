@@ -35,6 +35,8 @@ public class Node {
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private static final File fileLog = new File("/root/logs/fileLog.json");
 
+    private volatile String nextNodeIP;
+
     // ExecutorService to run multiple methods on different threads
     private final ExecutorService executor;
 
@@ -147,9 +149,6 @@ public class Node {
         try {
             // Send a request to the server to get the next node IP
             helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST" + ":" + currentID, Ports.unicastPort);
-
-            // use the receivunicast method and execute it in executor to listen for the respone
-            executor.submit(() -> receiveUnicast("Get Next Node IP", Ports.nextNodeIPPort));
         } catch (Exception e) {
             logger.log(Level.WARNING, "unable to get next node IP", e);
         }
@@ -401,7 +400,14 @@ public class Node {
         }
         else if (message.startsWith("SYNC_REQUEST")) {
             processSyncRequest();
+        } else if (message.startsWith("NEXT_NODE_IP")) {
+            processNextNodeIPResponse(message);
         }
+    }
+
+    private void processNextNodeIPResponse(String message) {
+        String[] parts = message.split(":");
+        nextNodeIP = parts[1];
     }
 
     /**

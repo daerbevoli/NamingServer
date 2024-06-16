@@ -282,7 +282,7 @@ public class Server {
             case "NEXT_NODE_IP_REQUEST":
                 int requestingNodeID = Integer.parseInt(parts[2]);
                 String nextNodeIP = getNextNodeIP(requestingNodeID);
-                helpMethods.sendUnicast("Sending next node IP", nodeIP, nextNodeIP, Ports.nextNodeIPPort);
+                helpMethods.sendUnicast("NEXT_NODE_IP", nodeIP, "NEXT_NODE_IP:" + nextNodeIP, Ports.nextNodeIPPort);
                 break;
         }
     }
