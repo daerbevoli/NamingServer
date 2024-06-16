@@ -148,6 +148,7 @@ public class Node {
 
     // Method to get the next node's IP address from the network
     public String getNextNodeIP() {
+        getIPFromID(nextID);
         return nextNodeIP;
     }
 
@@ -171,7 +172,7 @@ public class Node {
     private String getIPFromID(int id) {
         try {
             helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID:" + id, Ports.nextNodeIPPort);
-            return this.nextNodeIP;
+            return nextNodeIP;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Unable to get IP from ID", e);
             return null;
