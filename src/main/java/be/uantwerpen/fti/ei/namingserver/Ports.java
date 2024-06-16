@@ -15,4 +15,6 @@ public interface Ports {
     int fmPort = 8500;
 
     int syncPort = 8600;
+
+    int reqPort = 8700;
 }
