@@ -302,7 +302,8 @@ public class Server {
                 sendIPOfPrevNodes(nodeIP, indication);
                 break;
             case "GET_IP_FROM_ID":
-                sendIPOfNextNode(nodeIP);
+                String nextID= parts[2];
+                sendIPOfNextNode(nodeIP, nextID);
                 break;
         }
     }
@@ -359,32 +360,12 @@ public class Server {
 
     }
 
-    public void sendIPOfNextNode(String ip) {
+    public void sendIPOfNextNode(String ip, String nextID) {
         String ipOfNext = nodesMap.get(getNextId(ip)).getHostAddress();
         logger.log(Level.INFO, "Sending IP of next node: " + ipOfNext);
         helpMethods.sendUnicast("Send IP of next node", ip,
                 "IP_FROM_ID:" + ipOfNext + ":", Ports.nextNodeIPPort );
 
-    }
-
-    public String getIPFromID(int id) {
-        InetAddress address = nodesMap.get(id);
-        return address != null ? address.getHostAddress() : null;
-    }
-
-    // Method to get the IP of the next node
-    public String getNextNodeIP(int currentID) {
-        ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
-        Collections.sort(hashes);
-
-        int currentIndex = hashes.indexOf(currentID);
-        if (currentIndex == -1 || hashes.size() <= 1) {
-            logger.log(Level.WARNING, "Current node not found or insufficient nodes to determine next node");
-            return null;
-        }
-        int nextIndex = (currentIndex + 1) % hashes.size();
-        int nextID = hashes.get(nextIndex);
-        return nodesMap.get(nextID).getHostAddress();
     }
 
     // Run the server and handle user commands
