@@ -100,7 +100,7 @@ public class Node {
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
         executor.submit(() -> receiveUnicast("File Map request purpose", Ports.reqPort));
-        executor.submit(this::receiveFileMap);
+        executor.submit(() -> receiveFileMap());
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
@@ -144,8 +144,8 @@ public class Node {
     public String getNextNodeIP() {
         try {
             InetAddress nextNodeAddress = InetAddress.getByName(String.valueOf(nextID));
-            logger.log(Level.INFO, "Next node IP: " + nextNodeAddress.getHostAddress());
-            return nextNodeAddress.getHostAddress();
+            logger.log(Level.INFO, "Next node IP: " + nextNodeAddress.getHostName());
+            return nextNodeAddress.getHostName();
         } catch (Exception e) {
             e.printStackTrace();
             return null;
