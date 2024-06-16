@@ -362,7 +362,7 @@ public class Server {
     public void sendIPOfNextNode(String ip) {
         String ipOfNext = nodesMap.get(getNextId(ip)).getHostName();
         helpMethods.sendUnicast("Send IP of next node", ip,
-                "IP_FROM_ID:" + ipOfNext + ":", 9020);
+                "IP_FROM_ID:" + ipOfNext + ":", Ports.nextNodeIPPort );
 
     }
 

@@ -102,6 +102,7 @@ public class Node {
         executor.submit(this::watchFolder);
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
         executor.submit(() -> receiveUnicast("File Map request purpose", Ports.reqPort));
+        executor.submit(() -> receiveUnicast("Next Node IP purpose", Ports.nextNodeIPPort));
         executor.submit(() -> receiveFileMap());
 
 
