@@ -70,6 +70,7 @@ public class Server {
         executor.shutdown();
     }
 
+
     /* Implementation of following algorithm :
     Suppose N is the collection of nodes with a hash smaller than the hash of the
     filename. Then the node with the smallest difference between its hash and the file
@@ -278,6 +279,11 @@ public class Server {
                 String indication = parts[2];
                 sendIPOfPrevNodes(nodeIP, indication);
                 break;
+            case "NEXT_NODE_IP_REQUEST":
+                int requestingNodeID = Integer.parseInt(parts[2]);
+                String nextNodeIP = getNextNodeIP(requestingNodeID);
+                helpMethods.sendUnicast("Sending next node IP", nodeIP, nextNodeIP, Ports.nextNodeIPPort);
+                break;
         }
     }
 
@@ -314,12 +320,28 @@ public class Server {
         return hashes.get(indexPrevNode);
     }
 
+
     public void sendIPOfPrevNodes(String ip, String indication) {
         String ipOfPrev = nodesMap.get(getPreviousID(ip)).getHostName();
         String ipOf2Prev = nodesMap.get(getPreviousID(ipOfPrev)).getHostName();
         helpMethods.sendUnicast("Send IP of previous node and its previous node", ip,
                 "RIP:" + ipOfPrev + ":" + ipOf2Prev + ":" + indication, 9020);
 
+    }
+
+    // Method to get the IP of the next node
+    public String getNextNodeIP(int currentID) {
+        ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
+        Collections.sort(hashes);
+
+        int currentIndex = hashes.indexOf(currentID);
+        if (currentIndex == -1 || hashes.size() <= 1) {
+            logger.log(Level.WARNING, "Current node not found or insufficient nodes to determine next node");
+            return null;
+        }
+        int nextIndex = (currentIndex + 1) % hashes.size();
+        int nextID = hashes.get(nextIndex);
+        return nodesMap.get(nextID).getHostAddress();
     }
 
     // Run the server and handle user commands

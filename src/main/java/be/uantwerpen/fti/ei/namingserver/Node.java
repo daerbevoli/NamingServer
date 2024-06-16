@@ -141,17 +141,25 @@ public class Node {
     /*
     Method to get the next node's IP
      */
+    // Method to get the next node's IP address from the network
     public String getNextNodeIP() {
+        String nextNodeIP = null;
         try {
-            String nextNodeHost = InetAddress.getByName(String.valueOf(nextID)).getHostName();
-            InetAddress nextNodeAddress = InetAddress.getByName(nextNodeHost);
-            String nextNodeIP = nextNodeAddress.getHostAddress();
-            logger.log(Level.INFO, "Next node IP: " + nextNodeIP);
-            return nextNodeIP;
-        } catch (UnknownHostException e) {
-            logger.log(Level.WARNING, "Unable to resolve next node IP for ID: " + nextID, e);
-            return null;
+            // Send a request to the server to get the next node IP
+            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + currentID, Ports.unicastPort);
+
+            // Create a socket to listen for the server's response
+            try (DatagramSocket socket = new DatagramSocket(Ports.nextNodeIPPort)) {
+                byte[] buffer = new byte[512];
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                nextNodeIP = new String(packet.getData(), 0, packet.getLength());
+                logger.log(Level.INFO, "Next node IP: " + nextNodeIP);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Unable to get next node IP from the server", e);
         }
+        return nextNodeIP;
     }
 
 

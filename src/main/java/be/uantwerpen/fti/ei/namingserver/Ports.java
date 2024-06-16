@@ -17,4 +17,6 @@ public interface Ports {
     int syncPort = 8600;
 
     int reqPort = 8700;
+
+    int nextNodeIPPort = 8800;
 }
