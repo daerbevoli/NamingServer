@@ -143,7 +143,7 @@ public class Node {
      */
     public String getNextNodeIP() {
         try {
-            String nextNodeHost = InetAddress.getByName(serverIP).getHostName();
+            String nextNodeHost = InetAddress.getByName(String.valueOf(nextID)).getHostName();
             InetAddress nextNodeAddress = InetAddress.getByName(nextNodeHost);
             String nextNodeIP = nextNodeAddress.getHostAddress();
             logger.log(Level.INFO, "Next node IP: " + nextNodeIP);
