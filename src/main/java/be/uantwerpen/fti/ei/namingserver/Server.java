@@ -302,8 +302,7 @@ public class Server {
                 sendIPOfPrevNodes(nodeIP, indication);
                 break;
             case "GET_IP_FROM_ID":
-                String nextID= parts[2];
-                sendIPOfNextNode(nodeIP, nextID);
+                sendIPOfNextNode(nodeIP);
                 break;
         }
     }
@@ -360,7 +359,7 @@ public class Server {
 
     }
 
-    public void sendIPOfNextNode(String ip, String nextID) {
+    public void sendIPOfNextNode(String ip) {
         String ipOfNext = nodesMap.get(getNextId(ip)).getHostAddress();
         logger.log(Level.INFO, "Sending IP of next node: " + ipOfNext);
         helpMethods.sendUnicast("Send IP of next node", ip,
