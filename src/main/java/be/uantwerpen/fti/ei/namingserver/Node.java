@@ -145,15 +145,19 @@ public class Node {
      */
     // Method to get the next node's IP address from the network
     public String getNextNodeIP() {
-        String nextNodeIP = null;
-        try {
-            // Send a request to the server to get the next node IP
-            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST" + ":" + currentID, Ports.unicastPort);
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "unable to get next node IP", e);
-        }
         return nextNodeIP;
     }
+
+    public synchronized void requestNextNodeIP() {
+        nextNodeIP = null; // Reset before requesting
+        try {
+            helpMethods.sendUnicast("Requesting next node IP", serverIP, "NEXT_NODE_IP_REQUEST:" + nextID, Ports.unicastPort);
+            wait(5000); // Wait for the response with a timeout
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Unable to get next node IP", e);
+        }
+    }
+
 
 
     // Send a multicast message during bootstrap with name and IP address
@@ -408,6 +412,8 @@ public class Node {
     private void processNextNodeIPResponse(String message) {
         String[] parts = message.split(":");
         nextNodeIP = parts[1];
+        logger.log(Level.INFO, "Next node IP set to: " + nextNodeIP);
+        notifyAll(); // Notify any waiting threads
     }
 
     /**
