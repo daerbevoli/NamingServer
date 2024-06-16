@@ -47,7 +47,7 @@ public class Server {
         nodesMap.clear(); // clear the map when server starts up
 
         // Executor to run tasks on different threads
-        executor = Executors.newFixedThreadPool(3);
+        executor = Executors.newFixedThreadPool(4);
         runFunctionsOnThreads();
 
     }
@@ -268,7 +268,7 @@ public class Server {
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
 
-                logger.log(Level.INFO, "Received unicast message: " + message);
+                logger.log(Level.INFO, "Received request: " + message);
                 processReceivedMessage(message);
             }
         } catch (IOException e) {
@@ -302,9 +302,7 @@ public class Server {
                 sendIPOfPrevNodes(nodeIP, indication);
                 break;
             case "GET_IP_FROM_ID":
-                int nextID = Integer.parseInt(parts[2]);
-                String nextIP = getIPFromID(nextID);
-                helpMethods.sendUnicast("IP_FROM_ID", nodeIP, "IP_FROM_ID" + ":" + nextIP, Ports.unicastPort);
+                sendIPOfNextNode(nodeIP);
                 break;
         }
     }
@@ -342,12 +340,29 @@ public class Server {
         return hashes.get(indexPrevNode);
     }
 
+    private int getNextId(String IP){
+        ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
+        Collections.sort(hashes);
+
+        int index = hashes.indexOf(helpMethods.hash(IP));
+        int indexNextNode= (index+1) % hashes.size();
+
+        return hashes.get(indexNextNode);
+    }
+
 
     public void sendIPOfPrevNodes(String ip, String indication) {
         String ipOfPrev = nodesMap.get(getPreviousID(ip)).getHostName();
         String ipOf2Prev = nodesMap.get(getPreviousID(ipOfPrev)).getHostName();
         helpMethods.sendUnicast("Send IP of previous node and its previous node", ip,
                 "RIP:" + ipOfPrev + ":" + ipOf2Prev + ":" + indication, 9020);
+
+    }
+
+    public void sendIPOfNextNode(String ip) {
+        String ipOfNext = nodesMap.get(getNextId(ip)).getHostName();
+        helpMethods.sendUnicast("Send IP of next node", ip,
+                "IP_FROM_ID:" + ipOfNext + ":", 9020);
 
     }
 
