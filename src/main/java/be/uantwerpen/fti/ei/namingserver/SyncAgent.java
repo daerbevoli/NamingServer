@@ -31,11 +31,13 @@ public class SyncAgent implements Runnable, Serializable {
 
     private final Map<String, Boolean> filesMap; // Map to store filename and lock status
     private final Map<String, Boolean> nodeFileMap;
+    private final Map<String, Boolean> nodeLocalFiles;
     private final Node node;
     private volatile boolean running = false;
     private String nextNodeIP;
 
     public SyncAgent(Node node) {
+        this.nodeLocalFiles = getNodeLocalFiles();
         this.nodeFileMap = getNodeOwnedFiles();
         filesMap = Collections.synchronizedMap(new HashMap<>());
         this.node = node;
@@ -78,6 +80,10 @@ public class SyncAgent implements Runnable, Serializable {
 
     public synchronized Map<String, Boolean> getFilesMap(){
         return filesMap;
+    }
+
+    public synchronized Map<String, Boolean> getNodeLocalFiles(){
+        return helpMethods.getFilesWithLockStatus("/root/localFiles");
     }
 
     public synchronized void listFiles(Map<String, Boolean> fileMap){
@@ -169,6 +175,12 @@ public class SyncAgent implements Runnable, Serializable {
                 listFiles(nodeFileMap);
                 // update list (filesMap) with local files from the node (nodeFileMap) that it has replicated
                 filesMap.putAll(getNodeOwnedFiles());
+                // also add the local files that have not yet been replicated.
+                for (String filename : nodeFileMap.keySet()) {
+                    if (!filesMap.containsKey(filename)) {
+                        filesMap.put(filename, false);
+                    }
+                }
                 // Retrieve the next node's file map
                 // the synchronizeWithNextNode method is called in the Node class when the file map is received
                 getNextNodeFileMap();
