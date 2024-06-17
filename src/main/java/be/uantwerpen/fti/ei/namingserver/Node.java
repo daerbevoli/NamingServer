@@ -117,7 +117,7 @@ public class Node {
                 runSyncAgent(syncAgent);
             }
             try {
-                Thread.sleep(5000); // Periodic sync every 5 seconds
+                Thread.sleep(10000); // Periodic sync every 10 seconds
             } catch (InterruptedException e) {
                 logger.log(Level.WARNING, "Periodic sync interrupted", e);
                 Thread.currentThread().interrupt();

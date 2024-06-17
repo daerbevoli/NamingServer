@@ -160,12 +160,10 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        while (running) {
             if (node.getNumOfNodes() >= 1) {
                 if (nextNodeIP == null) {
                     logger.log(Level.WARNING, "Next node IP is null, cannot synchronize");
                     stop();
-                    continue;
                 }
                 logger.log(Level.INFO, "Node files:");
                 listFiles(nodeFileMap);
@@ -204,4 +202,4 @@ public class SyncAgent implements Runnable, Serializable {
             }
         }
     }
-}
+
