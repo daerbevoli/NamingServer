@@ -363,7 +363,7 @@ public class Server {
         String ipOfNext = nodesMap.get(getNextId(ip)).getHostAddress();
         logger.log(Level.INFO, "Sending IP of next node: " + ipOfNext);
         helpMethods.sendUnicast("Send IP of next node", ip,
-                "IP_FROM_ID:" + ipOfNext + ":", Ports.nextNodeIPPort );
+                "IP_FROM_ID" + ":" + ipOfNext + ":", Ports.nextNodeIPPort );
 
     }
 

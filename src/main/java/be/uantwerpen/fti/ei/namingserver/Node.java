@@ -159,7 +159,7 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        new Thread(syncAgent).start();
+        //new Thread(syncAgent).start();
         //syncAgent.start();
         syncAgent.run();
     }
@@ -186,7 +186,7 @@ public class Node {
 
     private String getNextIPFromID() {
         try {
-            helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID" + ":" + IP , Ports.nextNodeIPPort);
+            helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID" + ":" + IP , Ports.unicastPort);
             return nextNodeIP;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Unable to get IP from ID", e);
