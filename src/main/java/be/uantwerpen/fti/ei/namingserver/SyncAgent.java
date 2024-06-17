@@ -34,7 +34,7 @@ public class SyncAgent implements Runnable, Serializable {
     private final Map<String, Boolean> nodeLocalFiles;
     private final Node node;
     private volatile boolean running = false;
-    private String nextNodeIP;
+    public String nextNodeIP;
 
     public SyncAgent(Node node) {
         this.nodeLocalFiles = getNodeLocalFiles();

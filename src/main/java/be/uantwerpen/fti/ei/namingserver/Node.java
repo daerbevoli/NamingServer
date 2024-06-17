@@ -441,6 +441,7 @@ public class Node {
     private void processNextNodeIPResponse(String message) {
         String[] parts = message.split(":");
         this.nextNodeIP = parts[1];
+        syncAgent.nextNodeIP = nextNodeIP;
     }
 
     private void processRequestFileMap(String message) {
