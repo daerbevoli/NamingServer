@@ -43,7 +43,13 @@ public class SyncAgent implements Runnable, Serializable {
     }
 
     public synchronized void updateNextNodeIP() {
-        this.nextNodeIP = node.getNextNodeIP();
+        String nextnodeIP = node.getNextNodeIP();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            logger.log(Level.WARNING, "Error while sleeping", e);
+        }
+        this.nextNodeIP = nextnodeIP;
         if (nextNodeIP != null) {
             logger.log(Level.INFO, "Next node IP updated to: " + nextNodeIP);
         } else {
