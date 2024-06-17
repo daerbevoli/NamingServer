@@ -137,8 +137,6 @@ public class SyncAgent implements Runnable, Serializable {
             String purpose = "Requesting File Map";
             logger.log(Level.INFO, "Node: " + node.getIP() + "Requesting file map from next node with IP: " + nextNodeIP);
             helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP" + ":" + node.getIP(), Ports.reqPort);
-        } else {
-            logger.log(Level.WARNING, "Next node IP is null, cannot request file map");
         }
     }
 
@@ -152,7 +150,7 @@ public class SyncAgent implements Runnable, Serializable {
     public void notifyNextNode() {
         if (nextNodeIP != null) {
             helpMethods.sendUnicast("Notify next node to synchronize", node.getnextID(), "SYNC_REQUEST", Ports.syncPort);
-        }
+           }
     }
 
     @Override
@@ -188,7 +186,6 @@ public class SyncAgent implements Runnable, Serializable {
                 nodeFileMap.putAll(filesMap);
                 // notify the next node to synchronize
                 notifyNextNode();
-                logger.log(Level.INFO, "Next Sync agent notified to synchronize");
                 stop();
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)

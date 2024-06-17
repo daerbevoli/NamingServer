@@ -160,7 +160,7 @@ public class Node {
 
     public void runSyncAgent(SyncAgent syncAgent) {
         new Thread(syncAgent).start();
-        syncAgent.start();
+        //syncAgent.start();
         syncAgent.run();
     }
 
