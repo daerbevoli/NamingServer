@@ -132,7 +132,7 @@ public class Node {
 
     private synchronized void updateNextNodeIPIfNeeded() {
         if (nextNodeIP == null || nextNodeIP.isEmpty()) {
-            syncAgent.updateNextNodeIP();
+            getNextIPFromID();
         }
     }
 
@@ -184,13 +184,11 @@ public class Node {
         return Integer.toString(nextID);
     }
 
-    private String getNextIPFromID() {
+    private void getNextIPFromID() {
         try {
             helpMethods.sendUnicast("Requesting IP from ID", serverIP, "GET_IP_FROM_ID" + ":" + IP , Ports.unicastPort);
-            return nextNodeIP;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Unable to get IP from ID", e);
-            return null;
         }
     }
 
@@ -441,6 +439,7 @@ public class Node {
     private void processNextNodeIPResponse(String message) {
         String[] parts = message.split(":");
         this.nextNodeIP = parts[1];
+        logger.log(Level.INFO, "Next node IP received: " + nextNodeIP);
         syncAgent.nextNodeIP = nextNodeIP;
     }
 

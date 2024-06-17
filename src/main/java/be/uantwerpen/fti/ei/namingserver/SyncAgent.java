@@ -45,16 +45,7 @@ public class SyncAgent implements Runnable, Serializable {
     }
 
     public synchronized void updateNextNodeIP() {
-        String nextnodeIP = node.getNextNodeIP();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            logger.log(Level.WARNING, "Error while sleeping", e);
-        }
-        this.nextNodeIP = nextnodeIP;
-        if (nextNodeIP != null) {
-            logger.log(Level.INFO, "Next node IP updated to: " + nextNodeIP);
-        }
+        this.nextNodeIP = node.getNextNodeIP();
     }
     public synchronized void addFile(String filename) {
         filesMap.put(filename, false);
@@ -147,7 +138,7 @@ public class SyncAgent implements Runnable, Serializable {
     // Method to notify the next node to synchronize
     public void notifyNextNode() {
         if (nextNodeIP != null) {
-            helpMethods.sendUnicast("Notify next node to synchronize", node.getnextID(), "SYNC_REQUEST", Ports.syncPort);
+            helpMethods.sendUnicast("Notify next node to synchronize", nextNodeIP, "SYNC_REQUEST", Ports.syncPort);
            }
     }
 
