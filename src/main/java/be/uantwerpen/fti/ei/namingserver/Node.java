@@ -194,7 +194,8 @@ public class Node {
         while (numOfNodes == 0) {                                       // delay until receiving numofnodes from the server
             i=(i+1)%300000;
             if(i==1){
-                System.out.println("Waiting for numofnodes > 0");}
+                //System.out.println("Waiting for numofnodes > 0");
+            }
         }
         if (numOfNodes > 1) {
             logger.log(Level.INFO, "Condition met to start TCP connection");
@@ -479,7 +480,7 @@ public class Node {
     }
 
     private void processSyncRequest() {
-        new Thread(syncAgent).start();
+        //new Thread(syncAgent).start();
         syncAgent.start();
         syncAgent.run();
     }
