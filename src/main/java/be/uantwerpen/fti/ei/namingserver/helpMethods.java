@@ -79,7 +79,7 @@ public class helpMethods {
     public static void sendUnicast(String purpose, String targetIP, String message, int port) {
         try (DatagramSocket socket = new DatagramSocket(null)) {
 
-            logger.log(Level.INFO,"Connected to unicast send socket: " + purpose);
+            //logger.log(Level.INFO,"Connected to unicast send socket: " + purpose);
 
             byte[] buffer = message.getBytes();
 

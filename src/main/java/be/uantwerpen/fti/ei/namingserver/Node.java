@@ -102,13 +102,14 @@ public class Node {
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
         executor.submit(() -> receiveUnicast("File Map request purpose", Ports.reqPort));
         executor.submit(() -> receiveUnicast("Next Node IP purpose", Ports.nextNodeIPPort));
-        executor.submit(this::periodicSync);
+        //executor.submit(this::periodicSync);
         executor.submit(() -> receiveFileMap());
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
     }
+
 
     public void periodicSync() {
         while (true) {
@@ -624,7 +625,6 @@ public class Node {
     private void updateHashShutdown(int prevID, int nxtID) {
         if (currentID == prevID) {
             nextID = nxtID;
-            syncAgent.updateNextNodeIP();
         }
         if (currentID == nxtID){
             previousID = prevID;
@@ -647,7 +647,6 @@ public class Node {
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
-            syncAgent.updateNextNodeIP();
             sendNodeResponse(true, IP, oldNext);
             logger.log(Level.INFO, "Next ID updated to: " + nextID + "And next IP updated to: " + nextNodeIP);
         }
