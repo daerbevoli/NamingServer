@@ -181,9 +181,14 @@ public class SyncAgent implements Runnable, Serializable {
                 getNextNodeFileMap();
                 // Update the node's file list based on the agent's list
                 nodeFileMap.putAll(filesMap);
-                // notify the next node to synchronize
-                notifyNextNode();
+                // wait and then notify the next node to synchronize
                 stop();
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    logger.log(Level.WARNING, "Error while sleeping", e);
+                }
+                notifyNextNode();
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
         String fileToLock = "example.txt"; // Example file name, replace with actual logic
