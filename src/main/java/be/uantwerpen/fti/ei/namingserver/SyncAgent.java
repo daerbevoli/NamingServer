@@ -35,6 +35,9 @@ public class SyncAgent implements Runnable, Serializable {
     private final Node node;
     private volatile boolean running = false;
     public volatile String nextNodeIP;
+    private volatile long lastRunTime = 0; // Track the last run time
+    private static final long COOLDOWN_PERIOD = 20000; // Cooldown period of 20 seconds
+
 
     public SyncAgent(Node node) {
         this.nodeLocalFiles = getNodeLocalFiles();
@@ -154,6 +157,11 @@ public class SyncAgent implements Runnable, Serializable {
     @Override
     public void run() {
             if (node.getNumOfNodes() >= 1) {
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastRunTime < COOLDOWN_PERIOD) {
+                    logger.log(Level.INFO, "SyncAgent is in cooldown period. Skipping this sync cycle.");
+                    return;
+                }
                 if (nextNodeIP == null) {
                     logger.log(Level.WARNING, "Next node IP is null, cannot synchronize");
                     stop();
