@@ -74,6 +74,7 @@ public class Node {
 
         // Initialize the sync agent
         syncAgent = new SyncAgent(this);
+        new Thread(syncAgent).start();
 
         // Initialize the files map with the files in the replicated folder
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
@@ -131,7 +132,6 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        new Thread(syncAgent).start();
         syncAgent.start();
         syncAgent.run();
     }

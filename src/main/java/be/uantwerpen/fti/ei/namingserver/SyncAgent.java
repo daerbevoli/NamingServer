@@ -188,7 +188,7 @@ public class SyncAgent implements Runnable, Serializable {
 
             // Sleep before next synchronization
             try {
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 logger.log(Level.WARNING, "Sync agent interrupted", e);
@@ -200,7 +200,7 @@ public class SyncAgent implements Runnable, Serializable {
             // Sleep until the numofnodes is more than 1
             // Sleep before next synchronization and try to start again
             try {
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 logger.log(Level.WARNING, "Sync agent interrupted", e);
