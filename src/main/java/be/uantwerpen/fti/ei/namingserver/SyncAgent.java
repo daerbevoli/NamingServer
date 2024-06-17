@@ -156,7 +156,6 @@ public class SyncAgent implements Runnable, Serializable {
     public void run() {
         while (running) {
             if (node.getNumOfNodes() >= 1) {
-                updateNextNodeIP();
                 if (nextNodeIP == null) {
                     logger.log(Level.WARNING, "Next node IP is null, cannot synchronize");
                     stop();
