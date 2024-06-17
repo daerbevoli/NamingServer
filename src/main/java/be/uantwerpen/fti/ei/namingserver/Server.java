@@ -60,7 +60,6 @@ public class Server {
 
         // Listen to unicast messages from nodes
         executor.submit(this::receiveUnicast);
-        executor.submit(this::receiveRequest);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
@@ -255,26 +254,6 @@ public class Server {
         }
     }
 
-    // Receive unicast message from a node
-    // It then processes the message
-    public void receiveRequest() {
-        try (DatagramSocket socket = new DatagramSocket(Ports.nextNodeIPPort)) {
-            logger.log(Level.INFO, "Connected to unicast receive socket");
-
-            byte[] buffer = new byte[512];
-
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-
-                logger.log(Level.INFO, "Received request: " + message);
-                processReceivedMessage(message);
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "unable to open server unicast socket", e);
-        }
-    }
 
 
 

@@ -117,10 +117,6 @@ public class SyncAgent implements Runnable, Serializable {
         }
     }
 
-    private Map<String, Boolean> getNodeFileMap(){
-        return nodeFileMap;
-    }
-
     /*
     Method to communicate with the next node and retrieve it's fileMap
      */

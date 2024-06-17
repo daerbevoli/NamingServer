@@ -451,7 +451,7 @@ public class Node {
             // Serialize the file map o a byte array
             byte[] serializedData = helpMethods.serializeObject(fileMap);
             // Send the serialized file map
-            helpMethods.sendFileMap("Sending filemap from 'next node's SA' to requester SA", requesterIP, serializedData, Ports.fmPort);
+            helpMethods.sendFileMap("Sending filemap from " + IP + " to " + requesterIP, requesterIP, serializedData, Ports.fmPort);
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error sending file map to requester", e);
         }
