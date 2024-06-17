@@ -547,7 +547,7 @@ public class Node {
         String[] parts = msg.split(":");
         String prevHost = parts[1];
         String prev2Host = parts[2];
-
+        System.out.println("prev: "+prevHost+";prevprev: "+prev2Host);
         try {
             ft.stopListening();
 
