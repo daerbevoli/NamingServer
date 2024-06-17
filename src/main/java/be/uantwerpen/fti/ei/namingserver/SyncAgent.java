@@ -34,7 +34,7 @@ public class SyncAgent implements Runnable, Serializable {
     private final Map<String, Boolean> nodeLocalFiles;
     private final Node node;
     private volatile boolean running = false;
-    public String nextNodeIP;
+    public volatile String nextNodeIP;
 
     public SyncAgent(Node node) {
         this.nodeLocalFiles = getNodeLocalFiles();
@@ -54,8 +54,6 @@ public class SyncAgent implements Runnable, Serializable {
         this.nextNodeIP = nextnodeIP;
         if (nextNodeIP != null) {
             logger.log(Level.INFO, "Next node IP updated to: " + nextNodeIP);
-        } else {
-            logger.log(Level.WARNING, "Next node IP is null, cannot update next node IP");
         }
     }
     public synchronized void addFile(String filename) {
