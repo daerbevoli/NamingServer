@@ -90,6 +90,7 @@ public class SyncAgent implements Runnable, Serializable {
     }
 
     public synchronized void start() {
+        updateNextNodeIP();
         running = true;
     }
 
@@ -155,6 +156,7 @@ public class SyncAgent implements Runnable, Serializable {
     public void run() {
         if (node.getNumOfNodes() >= 1) {
         while (running) {
+            updateNextNodeIP();
             // list all the files that the node owns if it's empty print that the node has no files
             if (nodeFileMap.isEmpty()) {
                 System.out.println("Node owns no files");
@@ -166,11 +168,11 @@ public class SyncAgent implements Runnable, Serializable {
             filesMap.putAll(getNodeOwnedFiles());
             // Retrieve the next node's file map
             // the synchronizeWithNextNode method is called in the Node class when the file map is received
-            getNextNodeFileMap();
             // Update the node's file list based on the agent's list
             nodeFileMap.putAll(filesMap);
             // notify the next node to synchronize
             notifyNextNode();
+            logger.log(Level.INFO, "Next Sync agent notified to synchronize");
             stop(); // Stop the current sync agent from executing because the next one will start
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
@@ -188,6 +190,8 @@ public class SyncAgent implements Runnable, Serializable {
             // Sleep before next synchronization
             try {
                 Thread.sleep(5000);
+                // then start again
+                start();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 logger.log(Level.WARNING, "Sync agent interrupted", e);

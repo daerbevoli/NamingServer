@@ -132,6 +132,7 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
+        new Thread(syncAgent).start();
         syncAgent.start();
         syncAgent.run();
     }
@@ -487,6 +488,7 @@ public class Node {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
+            syncAgent.synchronizeWithNextNode(receivedFileMap);
             return receivedFileMap;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -496,6 +498,7 @@ public class Node {
     }
 
     private void processSyncRequest() {
+        new Thread(syncAgent).start();
         syncAgent.start();
         syncAgent.run();
     }
