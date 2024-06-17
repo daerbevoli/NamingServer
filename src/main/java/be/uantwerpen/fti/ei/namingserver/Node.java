@@ -102,7 +102,7 @@ public class Node {
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
         executor.submit(() -> receiveUnicast("File Map request purpose", Ports.reqPort));
         executor.submit(() -> receiveUnicast("Next Node IP purpose", Ports.nextNodeIPPort));
-        //executor.submit(this::periodicSync);
+        executor.submit(this::periodicSync);
         executor.submit(() -> receiveFileMap());
 
 
@@ -148,7 +148,7 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        new Thread(syncAgent).start();
+        //new Thread(syncAgent).start();
         syncAgent.start();
         syncAgent.run();
     }
