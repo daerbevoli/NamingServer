@@ -156,7 +156,7 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-            if (node.getNumOfNodes() >= 1) {
+            if (node.getNumOfNodes() > 1) {
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastRunTime < COOLDOWN_PERIOD) {
                     logger.log(Level.INFO, "SyncAgent is in cooldown period. Skipping this sync cycle.");
@@ -170,12 +170,6 @@ public class SyncAgent implements Runnable, Serializable {
                 //listFiles(nodeFileMap);
                 // update list (filesMap) with local files from the node (nodeFileMap) that it has replicated
                 filesMap.putAll(getNodeOwnedFiles());
-                // also add the local files that have not yet been replicated.
-                for (String filename : nodeLocalFiles.keySet()) {
-                    if (!filesMap.containsKey(filename)) {
-                        filesMap.put(filename, false);
-                    }
-                }
                 // Retrieve the next node's file map
                 // the synchronizeWithNextNode method is called in the Node class when the file map is received
                 getNextNodeFileMap();
@@ -202,14 +196,16 @@ public class SyncAgent implements Runnable, Serializable {
             Node.unlockFile(fileToLock);
         }*/
 
-            } else {
-                logger.log(Level.WARNING, "Only one node in the network, no need to sync");
-                // also add the local files that have not yet been replicated.
+            } else if (node.getNumOfNodes() == 1) {
+                // if you are the first node, add local files to the map because they won't be replicated
                 for (String filename : nodeLocalFiles.keySet()) {
                     if (!filesMap.containsKey(filename)) {
                         filesMap.put(filename, false);
                     }
                 }
+            } else {
+
+                logger.log(Level.WARNING, "Only one node in the network, no need to sync");
                 // Sleep until the numofnodes is more than 1
                 try {
                     Thread.sleep(5000);
