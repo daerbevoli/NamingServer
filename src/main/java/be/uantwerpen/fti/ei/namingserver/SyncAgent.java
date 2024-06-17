@@ -102,7 +102,7 @@ public class SyncAgent implements Runnable, Serializable {
     }
 
     public synchronized void start() {
-        updateNextNodeIP();
+        //updateNextNodeIP();
         running = true;
     }
 
