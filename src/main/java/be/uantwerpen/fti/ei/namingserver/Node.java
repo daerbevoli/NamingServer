@@ -148,7 +148,7 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        //new Thread(syncAgent).start();
+        new Thread(syncAgent).start();
         syncAgent.start();
         syncAgent.run();
     }
@@ -480,6 +480,7 @@ public class Node {
     }
 
     private void processSyncRequest() {
+
         runSyncAgent(syncAgent);
     }
 
