@@ -123,7 +123,7 @@ public class SyncAgent implements Runnable, Serializable {
     private void getNextNodeFileMap() {
         if (nextNodeIP != null) {
             String purpose = "Requesting File Map";
-            logger.log(Level.INFO, "Requesting file map from next node with IP: " + nextNodeIP);
+            logger.log(Level.INFO, "Node: " + node.getIP() + "Requesting file map from next node with IP: " + nextNodeIP);
             helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP" + ":" + node.getIP(), Ports.reqPort);
         } else {
             logger.log(Level.WARNING, "Next node IP is null, cannot request file map");
@@ -154,8 +154,9 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
+        if (!running) return; // Only run if the agent is marked as running
+
         if (node.getNumOfNodes() >= 1) {
-        while (running) {
             updateNextNodeIP();
             // list all the files that the node owns if it's empty print that the node has no files
             if (nodeFileMap.isEmpty()) {
@@ -168,6 +169,7 @@ public class SyncAgent implements Runnable, Serializable {
             filesMap.putAll(getNodeOwnedFiles());
             // Retrieve the next node's file map
             // the synchronizeWithNextNode method is called in the Node class when the file map is received
+            getNextNodeFileMap();
             // Update the node's file list based on the agent's list
             nodeFileMap.putAll(filesMap);
             // notify the next node to synchronize
@@ -187,26 +189,14 @@ public class SyncAgent implements Runnable, Serializable {
             Node.unlockFile(fileToLock);
         }*/
 
-            // Sleep before next synchronization
-            try {
-                Thread.sleep(5000);
-                // then start again
-                start();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.log(Level.WARNING, "Sync agent interrupted", e);
-            }
-        }
         }
         else {
             logger.log(Level.WARNING, "Only one node in the network, no need to sync");
             // Sleep until the numofnodes is more than 1
-            // Sleep before next synchronization and try to start again
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.log(Level.WARNING, "Sync agent interrupted", e);
+                logger.log(Level.WARNING, "Error while sleeping", e);
             }
         }
     }

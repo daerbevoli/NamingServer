@@ -488,7 +488,9 @@ public class Node {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
+            // Sync the received file map with the next node's file map
             syncAgent.synchronizeWithNextNode(receivedFileMap);
+            logger.log(Level.INFO, "File map synchronization started");
             return receivedFileMap;
         } catch (IOException e) {
             throw new RuntimeException(e);
