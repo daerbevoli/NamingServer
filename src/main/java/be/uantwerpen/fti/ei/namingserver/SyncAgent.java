@@ -162,6 +162,12 @@ public class SyncAgent implements Runnable, Serializable {
                     logger.log(Level.WARNING, "Next node IP is null, cannot synchronize");
                     stop();
                 }
+                // if you are the first node, add local files to the map because they won't be replicated
+                for (String filename : nodeLocalFiles.keySet()) {
+                    if (!filesMap.containsKey(filename)) {
+                        filesMap.put(filename, false);
+                    }
+                }
                 //logger.log(Level.INFO, "Node files:");
                 //listFiles(nodeFileMap);
                 // update list (filesMap) with local files from the node (nodeFileMap) that it has replicated
