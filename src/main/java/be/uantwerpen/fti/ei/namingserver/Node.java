@@ -496,6 +496,7 @@ public class Node {
     }
 
     private void processSyncRequest() {
+        syncAgent.start();
         syncAgent.run();
     }
 
