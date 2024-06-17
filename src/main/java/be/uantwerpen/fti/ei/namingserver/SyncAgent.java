@@ -151,7 +151,7 @@ public class SyncAgent implements Runnable, Serializable {
     // Method to notify the next node to synchronize
     public void notifyNextNode() {
         if (nextNodeIP != null) {
-            helpMethods.sendUnicast("Notify next node to synchronize", nextNodeIP, "SYNC_REQUEST", Ports.syncPort);
+            helpMethods.sendUnicast("Notify next node to synchronize", node.getnextID(), "SYNC_REQUEST", Ports.syncPort);
         }
     }
 

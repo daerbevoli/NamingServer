@@ -117,7 +117,7 @@ public class Node {
                 runSyncAgent(syncAgent);
             }
             try {
-                Thread.sleep(60000); // Periodic sync every 60 seconds
+                Thread.sleep(20000); // Periodic sync every 20 seconds
             } catch (InterruptedException e) {
                 logger.log(Level.WARNING, "Periodic sync interrupted", e);
                 Thread.currentThread().interrupt();
@@ -169,6 +169,9 @@ public class Node {
         return nextNodeIP;
     }
 
+    public String getnextID(){
+        return Integer.toString(nextID);
+    }
 
     private String getNextIPFromID() {
         try {
@@ -480,7 +483,6 @@ public class Node {
     }
 
     private void processSyncRequest() {
-
         runSyncAgent(syncAgent);
     }
 
