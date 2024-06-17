@@ -177,10 +177,10 @@ public class SyncAgent implements Runnable, Serializable {
                 getNextNodeFileMap();
                 // Update the node's file list based on the agent's list
                 nodeFileMap.putAll(filesMap);
-                // wait and then notify the next node to synchronize
+                // wait until you're done syncing and then notify the next node to synchronize
                 stop();
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     logger.log(Level.WARNING, "Error while sleeping", e);
                 }
