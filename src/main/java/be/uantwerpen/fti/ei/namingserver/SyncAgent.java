@@ -205,6 +205,12 @@ public class SyncAgent implements Runnable, Serializable {
 
             } else {
                 logger.log(Level.WARNING, "Only one node in the network, no need to sync");
+                // also add the local files that have not yet been replicated.
+                for (String filename : nodeLocalFiles.keySet()) {
+                    if (!filesMap.containsKey(filename)) {
+                        filesMap.put(filename, false);
+                    }
+                }
                 // Sleep until the numofnodes is more than 1
                 try {
                     Thread.sleep(5000);
