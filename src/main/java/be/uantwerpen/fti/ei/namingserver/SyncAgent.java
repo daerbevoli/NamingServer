@@ -154,28 +154,26 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        if (!running) return; // Only run if the agent is marked as running
-
-        if (node.getNumOfNodes() >= 1) {
-            updateNextNodeIP();
-            // list all the files that the node owns if it's empty print that the node has no files
-            if (nodeFileMap.isEmpty()) {
-                System.out.println("Node owns no files");
-            } else {
-                System.out.println("Node files:");
+        while (running) {
+            if (node.getNumOfNodes() >= 1) {
+                updateNextNodeIP();
+                if (nextNodeIP == null) {
+                    logger.log(Level.WARNING, "Next node IP is null, cannot synchronize");
+                    stop();
+                    continue;
+                }
+                logger.log(Level.INFO, "Node files:");
                 listFiles(nodeFileMap);
-            }
-            // update list (filesMap) with local files from the node (nodeFileMap) that it has replicated
-            filesMap.putAll(getNodeOwnedFiles());
-            // Retrieve the next node's file map
-            // the synchronizeWithNextNode method is called in the Node class when the file map is received
-            getNextNodeFileMap();
-            // Update the node's file list based on the agent's list
-            nodeFileMap.putAll(filesMap);
-            // notify the next node to synchronize
-            notifyNextNode();
-            logger.log(Level.INFO, "Next Sync agent notified to synchronize");
-            stop(); // Stop the current sync agent from executing because the next one will start
+                // update list (filesMap) with local files from the node (nodeFileMap) that it has replicated
+                filesMap.putAll(getNodeOwnedFiles());
+                // Retrieve the next node's file map
+                // the synchronizeWithNextNode method is called in the Node class when the file map is received
+                getNextNodeFileMap();
+                // Update the node's file list based on the agent's list
+                nodeFileMap.putAll(filesMap);
+                // notify the next node to synchronize
+                notifyNextNode();
+                logger.log(Level.INFO, "Next Sync agent notified to synchronize");
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
         String fileToLock = "example.txt"; // Example file name, replace with actual logic
@@ -189,16 +187,15 @@ public class SyncAgent implements Runnable, Serializable {
             Node.unlockFile(fileToLock);
         }*/
 
-        }
-        else {
-            logger.log(Level.WARNING, "Only one node in the network, no need to sync");
-            // Sleep until the numofnodes is more than 1
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                logger.log(Level.WARNING, "Error while sleeping", e);
+            } else {
+                logger.log(Level.WARNING, "Only one node in the network, no need to sync");
+                // Sleep until the numofnodes is more than 1
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    logger.log(Level.WARNING, "Error while sleeping", e);
+                }
             }
         }
     }
-
 }

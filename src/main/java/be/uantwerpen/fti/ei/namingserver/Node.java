@@ -81,7 +81,7 @@ public class Node {
 
 
         // Initialization of the executor with a pool of 10 threads
-        executor = Executors.newFixedThreadPool(14);
+        executor = Executors.newFixedThreadPool(16);
         runFunctionsOnThreads();
 
     }
@@ -102,11 +102,26 @@ public class Node {
         executor.submit(() -> ft.receiveFiles( "/root/replicatedFiles"));
         executor.submit(() -> receiveUnicast("File Map request purpose", Ports.reqPort));
         executor.submit(() -> receiveUnicast("Next Node IP purpose", Ports.nextNodeIPPort));
+        executor.submit(this::periodicSync);
         executor.submit(() -> receiveFileMap());
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
+    }
+
+    public void periodicSync() {
+        while (true) {
+            if (numOfNodes > 1) {
+                runSyncAgent(syncAgent);
+            }
+            try {
+                Thread.sleep(5000); // Periodic sync every 5 seconds
+            } catch (InterruptedException e) {
+                logger.log(Level.WARNING, "Periodic sync interrupted", e);
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /*
