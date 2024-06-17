@@ -179,6 +179,7 @@ public class SyncAgent implements Runnable, Serializable {
                 // notify the next node to synchronize
                 notifyNextNode();
                 logger.log(Level.INFO, "Next Sync agent notified to synchronize");
+                stop();
 
         /*// Example of handling a lock request (this should be integrated with actual lock handling logic)
         String fileToLock = "example.txt"; // Example file name, replace with actual logic
