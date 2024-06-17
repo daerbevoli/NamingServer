@@ -114,7 +114,12 @@ public class Node {
     public void periodicSync() {
         while (true) {
             if (numOfNodes > 1) {
-                runSyncAgent(syncAgent);
+                updateNextNodeIPIfNeeded();
+                if (syncAgent.isRunning()) {
+                    logger.log(Level.INFO, "SyncAgent is already running. Skipping this sync cycle.");
+                } else {
+                    runSyncAgent(syncAgent);
+                }
             }
             try {
                 Thread.sleep(20000); // Periodic sync every 20 seconds
@@ -122,6 +127,12 @@ public class Node {
                 logger.log(Level.WARNING, "Periodic sync interrupted", e);
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    private synchronized void updateNextNodeIPIfNeeded() {
+        if (nextNodeIP == null || nextNodeIP.isEmpty()) {
+            syncAgent.updateNextNodeIP();
         }
     }
 

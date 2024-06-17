@@ -219,5 +219,9 @@ public class SyncAgent implements Runnable, Serializable {
                 }
             }
         }
+
+    public boolean isRunning() {
+        return running;
     }
+}
 
