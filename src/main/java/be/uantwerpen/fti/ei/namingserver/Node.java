@@ -413,13 +413,6 @@ public class Node {
         else if (message.startsWith("LOG")) {
             processCreateLog(message);
         }
-        else if (message.startsWith("RIP")) {
-            String[] parts = message.split(":");
-            if (parts[2].equals("A")){
-                processAgent(message);
-            }
-            sendReplicatedFilesShutdown(message);
-        }
         else if (message.startsWith("REQUEST_FILE_MAP")) { // File map of the next node being requested
             processRequestFileMap(message);
         }
@@ -434,36 +427,6 @@ public class Node {
         String[] parts = message.split(":");
         this.nextNodeIP = parts[1];
     }
-
-    /**
-     * Possible way to receive previous agents fileMap. When the indication is 'A', the method is called and
-     * the previous hostname is extracted. We serialize the agent, send it as serialized data to the previous node,
-     * the previous node receives this and deserializes it and gets its fileMap.
-     * Unable to test but doubt that it works.
-     * @param message Message with the two previous hosts.
-     * @throws IOException
-     */
-
-    private void processAgent(String message) throws IOException {
-        SyncAgent receivedAgent;
-        String previousIP = message.split(":")[1];
-        try {
-            // Serialize object to byte array
-            byte[] serializedData = helpMethods.serializeObject(syncAgent);
-
-            // Here you can send 'serializedData' over the network or save it to a file
-            helpMethods.sendUnicast("Send agent", previousIP, Arrays.toString(serializedData), 8600);
-            executor.submit(() -> receiveUnicast("receive agent", 8700));
-
-            // Deserialize byte array back to object
-            byte[] receivedData = message.getBytes();
-            receivedAgent = (SyncAgent) helpMethods.deserializeObject(receivedData);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        nextFileMap =  receivedAgent.getFilesMap();
-    }
-
 
     private void processRequestFileMap(String message) {
         String requesterIP = message.split(":")[1];

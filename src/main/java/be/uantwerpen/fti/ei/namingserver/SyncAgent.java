@@ -176,7 +176,7 @@ public class SyncAgent implements Runnable, Serializable {
                 // update list (filesMap) with local files from the node (nodeFileMap) that it has replicated
                 filesMap.putAll(getNodeOwnedFiles());
                 // also add the local files that have not yet been replicated.
-                for (String filename : nodeFileMap.keySet()) {
+                for (String filename : nodeLocalFiles.keySet()) {
                     if (!filesMap.containsKey(filename)) {
                         filesMap.put(filename, false);
                     }
