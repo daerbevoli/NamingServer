@@ -82,7 +82,7 @@ public class Node {
 
 
         // Initialization of the executor with a pool of 10 threads
-        executor = Executors.newFixedThreadPool(10);
+        executor = Executors.newFixedThreadPool(14);
         runFunctionsOnThreads();
 
     }
