@@ -8,7 +8,6 @@ import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.tomcat.jni.FileInfo;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -75,7 +74,6 @@ public class Node {
 
         // Initialize the sync agent
         syncAgent = new SyncAgent(this);
-        new Thread(syncAgent).start();
 
         // Initialize the files map with the files in the replicated folder
         //filesMap.putAll(helpMethods.getFilesWithLockStatus("/root/replicatedFiles"));
@@ -133,7 +131,8 @@ public class Node {
     }
 
     public void runSyncAgent(SyncAgent syncAgent) {
-        syncAgent.run();
+        new Thread(syncAgent).start();
+        //syncAgent.start();
     }
 
     // Method to get the replicated (owned) files of this node
@@ -229,7 +228,6 @@ public class Node {
         handleFailure(this);
         // stop the syncagent
         syncAgent.stop();
-
         executor.shutdown();
     }
     // FAILURE can be handled with a "heartbeat" mechanism
@@ -484,13 +482,11 @@ public class Node {
         }
     }
 
-    private void processFileMapMessage(byte[] receivedData) {
+    private Map<String, Boolean> processFileMapMessage(byte[] receivedData) {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Boolean> receivedFileMap = (Map<String, Boolean>) helpMethods.deserializeObject(receivedData);
-            syncAgent.synchronizeWithNextNode(receivedFileMap);
-            logger.log(Level.INFO, "File map processed from 'next node'");
-            syncAgent.notifyNextNode(); // Notify the next node to synchronize
+            return receivedFileMap;
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
@@ -498,8 +494,12 @@ public class Node {
         }
     }
 
-        private void processSyncRequest() {
-        new Thread(syncAgent::run).start();
+    private void processSyncRequest() {
+        syncAgent.run();
+    }
+
+    public int getNumOfNodes() {
+        return numOfNodes;
     }
 
     // Process the message received from the multicast
@@ -596,12 +596,13 @@ public class Node {
             logger.log(Level.WARNING, "Error creating JSON object", e);
         }
 
-       replicationComplete = true;
+        replicationComplete = true;
     }
 
     private void updateHashShutdown(int prevID, int nxtID) {
         if (currentID == prevID) {
             nextID = nxtID;
+            syncAgent.updateNextNodeIP();
         }
         if (currentID == nxtID){
             previousID = prevID;
@@ -624,6 +625,7 @@ public class Node {
         if ((currentID < receivedHash && receivedHash < nextID) || currentID==nextID|| (nextID<currentID && (receivedHash>currentID || receivedHash<nextID) )){
             int oldNext= nextID;
             nextID = receivedHash;
+            syncAgent.updateNextNodeIP();
             sendNodeResponse(true, IP, oldNext);
             logger.log(Level.INFO, "Next ID updated to: " + nextID + "And next IP updated to: " + nextNodeIP);
         }
@@ -645,9 +647,9 @@ public class Node {
         int port = 5231;
         try (Socket cSocket = new Socket(nodeIP, port);
              DataOutputStream out = new DataOutputStream(cSocket.getOutputStream())) {
-             String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
-             out.writeUTF(msg);
-             out.flush();
+            String msg = replacedNext ? "NEXT:" + replacedHash + ":" + currentID : "PREV:" + replacedHash + ":" + currentID;
+            out.writeUTF(msg);
+            out.flush();
         }
     }
 
