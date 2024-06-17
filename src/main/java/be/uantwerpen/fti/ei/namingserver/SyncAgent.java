@@ -153,8 +153,7 @@ public class SyncAgent implements Runnable, Serializable {
 
     @Override
     public void run() {
-        if (!running) return;
-        if (node.getNumOfNodes() > 1) {
+        if (node.getNumOfNodes() >= 1) {
         while (running) {
             // list all the files that the node owns if it's empty print that the node has no files
             if (nodeFileMap.isEmpty()) {
