@@ -111,7 +111,7 @@ public class SyncAgent implements Runnable, Serializable {
         if (nextNodeIP != null) {
             String purpose = "Requesting File Map";
             logger.log(Level.INFO, "Requesting file map from next node with IP: " + nextNodeIP);
-            helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP:" + node.getIP(), Ports.reqPort);
+            helpMethods.sendUnicast(purpose, nextNodeIP, "REQUEST_FILE_MAP" + ":" + node.getIP(), Ports.reqPort);
         } else {
             logger.log(Level.WARNING, "Next node IP is null, cannot request file map");
         }
