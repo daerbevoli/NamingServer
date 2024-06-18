@@ -45,7 +45,7 @@ public class Node {
     private Map<String, Boolean> nextFileMap = new HashMap<>();
 
     public Node() {
-        this.IP = helpMethods.findLocalIP();
+        this.IP = Utils.findLocalIP();
         logger.log(Level.INFO, "node IP: " + IP);
 
         try {
@@ -102,7 +102,7 @@ public class Node {
     to work.
      */
     public void sendAgent(){
-        helpMethods.sendUnicast("retrieve next host", serverIP, "AIP:" + IP + ":A", Ports.unicastPort);
+        Utils.sendUnicast("retrieve next host", serverIP, "AIP:" + IP + ":A", Ports.unicastPort);
         executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
     }
 
@@ -126,7 +126,7 @@ public class Node {
     private void Bootstrap() {
 
         String message = "BOOTSTRAP" + ":" + IP + ":" + currentID;
-        helpMethods.sendMulticast("send bootstrap", message, 3000);
+        Utils.sendMulticast("send bootstrap", message, 3000);
 
         logger.log(Level.INFO, "Received own bootstrap, my ID: " + currentID + "\nMy number of nodes=" + numOfNodes);
         int i=0;
@@ -159,14 +159,14 @@ public class Node {
         if(fileLog.exists() && numOfNodes > 2)
         {
             executor.submit(() -> receiveUnicast("Get Previous IPs", 9020));
-            helpMethods.sendUnicast("Acquiring IP of copied node", serverIP, "AIP:" + IP + ":X", Ports.unicastPort);
+            Utils.sendUnicast("Acquiring IP of copied node", serverIP, "AIP:" + IP + ":X", Ports.unicastPort);
             while (!finishSending)
             {
             }
         }
-        helpMethods.sendMulticast("Shutdown", message, 3000);
-        helpMethods.clearFolder("/root/replicatedFiles");
-        helpMethods.clearFolder("/root/logs");
+        Utils.sendMulticast("Shutdown", message, 3000);
+        Utils.clearFolder("/root/replicatedFiles");
+        Utils.clearFolder("/root/logs");
 
         // handle Failure and start Failure agent
         handleFailure(this);
@@ -209,7 +209,7 @@ public class Node {
         String message = "REPORT" + ":" + IP + ":" + fileHash + ":" + filename;
         String purpose = "Reporting file hashes to server";
 
-        helpMethods.sendUnicast(purpose, serverIP, message, Ports.unicastPort);
+        Utils.sendUnicast(purpose, serverIP, message, Ports.unicastPort);
     }
 
     private void watchFolder() {
@@ -362,15 +362,15 @@ public class Node {
         String previousIP = message.split(":")[1];
         try {
             // Serialize object to byte array
-            byte[] serializedData = helpMethods.serializeObject(agent);
+            byte[] serializedData = Utils.serializeObject(agent);
 
             // Here you can send 'serializedData' over the network or save it to a file
-            helpMethods.sendUnicast("Send agent", previousIP, Arrays.toString(serializedData), 8600);
+            Utils.sendUnicast("Send agent", previousIP, Arrays.toString(serializedData), 8600);
             executor.submit(() -> receiveUnicast("receive agent", 8700));
 
             // Deserialize byte array back to object
             byte[] receivedData = message.getBytes();
-            receivedAgent = (SyncAgent) helpMethods.deserializeObject(receivedData);
+            receivedAgent = (SyncAgent) Utils.deserializeObject(receivedData);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -624,18 +624,18 @@ public class Node {
                     System.out.println("previousID: " + previousID + ", currentID: " + currentID + ", nextID: " + nextID);
                     break;
                 case "local":
-                    helpMethods.getFiles("/root/localFiles");
+                    Utils.getFiles("/root/localFiles");
                     break;
                 case "replicate":
-                    helpMethods.getFiles("/root/replicatedFiles");
+                    Utils.getFiles("/root/replicatedFiles");
                     break;
                 case "log":
-                    helpMethods.getFiles("/root/logs");
-                    helpMethods.displayLogContents("/root/logs/fileLog.json");
+                    Utils.getFiles("/root/logs");
+                    Utils.displayLogContents("/root/logs/fileLog.json");
                 default:
                     if (command.startsWith("addFile ")) {
                         String filename = command.substring(8);
-                        helpMethods.addFile(filename, "/root/localFiles");
+                        Utils.addFile(filename, "/root/localFiles");
                         System.out.println(filename + " added.");
                     } else {
                         System.out.println("Invalid command.");

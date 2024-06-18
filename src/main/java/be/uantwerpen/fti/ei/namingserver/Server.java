@@ -38,7 +38,7 @@ public class Server {
 
     // Constructor to read the starting data from the JSON file
     public Server(){
-        this.IP = helpMethods.findLocalIP();
+        this.IP = Utils.findLocalIP();
         logger.log(Level.INFO, "Server IP: " + IP);
 
         nodesMap.clear(); // clear the map when server starts up
@@ -97,7 +97,7 @@ public class Server {
         }
 
         // If host is target, return previous id
-        if (helpMethods.hash(sameIP) == replNodeId){
+        if (Utils.hash(sameIP) == replNodeId){
             return getPreviousID(nodesMap.get(replNodeId).getHostName());
         } else {
             return replNodeId;
@@ -111,7 +111,7 @@ public class Server {
         boolean nodeAdded = false;
         logger.log(Level.INFO, "Attempting to add node with IP: " + ip);
         readJSONIntoMap();
-        int id = helpMethods.hash(ip);
+        int id = Utils.hash(ip);
         if (nodesMap.containsKey(id)) {
             logger.log(Level.INFO, ip + "already in the network");
         } else {
@@ -132,7 +132,7 @@ public class Server {
     public boolean removeNode(String ip){
         boolean nodeRemoved  = false;
         readJSONIntoMap();
-        int id = helpMethods.hash(ip);
+        int id = Utils.hash(ip);
         if (nodesMap.containsKey(id)) {
             nodesMap.remove(id);
             nodeRemoved = true;
@@ -145,7 +145,7 @@ public class Server {
     public String getFileHost(String filename){
         String host = "";
         // get the hash of the filename
-        int fileHash = helpMethods.hash(filename);
+        int fileHash = Utils.hash(filename);
         try {
             // calculate node ID
             int nodeID = nodeOfFile(fileHash, IP);
@@ -261,7 +261,7 @@ public class Server {
         switch (command) {
             case "BOOTSTRAP":
                 addNode(nodeIP);
-                helpMethods.sendUnicast("send number of nodes", nodeIP,
+                Utils.sendUnicast("send number of nodes", nodeIP,
                         "NUMNODES" + ":" + nodesMap.size(), Ports.nnPort);
                 break;
             case "SHUTDOWN":
@@ -293,21 +293,21 @@ public class Server {
 
         String logMessage = "LOG" + ":" + nodeIP + ":" + filename + ":" + fileHash;
 
-        helpMethods.sendUnicast("file replication", nodeIP, replicateMessage, Ports.replPort);
+        Utils.sendUnicast("file replication", nodeIP, replicateMessage, Ports.replPort);
 
         // Log the ownership of the file
         logger.log(Level.INFO, "Replication Node: " + replicatedNodeIP.getHostName() + " " +
                 "now owns file with filename: " + filename + " and hash: " + fileHash);
 
         // Notify the replicated node that it should create a file log
-        helpMethods.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, Ports.logPort);
+        Utils.sendUnicast("file log", replicatedNodeIP.getHostName(), logMessage, Ports.logPort);
     }
 
     private int getPreviousID(String IP){
         ArrayList<Integer> hashes = new ArrayList<>(nodesMap.keySet());
         Collections.sort(hashes);
 
-        int index = hashes.indexOf(helpMethods.hash(IP));
+        int index = hashes.indexOf(Utils.hash(IP));
         int indexPrevNode= (index-1) >= 0 ? (index-1) : hashes.size() + (index-1);
 
         return hashes.get(indexPrevNode);
@@ -316,7 +316,7 @@ public class Server {
     public void sendIPOfPrevNodes(String ip, String indication) {
         String ipOfPrev = nodesMap.get(getPreviousID(ip)).getHostName();
         String ipOf2Prev = nodesMap.get(getPreviousID(ipOfPrev)).getHostName();
-        helpMethods.sendUnicast("Send IP of previous node and its previous node", ip,
+        Utils.sendUnicast("Send IP of previous node and its previous node", ip,
                 "RIP:" + ipOfPrev + ":" + ipOf2Prev + ":" + indication, 9020);
 
     }

@@ -12,9 +12,9 @@ import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class helpMethods {
+public class Utils {
 
-    private static final Logger logger = Logger.getLogger(helpMethods.class.getName());
+    private static final Logger logger = Logger.getLogger(Utils.class.getName());
 
     // Hash function provided by the teachers
     public static int hash(String IP){
